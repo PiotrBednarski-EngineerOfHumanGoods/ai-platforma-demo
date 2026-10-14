@@ -56,7 +56,7 @@ Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentó
 | specjalista UX mobilnego | iPhone SE, iPhone 14, Pixel 7, jasny i ciemny | 22 poprawki na telefonie |
 | pentester | przegląd pod kątem ataków | brak luk krytycznych i wysokich, 5 poprawek |
 
-Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległe agenty, sprawdzanie przed oddaniem), skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
+Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległe agenty, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
 
 ### Gdzie trzymam klucze AI?
 

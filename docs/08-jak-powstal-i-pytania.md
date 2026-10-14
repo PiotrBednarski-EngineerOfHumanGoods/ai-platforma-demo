@@ -20,6 +20,7 @@ Jeden agent buduje, wyspecjalizowani agenci sprawdzają. Każdy dostaje wąskie 
 | Narzędzie | Do czego |
 |---|---|
 | Skille Superpowers | sposób pracy: planowanie przed kodem, systematyczne szukanie przyczyn błędów, równoległe agenty do niezależnych zadań, sprawdzanie wyników przed oddaniem |
+| Skill frontend-design | kierunek wizualny, typografia i projekt interfejsu strony startowej i aplikacji |
 | Skill `claude-api` | integracja z API Claude: modele, ceny, dobór modelu do pytania |
 | Własny skill `ai-security-checklist` | lista kontrolna przeglądu wdrożeń AI, w katalogu `skills/` |
 | Claude Design | paleta, typografia i projekt ekranów |
