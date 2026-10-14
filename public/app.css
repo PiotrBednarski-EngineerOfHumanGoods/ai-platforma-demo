@@ -325,3 +325,6 @@ a.hdr-brand{color:inherit;text-decoration:none}
 .mp-foot .mp-dot:last-of-type{margin-left:8px}
 @media (prefers-reduced-motion:reduce){.mp-list{animation:none}}
 #logs td:first-child,#logs .badge{white-space:nowrap}
+
+/* telefony: pola co najmniej 16px, inaczej iOS Safari przybliża ekran przy wpisywaniu (bez blokowania powiększenia) */
+@media (pointer:coarse){input,textarea,select,.input,.composer textarea{font-size:16px}}
