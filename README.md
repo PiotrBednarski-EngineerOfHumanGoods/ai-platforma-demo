@@ -20,6 +20,10 @@ Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale dzia
 
 Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na żywo działa prawdziwy model Claude z budżetem 3 USD miesięcznie; księgowość i zarząd celowo nie korzystają z chmury.
 
+## Jak to zbudowałem
+
+Z AI jako zespołem: Claude Code buduje, a wyspecjalizowani agenci sprawdzają (bezpieczeństwo, jakość kodu, UX, polszczyzna, UX mobilny, pentest). Każda poprawka błędu ma test. Pełna lista agentów, skilli, testów i automatyzacji oraz odpowiedzi na pytania o klucze, koszty, RODO i warianty bez API: [docs/08-jak-powstal-i-pytania.md](docs/08-jak-powstal-i-pytania.md).
+
 ## Gotowe do oddania klientowi
 
 | Obszar | Co jest zrobione | Gdzie |
@@ -55,6 +59,7 @@ Uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmi
 | [RODO: rejestr i ocena ryzyka](docs/06-rodo-rejestr-i-ocena-ryzyka.md) | inspektor ochrony danych, prawnik: rejestr czynności, środki techniczne, prawa osób, naruszenia, AI Act |
 | [Model zagrożeń](docs/07-model-zagrozen.md) | IT, bezpieczeństwo: ataki, zabezpieczenia, testy, ryzyka do zamknięcia |
 | [Polityka bezpieczeństwa](SECURITY.md) | wszyscy: jak zgłosić podatność |
+| [Jak powstał projekt i pytania, które mogą paść](docs/08-jak-powstal-i-pytania.md) | rekruter, klient: agenci AI, skille, testy, automatyzacje, odpowiedzi na typowe pytania |
 | [Koncepcja (PDF)](Platforma_AI_dla_firmy_wielodzialowej.pdf) | pełny opis rozwiązania |
 
 ## Uruchomienie (bez klucza API, 1 minuta)
