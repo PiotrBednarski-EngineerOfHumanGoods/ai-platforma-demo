@@ -3,113 +3,120 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Compax – asystent firmowy Nordica Serwis</title>
-<link rel="stylesheet" href="/app.css">
+<title>Compax – jeden asystent AI dla całej firmy</title>
+<meta name="description" content="Wspólna platforma AI dla firmy wielodziałowej: każdy dział widzi tylko swoje dokumenty, dane osobowe są maskowane przed modelem, a każdą akcję zatwierdza człowiek.">
+<link rel="stylesheet" href="/start.css">
+<script src="/start.js" defer></script>
 </head>
 <body>
-
-<div id="login" class="lg">
-  <div class="lg-col">
-    <main class="card">
-      <div class="brand">
-        <span class="brand-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.4 6.2A8.6 8.6 0 1 0 18.4 17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M16.2 7.8L12.9 12.9L11.1 11.1Z" fill="currentColor"></path><path d="M7.8 16.2L11.1 11.1L12.9 12.9Z" fill="currentColor" opacity=".5"></path></svg></span>
-        <span class="brand-name">Compax</span>
-        <span class="brand-sep" aria-hidden="true"></span>
-        <span class="brand-co">Nordica Serwis</span>
-      </div>
-      <h1>Zaloguj się</h1>
-      <p class="lead">Użyj danych firmowych, które otrzymałeś w wiadomości e-mail.</p>
-      <form class="form" id="loginForm" autocomplete="off">
-        <div class="field">
-          <label for="login-id">Login</label>
-          <input id="login-id" class="input" type="text" autocomplete="username" required>
-        </div>
-        <div class="field">
-          <label for="pw">Hasło</label>
-          <input id="pw" class="input" type="password" autocomplete="current-password" aria-describedby="loginErr" required>
-        </div>
-        <div class="bar" id="loginErr" role="alert"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m0 10.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5M10 6a.5.5 0 0 0-.5.41v4.68a.5.5 0 0 0 1 0V6.41A.5.5 0 0 0 10 6" fill="currentColor"></path></svg><span></span></div>
-        <div class="actions"><button class="btn btn-primary btn-lg" type="submit" id="loginBtn">Zaloguj</button></div>
-      </form>
-      <p class="help">Nie masz danych logowania lub nie pamiętasz hasła? Skontaktuj się z administratorem.</p>
-    </main>
-  </div>
-  <footer class="foot">Nordica Serwis Sp. z o.o. · serwis chłodnictwa i klimatyzacji · Gdańsk · <a href="/prywatnosc.html">Prywatność i zasady korzystania</a></footer>
-</div>
-
-<div id="app" class="app" hidden>
-  <header class="hdr">
-    <div class="hdr-brand">
-      <span class="hdr-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.4 6.2A8.6 8.6 0 1 0 18.4 17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M16.2 7.8L12.9 12.9L11.1 11.1Z" fill="currentColor"></path><path d="M7.8 16.2L11.1 11.1L12.9 12.9Z" fill="currentColor" opacity=".5"></path></svg></span>
-      <h1>Compax</h1>
-      <span class="hdr-sep" aria-hidden="true"></span>
-      <span class="hdr-co">Nordica Serwis</span>
-    </div>
-    <select class="provider" id="prov" aria-label="Dostawca AI"></select>
-    <div class="user">
-      <div class="user-text"><div class="user-name" id="who"></div><div class="user-dept" id="whoDept"></div></div>
-      <span class="av" id="av" aria-hidden="true"></span>
-      <button class="hdr-btn" id="logout" aria-label="Wyloguj"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M11 3.5a.5.5 0 0 0-.58-.5l-7 1.08a.5.5 0 0 0-.42.49v10.86c0 .25.18.46.42.5l7 1.07a.5.5 0 0 0 .58-.5V10h5.17l-1 .87a.5.5 0 0 0 .66.76l2-1.75a.5.5 0 0 0 0-.76l-2-1.75a.5.5 0 1 0-.65.76l1 .87H11zm-1 .58v11.84L4 15V5zM12.5 16H12v-5h1v4.5a.5.5 0 0 1-.5.5M12 8V4h.5c.28 0 .5.22.5.5V8z" fill="currentColor"></path></svg><span>Wyloguj</span></button>
-    </div>
-  </header>
-
-  <div class="body" id="body">
-    <main class="main">
-      <div class="tabs" role="tablist" aria-label="Sekcje">
-        <button class="tab on" role="tab" data-t="chat"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2a8 8 0 1 1-3.61 15.14l-.12-.07-3.65.92a.5.5 0 0 1-.62-.45v-.08l.01-.08.92-3.64-.07-.12a8 8 0 0 1-.83-2.9l-.02-.37L2 10a8 8 0 0 1 8-8m0 1a7 7 0 0 0-6.1 10.42.5.5 0 0 1 .06.28l-.02.1-.75 3.01 3.02-.75.19-.01.09.02.09.04A7 7 0 1 0 10 3m.5 8a.5.5 0 0 1 .09 1H7.5a.5.5 0 0 1-.09-1h3.09m2-3a.5.5 0 0 1 .09 1H7.5a.5.5 0 0 1-.09-1h5.09" fill="currentColor"></path></svg>Czat</button>
-        <button class="tab" role="tab" data-t="cases"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M11.25 2c.97 0 1.75.78 1.75 1.75V5h2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-2.85V8a3 3 0 0 1 3-3h2V3.75C7 2.78 7.78 2 8.75 2zM17 11.23c-.53.48-1.23.77-2 .77h-4v.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5V12H5c-.77 0-1.47-.3-2-.77V14l.01.2A2 2 0 0 0 5 16h10a2 2 0 0 0 2-2zM5 6a2 2 0 0 0-2 2v1c0 1.1.9 2 2 2h4v-.5c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v.5h4a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm3.75-3a.75.75 0 0 0-.75.75V5h4V3.75a.75.75 0 0 0-.75-.75z" fill="currentColor"></path></svg>Sprawy<span class="tab-tag" id="casesTag"></span></button>
-        <button class="tab" role="tab" data-t="kb"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm1 0v1h6V5zM4 4v12c0 1.1.9 2 2 2h9.5a.5.5 0 0 0 0-1H6a1 1 0 0 1-1-1h10a1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2m10-1a1 1 0 0 1 1 1v11H5V4a1 1 0 0 1 1-1z" fill="currentColor"></path></svg>Moja baza wiedzy</button>
-        <button class="tab" role="tab" data-t="logs" id="logsTab" hidden><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4a6 6 0 1 1-5.98 5.54.5.5 0 1 0-1-.08L3 10a7 7 0 1 0 2-4.9V3.5a.5.5 0 0 0-1 0v3c0 .28.22.5.5.5h3a.5.5 0 0 0 0-1H5.53c1.1-1.23 2.7-2 4.47-2m0 2.5a.5.5 0 0 0-1 0v4c0 .28.22.5.5.5h3a.5.5 0 0 0 0-1H10z" fill="currentColor"></path></svg>Logi</button>
-      </div>
-
-      <div class="pane on" id="t-chat" role="tabpanel">
-        <a class="decide-bar off" id="decideBar" href="#akcje"><b>Do zatwierdzenia</b><span id="decideText"></span>Pokaż</a>
-        <div class="messages" id="chat" aria-live="polite"></div>
-        <div class="suggest" id="chips" aria-label="Podpowiedzi"></div>
-        <form class="composer" id="composer">
-          <label class="sr-only" for="inp">Wiadomość do asystenta</label>
-          <textarea id="inp" rows="1" placeholder="Napisz wiadomość…"></textarea>
-          <button class="btn btn-primary" type="submit" id="send"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M2.18 2.11a.5.5 0 0 1 .54-.06l15 7.5a.5.5 0 0 1 0 .9l-15 7.5a.5.5 0 0 1-.7-.58L3.98 10 2.02 2.63a.5.5 0 0 1 .16-.52m2.7 8.39-1.61 6.06L16.38 10 3.27 3.44 4.88 9.5h6.62a.5.5 0 1 1 0 1z" fill="currentColor"></path></svg>Wyślij</button>
-        </form>
-      </div>
-
-      <div class="pane tabpanel" id="t-cases" role="tabpanel">
-        <div class="tp-head"><div><h2>Sprawy</h2><p>Notatki, spotkania i przypomnienia zapisane po Twoim zatwierdzeniu.</p></div></div>
-        <ul class="list" id="cases"></ul>
-      </div>
-
-      <div class="pane tabpanel" id="t-kb" role="tabpanel">
-        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, na których asystent opiera odpowiedzi dla Twojego działu.</p></div></div>
-        <ul class="list" id="kb"></ul>
-      </div>
-
-      <div class="pane tabpanel" id="t-logs" role="tabpanel">
-        <div class="tp-head"><div><h2>Logi</h2><p>Kto o co pytał, co wyszło do modelu i jakie akcje zatwierdzono. Widoczne tylko dla zarządu.</p></div></div>
-        <div class="usage" id="usage"></div>
-        <div class="table-wrap"><table><thead><tr><th>Czas</th><th>Pracownik</th><th>Zdarzenie</th><th>Model</th><th>Tokeny</th><th>Szczegóły</th><th>Źródła</th></tr></thead><tbody id="logs"></tbody></table></div>
-      </div>
-    </main>
-
-    <aside class="side" aria-label="Kontrola asystenta">
-      <section class="panel" id="akcje">
-        <div class="panel-head"><h2>Akcje do zatwierdzenia</h2><span class="counter" id="pendingCount">0</span></div>
-        <div class="panel-body" id="actions"></div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>Co dostał model</h2><span class="counter" id="maskedCount">0</span></div>
-        <div class="panel-body" id="masked"></div>
-      </section>
-    </aside>
-  </div>
-
-  <nav class="bnav" aria-label="Nawigacja">
-    <button class="bn-item on" data-t="chat"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2a8 8 0 1 1-3.61 15.14l-.12-.07-3.65.92a.5.5 0 0 1-.62-.45v-.08l.01-.08.92-3.64-.07-.12a8 8 0 0 1-.83-2.9l-.02-.37L2 10a8 8 0 0 1 8-8m0 1a7 7 0 0 0-6.1 10.42.5.5 0 0 1 .06.28l-.02.1-.75 3.01 3.02-.75.19-.01.09.02.09.04A7 7 0 1 0 10 3m.5 8a.5.5 0 0 1 .09 1H7.5a.5.5 0 0 1-.09-1h3.09m2-3a.5.5 0 0 1 .09 1H7.5a.5.5 0 0 1-.09-1h5.09" fill="currentColor"></path></svg><span>Czat</span><span class="bn-dot off" id="bnDot">0</span></button>
-    <button class="bn-item" data-t="cases"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><path d="M11.25 2c.97 0 1.75.78 1.75 1.75V5h2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-2.85V8a3 3 0 0 1 3-3h2V3.75C7 2.78 7.78 2 8.75 2zM17 11.23c-.53.48-1.23.77-2 .77h-4v.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5V12H5c-.77 0-1.47-.3-2-.77V14l.01.2A2 2 0 0 0 5 16h10a2 2 0 0 0 2-2zM5 6a2 2 0 0 0-2 2v1c0 1.1.9 2 2 2h4v-.5c0-.28.22-.5.5-.5h1c.28 0 .5.22.5.5v.5h4a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm3.75-3a.75.75 0 0 0-.75.75V5h4V3.75a.75.75 0 0 0-.75-.75z" fill="currentColor"></path></svg><span>Sprawy</span></button>
-    <button class="bn-item" data-t="kb"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm1 0v1h6V5zM4 4v12c0 1.1.9 2 2 2h9.5a.5.5 0 0 0 0-1H6a1 1 0 0 1-1-1h10a1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2m10-1a1 1 0 0 1 1 1v11H5V4a1 1 0 0 1 1-1z" fill="currentColor"></path></svg><span>Dokumenty</span></button>
-    <button class="bn-item" data-t="logs" id="bnLogs" hidden><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4a6 6 0 1 1-5.98 5.54.5.5 0 1 0-1-.08L3 10a7 7 0 1 0 2-4.9V3.5a.5.5 0 0 0-1 0v3c0 .28.22.5.5.5h3a.5.5 0 0 0 0-1H5.53c1.1-1.23 2.7-2 4.47-2m0 2.5a.5.5 0 0 0-1 0v4c0 .28.22.5.5.5h3a.5.5 0 0 0 0-1H10z" fill="currentColor"></path></svg><span>Logi</span></button>
+<header class="top">
+  <a class="brand" href="/">
+    <span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.4 6.2A8.6 8.6 0 1 0 18.4 17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M16.2 7.8L12.9 12.9L11.1 11.1Z" fill="currentColor"></path><path d="M7.8 16.2L11.1 11.1L12.9 12.9Z" fill="currentColor" opacity=".5"></path></svg></span>
+    <b>Compax</b><span class="co">Nordica Serwis</span>
+  </a>
+  <nav class="topnav">
+    <a href="#jak">Jak działa</a>
+    <a href="#dzialy">Działy</a>
+    <a href="#dane">Dane</a>
+    <a class="btn btn-primary" href="/app.html">Zaloguj się</a>
   </nav>
-</div>
+</header>
 
-<script src="/app.js" defer></script>
+<section class="hero" id="hero">
+  <div class="hero-text">
+    <p class="kicker">Asystent AI dla firmy z kilkoma działami</p>
+    <h1>Jedna platforma dla całej firmy. Każdy dział widzi tylko to, co powinien.</h1>
+    <p class="lead">Pracownik pyta o procedurę, cennik albo klienta i dostaje odpowiedź ze wskazaniem dokumentu. Dane osobowe są maskowane, zanim cokolwiek trafi do modelu. Każdą akcję na zewnątrz zatwierdza człowiek.</p>
+    <div class="cta">
+      <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się do demo</a>
+      <a class="btn btn-ghost btn-lg" href="#jak">Zobacz, jak to działa</a>
+    </div>
+    <p class="note">Dane logowania przesyłamy e-mailem. Firma, pracownicy i klienci w demie są fikcyjni.</p>
+  </div>
+
+  <div class="demo" id="demo" aria-label="Przykład: co widzi pracownik, a co dostaje model">
+    <div class="demo-row demo-user">
+      <span class="who">Anna, sprzedaż</span>
+      <p class="bubble">Umów spotkanie z Pan Jan Kowalski tel. 600 123 456 we wtorek 10:00</p>
+    </div>
+    <div class="demo-sep"><span>co dostał model</span></div>
+    <p class="masked">Umów spotkanie z Pan <span class="redact r1"><i>Jan Kowalski</i><b>osoba 1</b></span> tel. <span class="redact r2"><i>600 123 456</i><b>telefon 1</b></span> we wtorek 10:00</p>
+    <div class="demo-sum"><span class="dot"></span>serwer firmy · zamaskowano 2: osoba, telefon</div>
+    <div class="demo-action">
+      <div class="da-head"><span>Wniosek W-0412</span><span class="status">Oczekuje</span></div>
+      <strong>Umów spotkanie</strong>
+      <dl><dt>z kim</dt><dd>Jan Kowalski</dd><dt>kiedy</dt><dd>wtorek 10:00</dd></dl>
+      <div class="da-btns"><span class="btn btn-decide">Zatwierdź</span><span class="btn btn-secondary">Odrzuć</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="flow" id="jak">
+  <div class="wrap">
+    <h2>Co się dzieje z pytaniem, krok po kroku</h2>
+    <p class="sub">Kolejność jest celowa: uprawnienia przed wyszukiwaniem, maskowanie przed modelem, człowiek przed akcją, log po wszystkim.</p>
+    <ol class="steps">
+      <li class="step"><span class="n">1</span><div><h3>Logowanie i rola</h3><p>Z konta wynika dział i uprawnienia. W produkcji to konto firmowe Microsoft lub Google.</p></div></li>
+      <li class="step"><span class="n">2</span><div><h3>Wyszukiwanie tylko w dozwolonych dokumentach</h3><p>Filtr działa na etapie szukania, nie dopiero w odpowiedzi. Sprzedaż nie zobaczy procedur księgowości, nawet jeśli zapyta.</p></div></li>
+      <li class="step"><span class="n">3</span><div><h3>Maskowanie danych osobowych</h3><p>Imiona, telefony, e-maile, NIP-y zamieniają się w etykiety. Prawdziwe wartości zostają na serwerze firmy.</p></div></li>
+      <li class="step"><span class="n">4</span><div><h3>Klasyfikacja i trasa</h3><p>Dane chronione idą wyłącznie do modelu lokalnego. Reszta do dostawcy dozwolonego dla działu, po zamaskowaniu. Chmura ma miesięczny limit.</p></div></li>
+      <li class="step"><span class="n">5</span><div><h3>Model i odpowiedź ze źródłem</h3><p>Odpowiedź powstaje wyłącznie z fragmentów dokumentów i wskazuje, skąd pochodzi. Gdy dokumentów nie ma, asystent mówi to wprost.</p></div></li>
+      <li class="step"><span class="n">6</span><div><h3>Wniosek, nie akcja</h3><p>Spotkanie, notatka, przypomnienie o płatności: asystent przygotowuje, pracownik klika „Zatwierdź”. Nic nie dzieje się bez zgody.</p></div></li>
+      <li class="step"><span class="n">7</span><div><h3>Dziennik dla zarządu</h3><p>Kto, kiedy, co poszło do modelu, ile danych zamaskowano, którą trasą, ile kosztowało. Bez samych danych osobowych.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="depts" id="dzialy">
+  <div class="wrap">
+    <h2>Ten sam asystent, inne dokumenty i narzędzia</h2>
+    <p class="sub">Dodanie działu to konfiguracja, nie nowy projekt: folder z dokumentami, lista narzędzi, polityka dostawców.</p>
+    <div class="grid">
+      <article class="card reveal"><h3>Sprzedaż</h3><p>Cennik, zasady rabatów, przygotowanie oferty.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">serwer firmy lub chmura</span></article>
+      <article class="card reveal"><h3>Obsługa klienta</h3><p>Zgłoszenia awarii, statusy zleceń, reklamacje.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">serwer firmy lub chmura</span></article>
+      <article class="card reveal"><h3>Biuro</h3><p>Rezerwacje sal, delegacje, zamówienia.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">serwer firmy lub chmura</span></article>
+      <article class="card reveal"><h3>Księgowość</h3><p>Windykacja, korekty, terminy płatności.</p><ul><li>Przypomnienie o płatności</li></ul><span class="tag tag-local">tylko serwer firmy</span></article>
+      <article class="card reveal"><h3>Zarząd</h3><p>Cele, raporty, wszystkie dokumenty.</p><ul><li>Wszystkie narzędzia</li><li>Logi i koszty</li></ul><span class="tag tag-local">tylko serwer firmy</span></article>
+    </div>
+  </div>
+</section>
+
+<section class="levels" id="dane">
+  <div class="wrap">
+    <h2>Dane nie wychodzą z firmy, jeśli nie muszą</h2>
+    <p class="sub">Każda wiadomość dostaje poziom, zanim cokolwiek pójdzie do modelu. Pracownik widzi decyzję w panelu „Co dostał model”.</p>
+    <table>
+      <thead><tr><th>Poziom</th><th>Co to znaczy</th><th>Dokąd może pójść</th></tr></thead>
+      <tbody>
+        <tr class="reveal"><td><span class="lvl">jawne</span></td><td>bez danych osobowych, np. „jaki rabat mogę dać sam?”</td><td><span class="dot"></span>serwer firmy albo <span class="dot dot-out"></span>chmura, według polityki działu</td></tr>
+        <tr class="reveal"><td><span class="lvl">wewnętrzne</span></td><td>dane osobowe, zamaskowane etykietami</td><td><span class="dot"></span>serwer firmy albo <span class="dot dot-out"></span>chmura, ale tylko po zamaskowaniu</td></tr>
+        <tr class="reveal"><td><span class="lvl lvl-r">chronione</span></td><td>PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające</td><td><span class="dot"></span>wyłącznie model lokalny; bez niego wiadomość zostaje w bramie, a administrator dostaje alert</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sec" id="bezpieczenstwo">
+  <div class="wrap">
+    <h2>Zbudowane jak narzędzie firmowe, nie jak prezentacja</h2>
+    <div class="grid3">
+      <div class="reveal"><h3>Logowanie</h3><p>Hasła jako hash scrypt z solą, sesja w ciasteczku HttpOnly, blokada konta po 5 błędach, limit prób z adresu IP.</p></div>
+      <div class="reveal"><h3>Przeglądarka</h3><p>Polityka CSP bez wyjątków, bez skryptów i fontów z obcych serwerów, bez cookies śledzących, ochrona przed CSRF i wstrzykiwaniem treści.</p></div>
+      <div class="reveal"><h3>Serwer</h3><p>HTTPS, firewall, proces bez uprawnień, klucze tylko w zmiennych środowiskowych, serwer w Unii Europejskiej.</p></div>
+      <div class="reveal"><h3>Dziennik</h3><p>Każde pytanie i każda decyzja, bez danych osobowych. Zużycie i koszt per dział w bieżącym miesiącu.</p></div>
+      <div class="reveal"><h3>Testy</h3><p>19 testów automatycznych: uprawnienia, maskowanie, blokada danych chronionych, polityka działów, wnioski, walidacja.</p></div>
+      <div class="reveal"><h3>Wymienny model</h3><p>Tryb demo, model lokalny przez Ollamę, Claude, GPT. Zmiana dostawcy to konfiguracja, nie kod.</p></div>
+    </div>
+    <div class="cta cta-end">
+      <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się do demo</a>
+      <a class="btn btn-ghost btn-lg" href="https://github.com/PiotrBednarski-EngineerOfHumanGoods/ai-platforma-demo" rel="noopener">Kod na GitHubie</a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>Nordica Serwis Sp. z o.o. to fikcyjna firma na potrzeby demonstracji.</span>
+  <a href="/prywatnosc.html">Prywatność i zasady korzystania</a>
+</footer>
 </body>
 </html>

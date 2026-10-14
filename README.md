@@ -16,8 +16,8 @@ Firma w demo jest fikcyjna (Nordica Serwis Sp. z o.o.), dane przykładowe.
 
 ```bash
 npm install
-npm start
-# http://localhost:3000
+npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app.html
+npm test     # 19 testów automatycznych (node --test), bez dodatkowych zależności
 ```
 
 Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
@@ -68,7 +68,10 @@ server/users.js      – użytkownicy demo i działy
 server/security.js   – nagłówki HTTP, sesje z wygasaniem, limit prób logowania
 server/policy.js     – klasyfikacja wrażliwości, trasowanie (lokalny / zewnętrzny / blokada), alert
 knowledge/<dział>/   – dokumenty firmy (.md)
-public/index.html    – interfejs (bez frameworka, żeby demo działało offline)
+public/index.html    – ekran startowy (co to jest, jak działa, działy, poziomy danych)
+public/app.html      – aplikacja: logowanie, czat, sprawy, dokumenty, logi (app.js, app.css; bez frameworka)
+public/prywatnosc.html – informacja o przetwarzaniu danych i zasady korzystania
+tests/app.test.mjs   – testy: logowanie, uprawnienia, maskowanie, brama, wnioski, walidacja
 skills/              – przykładowy skill dla Claude Code: checklista bezpieczeństwa wdrożenia AI
 ```
 
@@ -92,7 +95,7 @@ Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona 
 
 | W demo | W produkcji |
 |---|---|
-| hasła z hashem scrypt, lista użytkowników w kodzie | SSO Microsoft Entra / Google Workspace, role z katalogu firmy |
+| hasła z hashem scrypt, sesja w ciasteczku HttpOnly, blokada konta, lista użytkowników w kodzie | SSO Microsoft Entra / Google Workspace, role z katalogu firmy, sesje w Redis |
 | wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia per dokument |
 | maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla polskiego, polityka per dział w konfiguracji |
 | akcje zapisują do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |
