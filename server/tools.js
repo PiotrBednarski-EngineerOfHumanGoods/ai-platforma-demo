@@ -33,7 +33,7 @@ export function executeTool(a, store) {
 export function detectToolMock(message, user) {
   const m = message.toLowerCase();
   const can = t => TOOLS.find(x => x.name === t).depts.includes(user.dept);
-  if (/\bum[óo]w(?:\b|i[ćm]|my)|\bzaplanuj\b|\bzarezerwuj\b/.test(m) && can("umow_spotkanie")) {
+  if (/\bum[óo]w(?:\s|$|i[ćm]|my)|\bzaplanuj\b|\bzarezerwuj\b/.test(m) && can("umow_spotkanie")) { // "umów", nie "umowę"/"umowy"
     const kiedy = (m.match(/\b(\d{1,2}[.:]\d{2}|jutro|pojutrze|poniedzia\w+|wtor\w+|środ\w+|czwart\w+|piąt\w+)\b/g) || ["do ustalenia"]).join(" ");
     return { tool: "umow_spotkanie", args: { z_kim: guessClient(message), kiedy, temat: message.slice(0, 80) } };
   }
