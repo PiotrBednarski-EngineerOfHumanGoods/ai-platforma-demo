@@ -85,6 +85,11 @@ export const store = {
   // uprawnienia ustawiane przez zarząd dla pojedynczych pracowników: { userId: { general, web } }
   flags() { const f = read("flags"); return Array.isArray(f) ? {} : f; },
   setFlags(userId, patch) { const f = this.flags(); f[userId] = { ...(f[userId] || {}), ...patch }; write("flags", f); return f[userId]; },
+  // dział i rola pracownika ustawione przez zarząd (nadpisują users.js) oraz chmura per dział (nadpisuje politykę domyślną)
+  roles() { const r = read("roles"); return Array.isArray(r) ? {} : r; },
+  setRole(userId, patch) { const r = this.roles(); r[userId] = { ...(r[userId] || {}), ...patch }; write("roles", r); return r[userId]; },
+  deptCloud() { const d = read("deptcloud"); return Array.isArray(d) ? {} : d; },
+  setDeptCloud(dept, cloud) { const d = this.deptCloud(); d[dept] = cloud; write("deptcloud", d); return d; },
   feedback() { return read("feedback"); },
   addFeedback(f) { const l = read("feedback"); l.unshift(f); l.slice(500).forEach(x => x.screenshot && blobs.remove(x.screenshot.file)); write("feedback", l.slice(0, 500)); }, // starsze niż 500: razem ze zrzutem
   setFeedback(id, patch) { write("feedback", read("feedback").map(f => f.id === id ? { ...f, ...patch } : f)); },

@@ -45,7 +45,7 @@ Szyfrowanie: AES-256-GCM z losowym wektorem i znacznikiem integralności, klucz 
 - Do chmury trafia wyłącznie tekst po maskowaniu. Prawdziwe wartości zostają na serwerze i są podstawiane do odpowiedzi.
 - API Anthropic: dane przesyłane przez API nie są wykorzystywane do trenowania modeli. Jeśli klient tego wymaga, można uzgodnić zerową retencję danych (zero data retention) i zawrzeć umowę powierzenia przetwarzania (DPA).
 - Model w firmie (Ollama, np. Bielik): dane nie opuszczają infrastruktury klienta. Wymagany dla danych chronionych.
-- Politykę dla każdego działu ustala administrator (`DEPT_POLICY_JSON`). Domyślnie księgowość i zarząd bez chmury.
+- Politykę dla każdego działu ustala administrator (`DEPT_POLICY_JSON`), a zarząd może włączyć lub wyłączyć chmurę dla działu w panelu (zmiana w dzienniku). Domyślnie księgowość i zarząd bez chmury. Dane chronione nie wychodzą niezależnie od ustawienia.
 
 ## Dostęp i uwierzytelnienie
 

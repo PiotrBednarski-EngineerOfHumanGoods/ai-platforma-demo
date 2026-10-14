@@ -232,12 +232,26 @@ function renderCases() {
 }
 ["#cfQ", "#cfType", "#cfDept", "#cfSort"].forEach(s => $(s).addEventListener("input", renderCases));
 async function loadPerm() {
-  const r = await api("/admin/flags"); if (!Array.isArray(r)) return;
-  $("#permRows").innerHTML = r.map(u => `<tr><td data-label="Pracownik">${esc(u.name)}</td><td data-label="Dział">${esc(u.deptName)}</td>${["general", "web"].map(k => `<td data-label="${k === "web" ? "Internet" : "Wiedza ogólna"}"><label class="sw"><input type="checkbox" data-u="${esc(u.id)}" data-k="${k}"${u[k] ? " checked" : ""}${u.cloud ? "" : " disabled"}><span>${u.cloud ? (u[k] ? "włączone" : "wyłączone") : "dział bez chmury"}</span></label></td>`).join("")}</tr>`).join("");
+  const [r, depts] = await Promise.all([api("/admin/flags"), api("/admin/depts")]); if (!Array.isArray(r)) return;
+  if (Array.isArray(depts)) {
+    $("#deptRows").innerHTML = depts.map(d => `<tr><td data-label="Dział">${esc(d.name)}</td><td data-label="Osób">${d.people}</td><td data-label="Chmura"><label class="sw"><input type="checkbox" data-d="${esc(d.dept)}"${d.cloud ? " checked" : ""}><span>${d.cloud ? "Claude po maskowaniu" : "tylko model w firmie"}</span></label></td></tr>`).join("");
+    $$("#deptRows input").forEach(cb => cb.onchange = async () => {
+      const res = await api(`/admin/depts/${cb.dataset.d}`, { method: "POST", body: JSON.stringify({ cloud: cb.checked }) });
+      if (res.error) { cb.checked = !cb.checked; return; }
+      loadPerm();
+    });
+  }
+  const opts = cur => Object.entries(meta.depts).filter(([k]) => k !== "wspolne").map(([k, v]) => `<option value="${esc(k)}"${k === cur ? " selected" : ""}>${esc(v)}</option>`).join("");
+  $("#permRows").innerHTML = r.map(u => `<tr><td data-label="Pracownik">${esc(u.name)}<br><small class="perm-role">${esc(u.role || "")}</small></td><td data-label="Dział"><select class="perm-dept" data-u="${esc(u.id)}" aria-label="Dział: ${esc(u.name)}"${u.self ? ` disabled title="Własnego działu nie można zmienić"` : ""}>${opts(u.dept)}</select></td>${["general", "web"].map(k => `<td data-label="${k === "web" ? "Internet" : "Wiedza ogólna"}"><label class="sw"><input type="checkbox" data-u="${esc(u.id)}" data-k="${k}"${u[k] ? " checked" : ""}${u.cloud ? "" : " disabled"}><span>${u.cloud ? (u[k] ? "włączone" : "wyłączone") : "dział bez chmury"}</span></label></td>`).join("")}</tr>`).join("");
   $$("#permRows input").forEach(cb => cb.onchange = async () => {
     const res = await api(`/admin/flags/${cb.dataset.u}`, { method: "POST", body: JSON.stringify({ [cb.dataset.k]: cb.checked }) });
     if (res.error) { cb.checked = !cb.checked; return; }
     cb.nextElementSibling.textContent = cb.checked ? "włączone" : "wyłączone";
+  });
+  $$("#permRows select").forEach(sel => sel.onchange = async () => {
+    const res = await api(`/admin/users/${sel.dataset.u}`, { method: "POST", body: JSON.stringify({ dept: sel.value }) });
+    if (res.error) alert(res.error);
+    loadPerm();
   });
 }
 async function loadLogs() {
@@ -254,7 +268,7 @@ async function loadLogs() {
     ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} ${plural(u.queries, "pytanie", "pytania", "pytań")} w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.cached ? " · z pamięci: " + u.cached : ""}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} ${plural(u.tokens, "token", "tokeny", "tokenów")} · ${money(u)}</small></div>`).join("")
     : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`);
   $("#logs").innerHTML = r.map(l => {
-    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "flags_changed" ? "Zmiana uprawnień" : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
+    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "flags_changed" ? "Zmiana uprawnień" : l.event === "role_changed" ? "Zmiana działu" : l.event === "policy_changed" ? "Zmiana modeli działu" : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
     const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : l.policy.route === "cache" ? "z pamięci" : l.policy.route === "mock" ? "bez modelu" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
     const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt nieznany" : l.cost.toFixed(4) + " USD") : ""}` : "";

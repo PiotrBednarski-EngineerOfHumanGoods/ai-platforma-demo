@@ -30,7 +30,7 @@ Jeden agent buduje, wyspecjalizowani agenci sprawdzają. Każdy dostaje wąskie 
 
 ## Testy i jakość
 
-- **48 testów automatycznych** (`npm test`): logowanie i sesje, blokada konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), klasyfikacja danych chronionych (PESEL, rachunek, dowód, karta, zdrowie, wynagrodzenia, numery rozbite na kilka wiadomości), brama i limity, budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, dokumenty działów, szyfrowanie na dysku, narzędzie administratora, zgłoszenia ze zrzutem ekranu.
+- **50 testów automatycznych** (`npm test`): logowanie i sesje, blokada konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), klasyfikacja danych chronionych (PESEL, rachunek, dowód, karta, zdrowie, wynagrodzenia, numery rozbite na kilka wiadomości), brama i limity, budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, dokumenty działów, szyfrowanie na dysku, narzędzie administratora, zgłoszenia ze zrzutem ekranu, zmiana działu pracownika i chmury działu z panelu zarządu.
 - **Test dymny** (`npm run smoke`): ponad 40 kroków na działającym serwerze, także z prawdziwym modelem Claude, łącznie z nagłówkami bezpieczeństwa i CSP.
 - **CI na GitHubie**: przy każdej zmianie testy, `npm audit` i test dymny na świeżo uruchomionej aplikacji. **Dependabot** co tydzień.
 - **Wydajność**: animacje strony startowej mierzone klatka po klatce; 60 klatek na sekundę także przy czterokrotnie wolniejszym procesorze.

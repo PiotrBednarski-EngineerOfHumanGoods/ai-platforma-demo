@@ -58,6 +58,10 @@ Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentó
 
 Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległe agenty, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
 
+### Czy role są dynamiczne?
+
+Tak. Zarząd w panelu „Dziennik” przenosi pracownika do innego działu i włącza albo wyłącza chmurę dla działu. Zmiana działa od następnego pytania, bez wdrożenia i bez ponownego logowania, i trafia do dziennika. Zarząd nie może zmienić własnego działu, więc nie odbierze sobie dostępu przez pomyłkę. Dane chronione nie wychodzą z firmy niezależnie od ustawień. W produkcji dział i rola przychodzą z katalogu firmy (Microsoft Entra albo Google Workspace) przez logowanie firmowe, a panel zostaje do wyjątków.
+
 ### Gdzie trzymam klucze AI?
 
 | Opcja | Jak działa | Kiedy |
@@ -84,12 +88,12 @@ Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik dział
 
 | Co | Ile | Jak uruchomić |
 |---|---|---|
-| Testy automatyczne | 48 | `npm test` |
+| Testy automatyczne | 50 | `npm test` |
 | Test dymny wszystkich funkcji na działającym serwerze (także z prawdziwym Claude) | ponad 40 kroków | `npm run smoke`, `BASE_URL=https://compax.tech npm run smoke` |
 | CI przy każdej zmianie: testy, `npm audit`, test dymny | przy każdym pushu | [GitHub Actions](.github/workflows/ci.yml) |
 | Aktualizacje zależności | co tydzień | Dependabot |
 
-Testy obejmują: logowanie, sesje i blokadę konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), wykrywanie danych chronionych (także numery rozbite na kilka wiadomości i numery kart z sumą kontrolną), brak fałszywych alarmów, limity i budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, szyfrowanie na dysku, narzędzie administratora RODO, zgłoszenia ze zrzutem ekranu (odrzucenie plików udających obraz), uprawnienia ustawiane przez zarząd i wyszukiwanie w internecie.
+Testy obejmują: logowanie, sesje i blokadę konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), wykrywanie danych chronionych (także numery rozbite na kilka wiadomości i numery kart z sumą kontrolną), brak fałszywych alarmów, limity i budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, szyfrowanie na dysku, narzędzie administratora RODO, zgłoszenia ze zrzutem ekranu (odrzucenie plików udających obraz), uprawnienia ustawiane przez zarząd (także przeniesienie pracownika do innego działu i chmura dla działu, z ochroną przed odebraniem uprawnień samemu sobie) i wyszukiwanie w internecie.
 
 ## Bezpieczeństwo
 
@@ -123,7 +127,7 @@ Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-za
 ## Co jeszcze jest w aplikacji
 
 - **Dokumenty od pracowników:** dodawane w aplikacji do bazy działu, od razu dostępne w wyszukiwaniu.
-- **Uprawnienia od zarządu:** dla wybranych osób wiedza ogólna (odpowiedź spoza dokumentów, wyraźnie oznaczona) i wyszukiwanie w internecie (Claude, po maskowaniu, ze źródłami).
+- **Uprawnienia od zarządu, zmieniane w panelu:** przeniesienie pracownika do innego działu (od razu widzi dokumenty, narzędzia i modele nowego działu, bez ponownego logowania), włączenie chmury dla całego działu oraz dla wybranych osób wiedza ogólna (odpowiedź spoza dokumentów, wyraźnie oznaczona) i wyszukiwanie w internecie (Claude, po maskowaniu, ze źródłami). Każda zmiana trafia do dziennika.
 - **Wybór modelu:** pracownik wybiera spośród dozwolonych w dziale; GPT, Gemini, Mistral, Bielik i Ollama są pokazane jako gotowe do podłączenia.
 - **Panel „Co dostał model”:** pracownik widzi dokładnie, co wyszło do modelu.
 - **Telefon, tryb ciemny i dostępność:** poprawione po audycie na trzech telefonach.
@@ -250,7 +254,7 @@ Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), pote
 | Element | Jak działa | Konfiguracja |
 |---|---|---|
 | Dostawcy | mock (demo), ollama (lokalny), anthropic, openai; dostępne są te, do których są klucze lub adresy | `AI_PROVIDER`, `OLLAMA_URL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` |
-| Polityka działu | administrator ustala, jakich dostawców dział może używać; pracownik wybiera w nagłówku tylko spośród nich. Domyślnie księgowość i zarząd: tylko serwer firmy | `DEPT_POLICY_JSON` |
+| Polityka działu | administrator ustala, jakich dostawców dział może używać; pracownik wybiera w nagłówku tylko spośród nich. Domyślnie księgowość i zarząd: tylko serwer firmy | `DEPT_POLICY_JSON` + panel zarządu (chmura per dział) |
 | Klasyfikacja | jawne / wewnętrzne (dane osobowe, zamaskowane) / chronione (PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające) | reguły w `policy.js` (produkcja: Presidio/NER) |
 | Trasa | chronione: wyłącznie model lokalny, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
 | Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model lokalny albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |

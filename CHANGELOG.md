@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.2.0 – 2026-10-14
+
+Uprawnienia zmieniane przez zarząd w panelu, bez wdrożenia.
+
+- Przeniesienie pracownika do innego działu: od następnego pytania widzi dokumenty, narzędzia i modele nowego działu, bez ponownego logowania. Zarząd nie może zmienić własnego działu.
+- Chmura (Claude po maskowaniu) włączana i wyłączana dla całego działu; ma pierwszeństwo przed `DEPT_POLICY_JSON`. Dane chronione nie wychodzą niezależnie od ustawienia.
+- Każda zmiana w dzienniku zarządu; 2 nowe testy (razem 50), w tym odrzucenie nazw typu `__proto__`.
+
 ## 1.1.0 – 2026-10-14
 
 Przegląd bezpieczeństwa, RODO i języka przed oddaniem klientowi.

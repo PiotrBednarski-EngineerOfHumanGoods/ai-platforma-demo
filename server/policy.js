@@ -29,10 +29,18 @@ const DEFAULT_DEPT_POLICY = {
   zarzad:     ["mock", "ollama"],           // dane strategiczne: tylko model w firmie
   "*":        ["mock", "ollama", "anthropic", "openai"]
 };
+// Zarząd przełącza chmurę dla działu w panelu: {dział: true|false}, ważniejsze niż domyślne i .env
+let panelOverrides = () => ({});
+export const setDeptOverrides = fn => { panelOverrides = fn; };
 function deptPolicy() {
-  try { return { ...DEFAULT_DEPT_POLICY, ...JSON.parse(process.env.DEPT_POLICY_JSON || "{}") }; }
-  catch { console.error("DEPT_POLICY_JSON: nieprawidłowy JSON, używam domyślnej polityki"); return DEFAULT_DEPT_POLICY; }
+  let p;
+  try { p = { ...DEFAULT_DEPT_POLICY, ...JSON.parse(process.env.DEPT_POLICY_JSON || "{}") }; }
+  catch { console.error("DEPT_POLICY_JSON: nieprawidłowy JSON, używam domyślnej polityki"); p = { ...DEFAULT_DEPT_POLICY }; }
+  for (const [d, cloud] of Object.entries(panelOverrides())) p[d] = cloud ? ["mock", "ollama", "anthropic", "openai"] : ["mock", "ollama"];
+  return p;
 }
+// Czy polityka działu pozwala na chmurę (niezależnie od tego, czy klucz dostawcy jest skonfigurowany)
+export const deptCloudAllowed = dept => { const p = deptPolicy(); return (p[dept] || p["*"]).some(id => PROVIDERS[id]?.kind === "external"); };
 export function allowedFor(dept) {
   const policy = deptPolicy();
   const allowed = policy[dept] || policy["*"];

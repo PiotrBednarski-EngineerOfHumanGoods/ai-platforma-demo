@@ -356,3 +356,39 @@ test("uprawnienia pracowników: ustawia tylko zarząd, zmiana w dzienniku, praco
   assert.deepEqual((await login("anna")).json.flags, { general: true });
   await call("/api/admin/flags/anna", { method: "POST", cookie: prezes.cookie, body: { general: false } });
 });
+
+test("panel zarządu: przeniesienie pracownika do działu działa od razu, bez zmiany własnego działu", async () => {
+  const anna = await login("anna"), prezes = await login("prezes");
+  assert.equal((await call("/api/admin/users/marek", { method: "POST", cookie: anna.cookie, body: { dept: "ksiegowosc" } })).status, 403);
+  assert.equal((await call("/api/admin/users/nikt", { method: "POST", cookie: prezes.cookie, body: { dept: "biuro" } })).status, 404);
+  assert.equal((await call("/api/admin/users/anna", { method: "POST", cookie: prezes.cookie, body: { dept: "wspolne" } })).status, 400);
+  assert.equal((await call("/api/admin/users/anna", { method: "POST", cookie: prezes.cookie, body: { dept: "__proto__" } })).status, 400);
+  assert.equal((await call("/api/admin/users/prezes", { method: "POST", cookie: prezes.cookie, body: { dept: "biuro" } })).status, 400, "zarząd nie odbierze sobie uprawnień");
+  const before = (await call("/api/knowledge", { cookie: anna.cookie })).json.files;
+  assert.ok(!before.some(f => f.startsWith("ksiegowosc/")));
+  assert.equal((await call("/api/admin/users/anna", { method: "POST", cookie: prezes.cookie, body: { dept: "ksiegowosc" } })).status, 200);
+  const after = (await call("/api/knowledge", { cookie: anna.cookie })).json.files; // ta sama sesja
+  assert.ok(after.some(f => f.startsWith("ksiegowosc/")) && !after.some(f => f.startsWith("sprzedaz/")));
+  const list = (await call("/api/admin/flags", { cookie: prezes.cookie })).json;
+  assert.equal(list.find(u => u.id === "anna").dept, "ksiegowosc"); assert.equal(list.find(u => u.id === "anna").role, "księgowy");
+  assert.ok(JSON.stringify((await call("/api/logs", { cookie: prezes.cookie })).json).includes("role_changed"));
+  await call("/api/admin/users/anna", { method: "POST", cookie: prezes.cookie, body: { dept: "sprzedaz" } });
+  assert.equal((await login("anna")).json.user.dept, "sprzedaz");
+});
+
+test("panel zarządu: chmura włączana per dział, zmiana w dzienniku", async () => {
+  const anna = await login("anna"), prezes = await login("prezes");
+  assert.equal((await call("/api/admin/depts", { cookie: anna.cookie })).status, 403);
+  assert.equal((await call("/api/admin/depts/ksiegowosc", { method: "POST", cookie: anna.cookie, body: { cloud: true } })).status, 403);
+  const depts = (await call("/api/admin/depts", { cookie: prezes.cookie })).json;
+  assert.equal(depts.find(d => d.dept === "ksiegowosc").cloud, false); assert.equal(depts.find(d => d.dept === "sprzedaz").cloud, true);
+  assert.ok(!depts.some(d => d.dept === "wspolne"));
+  assert.equal((await call("/api/admin/depts/__proto__", { method: "POST", cookie: prezes.cookie, body: { cloud: true } })).status, 404);
+  assert.equal((await call("/api/admin/depts/wspolne", { method: "POST", cookie: prezes.cookie, body: { cloud: true } })).status, 404);
+  assert.equal((await call("/api/admin/depts/ksiegowosc", { method: "POST", cookie: prezes.cookie, body: { cloud: "tak" } })).status, 400);
+  const on = await call("/api/admin/depts/ksiegowosc", { method: "POST", cookie: prezes.cookie, body: { cloud: true } });
+  assert.equal(on.json.cloud, true);
+  assert.ok(JSON.stringify((await call("/api/logs", { cookie: prezes.cookie })).json).includes("policy_changed"));
+  const off = await call("/api/admin/depts/ksiegowosc", { method: "POST", cookie: prezes.cookie, body: { cloud: false } });
+  assert.equal(off.json.cloud, false);
+});

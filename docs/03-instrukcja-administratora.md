@@ -23,7 +23,7 @@ Po każdej zmianie w `.env`: `sudo -u ai pm2 restart ai-demo`.
 | `ANTHROPIC_API_KEY` | klucz API; najpierw ustaw limit wydatków w konsoli Anthropic |
 | `ANTHROPIC_MODEL_CHEAP` / `ANTHROPIC_MODEL_STRONG` | model do prostych pytań i do analiz |
 | `OLLAMA_URL`, `OLLAMA_MODEL` | model w firmie; po ustawieniu dane chronione idą do niego |
-| `DEPT_POLICY_JSON` | dozwoleni dostawcy na dział, np. `{"ksiegowosc":["mock","ollama"]}` |
+| `DEPT_POLICY_JSON` | dozwoleni dostawcy na dział, np. `{"ksiegowosc":["mock","ollama"]}`; ustawienie chmury z panelu zarządu ma pierwszeństwo |
 | `APP_MONTHLY_BUDGET_USD` | miesięczny budżet na chmurę dla całej firmy |
 | `CLOUD_MONTHLY_LIMIT` | miesięczny limit pytań do chmury na dział |
 | `PRICING_JSON` | ceny modeli za milion tokenów, do licznika kosztów |

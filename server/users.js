@@ -9,6 +9,9 @@ export const DEPTS = {
   zarzad: "Zarząd"
 };
 
+// Rola nadawana przy przeniesieniu pracownika do działu w panelu zarządu
+export const DEFAULT_ROLE = { sprzedaz: "handlowiec", obsluga: "obsługa klienta", biuro: "pracownik biura", ksiegowosc: "księgowy", zarzad: "członek zarządu" };
+
 export const users = [
   { id: "anna", login: "a.lis",   name: "Anna Lis",        dept: "sprzedaz",   role: "handlowiec",            passwordHash: "scrypt$3a669bcac7c6635b21c3394c820f21bb$b2b4540d8354a0ed0e73ab1d19dd6ba398d7d6c69553f9e471c09c55535a1e14" },
   { id: "marek", login: "m.wojcik",  name: "Marek Wójcik",    dept: "obsluga",    role: "obsługa klienta",       passwordHash: "scrypt$e10e83fc1931129758bc2a4d36ae23db$ba6051619e14714cf16e1dc48143081a480d418c9f9e14b6220dc5813f0bb1a3" },

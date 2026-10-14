@@ -5,7 +5,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { users, DEPTS } from "./users.js";
+import { users, DEPTS, DEFAULT_ROLE } from "./users.js";
 import { loadKnowledge, search, chunksOf } from "./knowledge.js";
 import { mask, unmask, newState } from "./pii.js";
 import { callModel } from "./providers.js";
@@ -14,7 +14,7 @@ import { store, encryptionOn, blobs } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, hashPassword, rateLimit } from "./security.js";
 import crypto from "crypto";
 import { validateFeedback, notifyFeedback, FEEDBACK_TYPES } from "./feedback.js";
-import { PROVIDERS, classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor } from "./policy.js";
+import { PROVIDERS, classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor, setDeptOverrides, deptCloudAllowed } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -54,7 +54,11 @@ console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.fil
 const sessions = createSessions({ ttlMs: 8 * 60 * 60 * 1000 });
 const loginLimiter = createLoginLimiter({ max: 10, windowMs: 15 * 60 * 1000 }); // na adres IP
 const accountLock = createLoginLimiter({ max: 5, windowMs: 15 * 60 * 1000 });   // na konto z danego adresu: blokada po 5 błędach
-const auth = sessions.auth;
+// Dział i rola mogą być zmienione przez zarząd w panelu: czytane przy każdym żądaniu, więc zmiana działa od razu, bez ponownego logowania
+const effective = u => u && { ...u, ...(store.roles()[u.id] || {}) };
+const people = () => users.map(effective);
+const auth = (req, res, next) => sessions.auth(req, res, () => { req.user = effective(users.find(u => u.id === req.user.id)); next(); });
+setDeptOverrides(() => store.deptCloud());
 const DUMMY_HASH = hashPassword(crypto.randomBytes(16).toString("hex"));
 const chatLimit = rateLimit({ max: 30, windowMs: 60 * 1000 }); // 30 pytań / min / IP: chroni klucz API i koszty
 function allowedDepts(user) {
@@ -66,7 +70,7 @@ app.get("/api/meta", (req, res) => res.json({
   provider: PROVIDER, model: process.env.MODEL || null, depts: DEPTS,
   providers: availableProviders(), cloudMonthlyLimit: cloudMonthlyLimit(),
   // lista pracowników tylko po zalogowaniu: bez sesji pusta, żeby nie ujawniać kadry
-  users: sessions.get(sessions.tokenFrom(req)) ? users.map(u => ({ id: u.id, name: u.name, dept: u.dept, role: u.role })) : []
+  users: sessions.get(sessions.tokenFrom(req)) ? people().map(u => ({ id: u.id, name: u.name, dept: u.dept, role: u.role })) : []
 }));
 
 app.post("/api/login", (req, res) => {
@@ -84,7 +88,8 @@ app.post("/api/login", (req, res) => {
   loginLimiter.reset(req.ip); accountLock.reset(`${u.id}|${req.ip}`);
   const token = sessions.create(u);
   sessions.setCookie(res, token, req.secure);
-  res.json({ user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u), providers: allowedFor(u.dept).map(p => p.id), flags: store.flags()[u.id] || {} });
+  const e = effective(u);
+  res.json({ user: { id: e.id, name: e.name, dept: e.dept, role: e.role }, depts: allowedDepts(e), providers: allowedFor(e.dept).map(p => p.id), flags: store.flags()[e.id] || {} });
 });
 app.post("/api/logout", auth, (req, res) => { sessions.destroy(sessions.tokenFrom(req)); sessions.clearCookie(res); res.json({ ok: true }); });
 
@@ -281,7 +286,7 @@ app.post("/api/feedback", auth, feedbackLimit, express.json({ limit: "4mb" }), s
 app.get("/api/admin/flags", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   const f = store.flags();
-  res.json(users.map(u => ({ id: u.id, name: u.name, dept: u.dept, deptName: DEPTS[u.dept], cloud: allowedFor(u.dept).some(p => p.kind === "external"), general: !!f[u.id]?.general, web: !!f[u.id]?.web })));
+  res.json(people().map(u => ({ id: u.id, name: u.name, dept: u.dept, role: u.role, self: u.id === req.user.id, deptName: DEPTS[u.dept], cloud: allowedFor(u.dept).some(p => p.kind === "external"), general: !!f[u.id]?.general, web: !!f[u.id]?.web })));
 });
 app.post("/api/admin/flags/:id", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
@@ -291,6 +296,34 @@ app.post("/api/admin/flags/:id", auth, (req, res) => {
   const now = store.setFlags(req.params.id, patch);
   store.log({ userId: req.user.id, dept: req.user.dept, event: "flags_changed", action: `${req.params.id}: ${Object.entries(patch).map(([k, v]) => `${k === "web" ? "internet" : "wiedza ogólna"} ${v ? "włączone" : "wyłączone"}`).join(", ")}` });
   res.json({ ok: true, flags: now });
+});
+// Zarząd przenosi pracownika do innego działu: od następnego żądania widzi dokumenty, narzędzia i modele nowego działu
+app.post("/api/admin/users/:id", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  const u = people().find(x => x.id === req.params.id);
+  if (!u) return res.status(404).json({ error: "Nie ma takiego pracownika." });
+  const { dept } = req.body || {};
+  if (typeof dept !== "string" || !Object.hasOwn(DEPTS, dept) || dept === "wspolne") return res.status(400).json({ error: "Wybierz dział z listy." });
+  if (u.id === req.user.id) return res.status(400).json({ error: "Nie możesz zmienić własnego działu. Poproś o to inną osobę z zarządu." });
+  if (u.dept === dept) return res.json({ ok: true, dept });
+  store.setRole(u.id, { dept, role: DEFAULT_ROLE[dept] });
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "role_changed", action: `${u.id}: ${DEPTS[u.dept]} → ${DEPTS[dept]}` });
+  res.json({ ok: true, dept });
+});
+// Zarząd włącza albo wyłącza chmurę (Claude po maskowaniu) dla całego działu; dane chronione i tak nigdy nie wychodzą
+app.get("/api/admin/depts", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  const ppl = people();
+  res.json(Object.keys(DEPTS).filter(d => d !== "wspolne").map(d => ({ dept: d, name: DEPTS[d], cloud: deptCloudAllowed(d), people: ppl.filter(u => u.dept === d).length })));
+});
+app.post("/api/admin/depts/:dept", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  const d = req.params.dept;
+  if (!Object.hasOwn(DEPTS, d) || d === "wspolne") return res.status(404).json({ error: "Nie ma takiego działu." });
+  if (typeof req.body?.cloud !== "boolean") return res.status(400).json({ error: "Podaj cloud (true/false)." });
+  store.setDeptCloud(d, req.body.cloud);
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "policy_changed", action: `${DEPTS[d]}: chmura ${req.body.cloud ? "włączona" : "wyłączona"}` });
+  res.json({ ok: true, dept: d, cloud: deptCloudAllowed(d) });
 });
 app.get("/api/feedback/:id/screenshot", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });

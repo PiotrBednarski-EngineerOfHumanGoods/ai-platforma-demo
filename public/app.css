@@ -419,6 +419,10 @@ a.src.web{color:var(--fg2);text-decoration:underline;text-underline-offset:2px;w
 .perm{margin:8px 0 24px}
 .perm h3{font-size:15px;margin:0 0 4px}
 .perm-sub{margin:0 0 10px;font-size:13px;line-height:19px;color:var(--fg3);max-width:80ch}
+.perm-dept{font:inherit;font-size:13px;color:var(--fg1);background:var(--bg1);border:1px solid var(--stroke1);border-radius:8px;padding:6px 8px;min-height:36px;max-width:100%}
+.perm-dept:disabled{color:var(--fg4)}
+.perm-role{color:var(--fg3);font-size:12px}
+
 .sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--fg2)}
 .sw input{width:18px;height:18px;accent-color:var(--brand)}
 .sw input:disabled + span{color:var(--fg4)}

@@ -1,6 +1,6 @@
 {
   "name": "compax",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Compax: asystent AI dla firmy wielodziałowej (baza wiedzy per dział, zamazywanie danych osobowych, akcje z zatwierdzeniem, dziennik i koszty)",
   "type": "module",
   "scripts": {
