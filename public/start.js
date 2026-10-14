@@ -36,19 +36,19 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
     const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.1;
     // tafla: soczewka + grzbiet fali, potem drugi, słabszy krąg
-    ["lens", "crest", "lens second"].forEach(k => {
+    ["w1", "w2", "w3"].forEach(k => {
       const w = document.createElement("div"); w.className = "water " + k;
       w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px");
       document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
     });
     // elementy strony uginają się, gdy grzbiet fali przez nie przechodzi (tylko transformacje: płynnie)
-    const T = 2100, ease = r => 1 - Math.pow(1 - r, 2.6); // ten sam profil co animacja kręgu
+    const T = 2800, ease = r => 1 - Math.pow(1 - r, 2.2); // ten sam profil co animacja kręgu
     const at = d => { let lo = 0, hi = 1; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (ease(m) * R * .9 < d) lo = m; else hi = m; } return lo * T; };
     document.querySelectorAll(".top .brand, .topnav > *, .hero h1, .hero .lead, .hero .cta, .hero .note, .demo, .hero ~ section h2").forEach(el => {
       const r = el.getBoundingClientRect(); if (r.top > innerHeight) return;
-      const ex = r.left + r.width / 2 - x, ey = r.top + r.height / 2 - y, d = Math.hypot(ex, ey) || 1, k = 7 * Math.max(.35, 1 - d / R);
+      const ex = r.left + r.width / 2 - x, ey = r.top + r.height / 2 - y, d = Math.hypot(ex, ey) || 1, k = 5 * Math.max(.35, 1 - d / R);
       el.animate([{ translate: "0 0", scale: 1 }, { translate: `${(ex / d) * k}px ${(ey / d) * k}px`, scale: 1.012, offset: .35 }, { translate: `${(-ex / d) * k * .35}px ${(-ey / d) * k * .35}px`, scale: .997, offset: .7 }, { translate: "0 0", scale: 1 }],
-        { duration: 760, delay: at(d), easing: "cubic-bezier(.33,0,.25,1)" });
+        { duration: 1100, delay: at(d), easing: "cubic-bezier(.37,0,.25,1)" });
     });
   };
   const end = withWave => { root.classList.remove("with-intro"); el.remove(); if (withWave) wave(); dispatchEvent(new Event("compax:intro-done")); };
@@ -103,7 +103,7 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
 
   // 1. Wejście: dane osobowe znikają pod etykietami chwilę po załadowaniu
   const enter = () => setTimeout(() => { masked.classList.add("on"); demo.classList.add("on"); }, 700);
-  if (document.documentElement.classList.contains("with-intro")) addEventListener("compax:intro-done", enter, { once: true }); else enter();
+  if (document.documentElement.classList.contains("with-intro")) addEventListener("compax:intro-done", () => setTimeout(enter, 1400), { once: true }); else enter();
 
   // 2. Przewijanie: zapas dla przeglądarek bez animation-timeline, plus kroki dostają klasę .in (kolor numeru)
   const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -12% 0px", threshold: 0.2 });

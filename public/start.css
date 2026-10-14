@@ -237,11 +237,11 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .intro-q .l2{color:var(--fg3);animation-delay:1.4s}
 
 .intro-main{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(18px,3.2vh,34px);padding-top:clamp(92px,15vh,170px)}
-.coin-wrap{position:relative;width:var(--size);height:var(--size);opacity:0;animation:introToss 1.5s cubic-bezier(.2,.8,.25,1) 3.1s forwards}
-.coin-shadow{position:absolute;left:12%;right:12%;bottom:-7%;height:12%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.34),rgba(0,0,0,0));filter:blur(6px);opacity:0;scale:.3 1;animation:introShadowIn 1.5s cubic-bezier(.2,.8,.25,1) 3.1s forwards}
+.coin-wrap{position:relative;width:var(--size);height:var(--size);will-change:transform,opacity;opacity:.002;animation:introToss 1.5s cubic-bezier(.2,.8,.25,1) 3.1s forwards}
+.coin-shadow{position:absolute;left:12%;right:12%;bottom:-7%;height:12%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.34),rgba(0,0,0,0));filter:blur(6px);opacity:.002;scale:.3 1;animation:introShadowIn 1.5s cubic-bezier(.2,.8,.25,1) 3.1s forwards}
 .intro-coin{position:absolute;inset:0;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;perspective:calc(var(--size) * 3.2)}
 .intro-coin:focus-visible{outline:2px solid var(--fg1);outline-offset:10px}
-.coin{position:absolute;inset:0;transform-style:preserve-3d;animation:introSpinIn 1.5s cubic-bezier(.15,.75,.25,1) 3.1s both}
+.coin{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;animation:introSpinIn 1.5s cubic-bezier(.15,.75,.25,1) 3.1s both}
 .edge,.edge i{position:absolute;inset:0;border-radius:50%;transform-style:preserve-3d}
 .edge i{background:linear-gradient(90deg,#6f747b,#c3c7cc 30%,#f4f5f6 50%,#a8adb3 70%,#6a6f76)}
 .edge i:nth-child(1){transform:translateZ(calc(var(--t) * -0.5000))}
@@ -298,10 +298,10 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 @keyframes introRise{to{opacity:1;translate:0 0;filter:blur(0)}}
 @keyframes introFade{to{opacity:1}}
 @keyframes introFadeOut{to{opacity:0}}
-@keyframes introQUp{to{top:clamp(18px,4vh,44px);translate:0 0;scale:.62}}
-@keyframes introToss{0%{opacity:0;translate:0 45vh;scale:.35}18%{opacity:1}78%{translate:0 -3%;scale:1.02}100%{opacity:1;translate:0 0;scale:1}}
+@keyframes introQUp{to{translate:0 calc(-46vh);scale:.62}}
+@keyframes introToss{0%{opacity:.002;translate:0 45vh;scale:.35}18%{opacity:1}78%{translate:0 -3%;scale:1.02}100%{opacity:1;translate:0 0;scale:1}}
 @keyframes introSpinIn{0%{transform:rotateX(38deg) rotateY(-1080deg)}100%{transform:rotateX(0) rotateY(0)}}
-@keyframes introShadowIn{0%{opacity:0;scale:.3 1}78%{opacity:.7;scale:.85 1}100%{opacity:1;scale:1 1}}
+@keyframes introShadowIn{0%{opacity:.002;scale:.3 1}78%{opacity:.7;scale:.85 1}100%{opacity:1;scale:1 1}}
 @keyframes introShine{0%{translate:-110% 0}100%{translate:110% 0}}
 @keyframes introFind{0%{rotate:0deg}55%{rotate:-470deg}78%{rotate:-345deg}100%{rotate:-360deg}}
 @keyframes introCursor{0%{opacity:0;translate:32vw 22vh}12%{opacity:1}100%{opacity:1;translate:0 0}}
@@ -315,15 +315,14 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .da-btns .btn{pointer-events:none;cursor:default}
 @media (max-width:900px){.theme-btn{width:44px;height:44px}.topnav .btn{height:44px}}
 
-/* fala po wylądowaniu monety: krąg na tafli wody rozchodzi się od kompasu.
-   Soczewka = pierścień z backdrop-filter (rozmycie + załamanie jasności tła), skalowany tylko transformacją (karta graficzna, płynnie). */
+/* fala po wylądowaniu monety: kręgi na tafli wody od kompasu. Tylko gradient + transform/opacity:
+   karta graficzna skaluje gotowy obraz, bez liczenia rozmycia tła, więc płynnie także na słabszym laptopie. */
 .water{position:fixed;left:var(--wx);top:var(--wy);width:var(--wd);height:var(--wd);margin:calc(var(--wd) / -2) 0 0 calc(var(--wd) / -2);border-radius:50%;pointer-events:none;z-index:90;
-  transform:scale(.02);will-change:transform,opacity}
-.water.lens{-webkit-backdrop-filter:blur(3px) brightness(1.05) saturate(1.15);backdrop-filter:blur(3px) brightness(1.05) saturate(1.15);
-  -webkit-mask:radial-gradient(closest-side,transparent 84%,#000 91%,#000 95%,transparent 100%);mask:radial-gradient(closest-side,transparent 84%,#000 91%,#000 95%,transparent 100%);
-  animation:water 2.1s cubic-bezier(.16,.62,.28,1) both}
-.water.lens.second{-webkit-backdrop-filter:blur(1.6px) brightness(1.03);backdrop-filter:blur(1.6px) brightness(1.03);animation-delay:.32s;animation-duration:2.3s}
-.water.crest{background:radial-gradient(closest-side,transparent 88%,rgba(255,255,255,.55) 93%,rgba(0,0,0,.07) 96.5%,transparent 100%);animation:water 2.1s cubic-bezier(.16,.62,.28,1) both}
-:root[data-theme=dark] .water.crest{background:radial-gradient(closest-side,transparent 88%,rgba(255,255,255,.14) 93%,rgba(0,0,0,.35) 96.5%,transparent 100%)}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .water.crest{background:radial-gradient(closest-side,transparent 88%,rgba(255,255,255,.14) 93%,rgba(0,0,0,.35) 96.5%,transparent 100%)}}
-@keyframes water{0%{transform:scale(.02);opacity:0}8%{opacity:1}70%{opacity:.85}100%{transform:scale(1);opacity:0}}
+  transform:scale(.02);opacity:0;will-change:transform,opacity;contain:strict;
+  background:radial-gradient(closest-side,transparent 86%,rgba(24,24,27,.05) 89.5%,rgba(255,255,255,.75) 92.5%,rgba(24,24,27,.09) 95.5%,transparent 99%);
+  animation:water 2.8s cubic-bezier(.2,.55,.3,1) forwards}
+.water.w2{animation-delay:.38s;animation-duration:2.9s;--peak:.6}
+.water.w3{animation-delay:.76s;animation-duration:3s;--peak:.32}
+:root[data-theme=dark] .water{background:radial-gradient(closest-side,transparent 86%,rgba(0,0,0,.25) 89.5%,rgba(255,255,255,.16) 92.5%,rgba(0,0,0,.3) 95.5%,transparent 99%)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .water{background:radial-gradient(closest-side,transparent 86%,rgba(0,0,0,.25) 89.5%,rgba(255,255,255,.16) 92.5%,rgba(0,0,0,.3) 95.5%,transparent 99%)}}
+@keyframes water{0%{transform:scale(.02);opacity:0}10%{opacity:var(--peak,1)}65%{opacity:calc(var(--peak,1) * .75)}100%{transform:scale(1);opacity:0}}
