@@ -1,6 +1,6 @@
 // Brama AI: jeden punkt dostępu do modeli. Zmiana dostawcy = zmiana AI_PROVIDER w .env.
 //   mock      – bez klucza, odpowiedzi z bazy wiedzy (obsługiwane w index.js)
-//   anthropic – Claude przez API (ANTHROPIC_API_KEY, MODEL np. claude-sonnet-4-5)
+//   anthropic – Claude przez API (ANTHROPIC_API_KEY, MODEL np. claude-opus-5-5 lub tańszy claude-sonnet-5-5)
 //   openai    – OpenAI przez API (OPENAI_API_KEY, MODEL np. gpt-4o-mini)
 //   ollama    – model lokalny (OLLAMA_URL, MODEL np. llama3.1) – dane nie opuszczają serwera
 
@@ -25,7 +25,7 @@ export async function callModel(provider, system, history, userMsg, tools) {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: model || "claude-sonnet-4-5", max_tokens: 800, system: sys, messages: msgs })
+      body: JSON.stringify({ model: model || "claude-opus-5-5", max_tokens: 1024, system: sys, messages: msgs })
     });
     const j = await r.json();
     if (!r.ok) throw new Error(JSON.stringify(j));

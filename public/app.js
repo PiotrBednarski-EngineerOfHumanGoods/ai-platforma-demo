@@ -43,8 +43,8 @@ async function login(id, password) {
   const allowed = (r.providers || []).map(id => meta.providers.find(p => p.id === id)).filter(Boolean);
   $("#prov").innerHTML = allowed.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
   $("#prov").disabled = allowed.length < 2;
-  $("#prov").title = allowed.length < 2 ? "Twój dział ma jednego dozwolonego dostawcę AI" : "Dostawcy AI dozwoleni dla Twojego działu";
-  $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod każdą odpowiedzią zobaczysz, z jakich dokumentów pochodzi. Asystent widzi dokumenty działu ${esc(meta.depts[user.dept])} i wspólne.</p></div>`;
+  $("#prov").title = allowed.length < 2 ? "Twój dział ma jeden model do wyboru" : "Modele dostępne w Twoim dziale";
+  $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod odpowiedzią będzie nazwa dokumentu, z którego pochodzi. Masz dostęp do dokumentów działu ${esc(meta.depts[user.dept])} i wspólnych.</p></div>`;
   $("#chips").innerHTML = (EXAMPLES[user.dept] || []).map(e => `<button class="chip" type="button">${ICON.bulb}${esc(e)}</button>`).join("");
   $$("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
   showTab("chat"); refreshActions(); renderMasked(null); loadKb(); loadCases();
@@ -100,7 +100,7 @@ async function refreshActions() {
   $("#decideBar").classList.toggle("off", !n);
   if (n) $("#decideText").textContent = `${TITLES[pendingList[0].tool] || pendingList[0].tool}: ${Object.values(pendingList[0].args)[0]}`;
   if (!n) {
-    $("#actions").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Nic nie czeka na decyzję</span><p>Gdy asystent zaproponuje działanie, na przykład spotkanie albo przypomnienie o płatności, zobaczysz je tutaj. Nic nie dzieje się bez Twojej zgody.</p></div>`;
+    $("#actions").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Nic do zatwierdzenia</span><p>Gdy asystent przygotuje spotkanie, notatkę albo przypomnienie, pojawi się tutaj.</p></div>`;
     return;
   }
   $("#actions").innerHTML = pendingList.map(a => `<article class="action" data-id="${esc(a.id)}">
@@ -120,7 +120,7 @@ async function refreshActions() {
   $$("[data-r]").forEach(b => b.onclick = async () => {
     await api(`/actions/${b.dataset.r}/reject`, { method: "POST" });
     setReqState(b.dataset.r, "", "Odrzucono");
-    addMsg("ai", "Odrzucone. Nic nie zostało wykonane.");
+    addMsg("ai", "Odrzucone, nic nie zrobiłem.");
     await refreshActions();
   });
 }
@@ -129,40 +129,40 @@ async function refreshActions() {
 function renderMasked(r) {
   if (!r) {
     $("#maskedCount").textContent = "0";
-    $("#masked").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Nic jeszcze nie wysłano</span><p>Po pierwszym pytaniu zobaczysz tu tekst, który trafił do modelu, z danymi osobowymi zastąpionymi etykietami.</p></div>`;
+    $("#masked").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Jeszcze nic nie wysłano</span><p>Po pierwszym pytaniu zobaczysz tu dokładnie to, co poszło do modelu.</p></div>`;
     return;
   }
   const p = r.policy || {}, u = r.usage;
-  const ROUTE = { blocked: ["", "zatrzymano w bramie"], local: ["dot-in", "serwer firmy, model lokalny"], external: ["dot-out", "chmura, po zamaskowaniu"], mock: ["dot-in", "serwer firmy, tryb demo"] };
+  const ROUTE = { blocked: ["", "nie wyszło nigdzie"], local: ["dot-in", "model w firmie"], external: ["dot-out", "chmura, po zamazaniu danych"], mock: ["dot-in", "tryb pokazowy, bez modelu"] };
   const LEVEL = { public: "jawne", internal: "wewnętrzne", restricted: "chronione" };
   const [dotCls, routeLabel] = ROUTE[p.route] || ["", p.route || ""];
   const provLabel = p.route === "mock" ? "" : (meta.providers.find(x => x.id === p.provider) || {}).label;
   const usageTxt = u && p.route !== "mock" ? `<b>Tokeny:</b><span>~${u.tokens_in} wejście, ~${u.tokens_out} wyjście${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
-  const routeHtml = `<div class="mask-sum"><b>Poziom:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}</div>
+  const routeHtml = `<div class="mask-sum"><b>Poziom pytania:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}</div>
     <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
   if (p.route === "blocked") {
     $("#maskedCount").textContent = "0";
-    $("#masked").innerHTML = `<div class="result" role="status">${ICON.info}<span>Wiadomość zatrzymana w bramie. Do żadnego modelu nie wyszedł ani jeden znak.</span></div>${routeHtml}`;
+    $("#masked").innerHTML = `<div class="result" role="status">${ICON.info}<span>Pytanie nie wyszło z firmy. Do modelu nie trafił ani jeden znak.</span></div>${routeHtml}`;
     return;
   }
   const types = tokTypes(r.masked_preview);
   $("#maskedCount").textContent = r.pii_found;
-  $("#masked").innerHTML = `<p class="panel-sub">Ostatnie zapytanie dokładnie w takiej postaci, w jakiej wyszło z firmy.</p>
+  $("#masked").innerHTML = `<p class="panel-sub">Ostatnie pytanie w postaci, w jakiej je wysłaliśmy.</p>
     <p class="masked">${tokens(r.masked_preview)}</p>
-    <div class="mask-sum">${r.pii_found ? `<b>Zamaskowano ${r.pii_found}:</b>${types.map(t => `<span class="mask-type">${esc(t)}</span>`).join("")}` : `<span>Nie wykryto danych osobowych.</span>`}</div>${routeHtml}`;
+    <div class="mask-sum">${r.pii_found ? `<b>Zamazane (${r.pii_found}):</b>${types.map(t => `<span class="mask-type">${esc(t)}</span>`).join("")}` : `<span>Bez danych osobowych.</span>`}</div>${routeHtml}`;
 }
 
 /* ---------- zakładki: sprawy, dokumenty, logi ---------- */
 async function loadKb() {
   const r = await api("/knowledge");
   $("#kb").innerHTML = r.files.map(f => { const [dept, name] = f.split("/"); return `<li class="li"><div class="li-main"><span class="file-ico">${ICON.docx}</span><div class="grow"><div class="li-title">${esc(name.replace(/\.md$/, "").replace(/-/g, " "))}</div><div class="li-sub">${esc(meta.depts[dept] || dept)} · ${esc(f)}</div></div></div></li>`; }).join("")
-    || `<div class="empty">${ICON.emptyKb}<span class="empty-title">Brak dokumentów</span><p>Dodaj procedury, cenniki lub instrukcje do folderu knowledge/, a asystent będzie się na nie powoływał.</p></div>`;
+    || `<div class="empty">${ICON.emptyKb}<span class="empty-title">Brak dokumentów</span><p>Dodaj procedury albo cenniki do folderu swojego działu.</p></div>`;
 }
 async function loadCases() {
   const r = await api("/cases");
   $("#casesTag").textContent = r.length || "";
   $("#cases").innerHTML = r.map(c => `<li class="li"><div class="li-main"><span class="li-id">${esc(c.when.slice(0, 16).replace("T", " "))}</span><div class="grow"><div class="li-title">${esc(c.klient)}</div><div class="li-sub">${esc(c.notatka)}</div></div></div><span class="badge badge-wait">${esc(c.nastepny_krok || "")}</span><span class="li-sub">${esc(meta.depts[c.dept] || c.dept)}</span></li>`).join("")
-    || `<div class="empty">${ICON.emptyCases}<span class="empty-title">Nie masz jeszcze spraw</span><p>Spotkania, notatki i przypomnienia, które asystent zapisze po Twoim zatwierdzeniu, pojawią się tutaj.</p></div>`;
+    || `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`;
 }
 async function loadLogs() {
   const [r, usage] = await Promise.all([api("/logs"), api("/usage")]); if (r.error) return;
@@ -170,15 +170,15 @@ async function loadLogs() {
   const prov = id => (meta.providers.find(p => p.id === id) || {}).label || id || "";
   const money = (u) => u.cloud ? (u.costKnown ? u.cost.toFixed(2) + " USD" : "koszt nieznany, brak cennika") : "0 USD";
   $("#usage").innerHTML = (usage.depts || []).length
-    ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} zapytań w tym miesiącu</small><small>chmura: ${u.cloud} / ${usage.cloudMonthlyLimit} · lokalnie: ${u.local}${u.blocked ? " · zatrzymane: " + u.blocked : ""}</small><small>~${u.tokens} tokenów · ${money(u)}</small></div>`).join("")
-    : `<div><b>Ten miesiąc</b><small>Jeszcze żadnych zapytań.</small></div>`;
+    ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} pytań w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} tokenów · ${money(u)}</small></div>`).join("")
+    : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`;
   $("#logs").innerHTML = r.map(l => {
-    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Zatrzymano</span>` : "Zapytanie";
-    const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nic nie wyszło" : "serwer firmy")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
-    const det = l.event === "blocked" ? `zatrzymano w bramie: ${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
+    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Błędne logowanie</span>` : "Pytanie";
+    const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
+    const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt ?" : l.cost.toFixed(4) + " USD") : ""}` : "";
     return `<tr><td class="mono">${esc(l.ts.slice(11, 19))}</td><td>${esc(who(l.userId))}</td><td>${ev}</td><td class="mono">${esc(l.event && l.event !== "blocked" ? "" : prov(l.provider))}</td><td class="mono">${tok}</td><td class="mono">${det}</td><td class="mono">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
-  }).join("") || `<tr><td colspan="7"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Każde zapytanie i każda decyzja pracowników pojawi się tutaj.</p></div></td></tr>`;
+  }).join("") || `<tr><td colspan="7"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Pytania i decyzje pracowników pojawią się tutaj.</p></div></td></tr>`;
 }
 init();
 

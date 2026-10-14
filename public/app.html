@@ -19,7 +19,7 @@
         <span class="brand-co">Kriomar</span>
       </div>
       <h1>Zaloguj się</h1>
-      <p class="lead">Użyj danych firmowych, które otrzymałeś w wiadomości e-mail.</p>
+      <p class="lead">Użyj loginu i hasła, które dostałeś e-mailem.</p>
       <form class="form" id="loginForm" autocomplete="off">
         <div class="field">
           <label for="login-id">Login</label>
@@ -32,16 +32,16 @@
         <div class="bar" id="loginErr" role="alert"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m0 10.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5M10 6a.5.5 0 0 0-.5.41v4.68a.5.5 0 0 0 1 0V6.41A.5.5 0 0 0 10 6" fill="currentColor"></path></svg><span></span></div>
         <div class="actions"><button class="btn btn-primary btn-lg" type="submit" id="loginBtn">Zaloguj</button></div>
       </form>
-      <p class="help">Nie masz danych logowania lub nie pamiętasz hasła? Skontaktuj się z administratorem.</p>
+      <p class="help">Nie masz loginu albo nie pamiętasz hasła? Napisz do administratora.</p>
       <details class="accounts" id="accounts">
         <summary>Konta demo</summary>
-        <p class="hint">Kliknij konto, a login i hasło wypełnią się same. Firma i pracownicy są fikcyjni.</p>
+        <p class="hint">Kliknij konto, pola wypełnią się same. Firma i ludzie są wymyśleni.</p>
         <ul>
           <li><button type="button" data-login="a.lis" data-pw="anna-kriomar-2026"><b>Anna Lis</b><small>sprzedaż · a.lis</small></button></li>
           <li><button type="button" data-login="m.wojcik" data-pw="marek-kriomar-2026"><b>Marek Wójcik</b><small>obsługa klienta · m.wojcik</small></button></li>
           <li><button type="button" data-login="e.nowak" data-pw="ewa-kriomar-2026"><b>Ewa Nowak</b><small>biuro · e.nowak</small></button></li>
-          <li><button type="button" data-login="t.kaczmarek" data-pw="tomasz-kriomar-2026"><b>Tomasz Kaczmarek</b><small>księgowość, tylko serwer firmy · t.kaczmarek</small></button></li>
-          <li><button type="button" data-login="j.zielinski" data-pw="prezes-kriomar-2026"><b>Jan Zieliński</b><small>zarząd, logi i koszty · j.zielinski</small></button></li>
+          <li><button type="button" data-login="t.kaczmarek" data-pw="tomasz-kriomar-2026"><b>Tomasz Kaczmarek</b><small>księgowość · t.kaczmarek</small></button></li>
+          <li><button type="button" data-login="j.zielinski" data-pw="prezes-kriomar-2026"><b>Jan Zieliński</b><small>zarząd · j.zielinski</small></button></li>
         </ul>
       </details>
     </main>
@@ -76,7 +76,7 @@
       </div>
 
       <div class="pane on" id="t-chat" role="tabpanel">
-        <a class="decide-bar off" id="decideBar" href="#akcje"><b>Do zatwierdzenia</b><span id="decideText"></span>Pokaż</a>
+        <a class="decide-bar off" id="decideBar" href="#akcje"><b>Czeka na Ciebie</b><span id="decideText"></span>Pokaż</a>
         <div class="messages" id="chat" aria-live="polite"></div>
         <div class="suggest" id="chips" aria-label="Podpowiedzi"></div>
         <form class="composer" id="composer">
@@ -87,25 +87,25 @@
       </div>
 
       <div class="pane tabpanel" id="t-cases" role="tabpanel">
-        <div class="tp-head"><div><h2>Sprawy</h2><p>Notatki, spotkania i przypomnienia zapisane po Twoim zatwierdzeniu.</p></div></div>
+        <div class="tp-head"><div><h2>Sprawy</h2><p>To, co zatwierdziłeś: notatki, spotkania, przypomnienia.</p></div></div>
         <ul class="list" id="cases"></ul>
       </div>
 
       <div class="pane tabpanel" id="t-kb" role="tabpanel">
-        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, na których asystent opiera odpowiedzi dla Twojego działu.</p></div></div>
+        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, z których asystent odpowiada w Twoim dziale.</p></div></div>
         <ul class="list" id="kb"></ul>
       </div>
 
       <div class="pane tabpanel" id="t-logs" role="tabpanel">
-        <div class="tp-head"><div><h2>Logi</h2><p>Kto o co pytał, co wyszło do modelu i jakie akcje zatwierdzono. Widoczne tylko dla zarządu.</p></div></div>
+        <div class="tp-head"><div><h2>Logi</h2><p>Kto pytał, co wyszło do modelu, co zatwierdzono. Tylko dla zarządu.</p></div></div>
         <div class="usage" id="usage"></div>
-        <div class="table-wrap"><table><thead><tr><th>Czas</th><th>Pracownik</th><th>Zdarzenie</th><th>Model</th><th>Tokeny</th><th>Szczegóły</th><th>Źródła</th></tr></thead><tbody id="logs"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Czas</th><th>Kto</th><th>Co</th><th>Model</th><th>Tokeny</th><th>Szczegóły</th><th>Dokumenty</th></tr></thead><tbody id="logs"></tbody></table></div>
       </div>
     </main>
 
     <aside class="side" aria-label="Kontrola asystenta">
       <section class="panel" id="akcje">
-        <div class="panel-head"><h2>Akcje do zatwierdzenia</h2><span class="counter" id="pendingCount">0</span></div>
+        <div class="panel-head"><h2>Do zatwierdzenia</h2><span class="counter" id="pendingCount">0</span></div>
         <div class="panel-body" id="actions"></div>
       </section>
       <section class="panel">

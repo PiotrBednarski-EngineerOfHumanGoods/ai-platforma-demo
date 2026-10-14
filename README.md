@@ -41,7 +41,7 @@ Skopiuj `.env.example` do `.env` i ustaw `AI_PROVIDER`:
 | Wariant | `.env` | Kiedy |
 |---|---|---|
 | `mock` (domyślny) | brak klucza | pokaz architektury bez kosztów; odpowiedzi = najtrafniejsze fragmenty bazy wiedzy |
-| `anthropic` | `ANTHROPIC_API_KEY`, `MODEL=claude-sonnet-4-5` | pełne odpowiedzi, narzędzia wybierane przez model |
+| `anthropic` | `ANTHROPIC_API_KEY`, `MODEL=claude-opus-5-5` | pełne odpowiedzi, narzędzia wybierane przez model |
 | `openai` | `OPENAI_API_KEY`, `MODEL=gpt-4o-mini` | to samo, inny dostawca – zmiana w jednym miejscu |
 | `ollama` | `OLLAMA_URL=http://localhost:11434`, `MODEL=llama3.1` | model lokalny, dane nie opuszczają serwera |
 

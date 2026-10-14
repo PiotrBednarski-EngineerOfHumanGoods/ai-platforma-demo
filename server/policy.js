@@ -7,8 +7,8 @@
 // W produkcji: klasyfikator NER/ML (np. Microsoft Presidio) zamiast reguł, polityka w konfiguracji/panelu administratora.
 
 export const PROVIDERS = {
-  mock:      { label: "tryb demo (serwer firmy)",  kind: "mock" },
-  ollama:    { label: "model lokalny (serwer firmy)", kind: "local" },
+  mock:      { label: "tryb pokazowy, bez modelu", kind: "mock" },
+  ollama:    { label: "model w firmie (Ollama)",   kind: "local" },
   anthropic: { label: "Claude (chmura)",           kind: "external" },
   openai:    { label: "GPT (chmura)",              kind: "external" }
 };
@@ -66,16 +66,16 @@ export function decide({ level, dept, requested, cloudUsed }) {
   const byId = id => allowed.find(p => p.id === id);
   const def = local || allowed.find(p => p.kind === "mock") || allowed[0];
   if (level === "restricted") {
-    if (local) return { provider: local.id, kind: "local", blocked: false, reason: "dane chronione, tylko serwer firmy" };
-    return { provider: null, kind: "blocked", blocked: true, reason: "dane chronione, a dział nie ma modelu lokalnego" };
+    if (local) return { provider: local.id, kind: "local", blocked: false, reason: "dane chronione, zostają w firmie" };
+    return { provider: null, kind: "blocked", blocked: true, reason: "dane chronione, a dział nie ma modelu w firmie" };
   }
   let chosen = byId(requested) || def;
-  if (!chosen) return { provider: null, kind: "blocked", blocked: true, reason: "dział nie ma żadnego dozwolonego dostawcy" };
+  if (!chosen) return { provider: null, kind: "blocked", blocked: true, reason: "dział nie ma żadnego modelu do wyboru" };
   if (chosen.kind === "external" && cloudUsed >= cloudMonthlyLimit()) {
-    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()}), użyto modelu lokalnego` };
+    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()}), użyto modelu w firmie` };
     return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()})` };
   }
-  return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamaskowane przed wysyłką" : "dane nie opuszczają serwera firmy" };
+  return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamazane przed wysyłką" : "dane zostały w firmie" };
 }
 
 // Koszty: szacunek tokenów (ok. 4 znaki na token) i cena z PRICING_JSON w .env (USD za 1 mln tokenów),

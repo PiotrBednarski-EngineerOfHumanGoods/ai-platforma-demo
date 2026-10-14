@@ -101,9 +101,9 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
     const ts = new Date().toISOString();
     store.log({ userId: user.id, dept: user.dept, provider: null, event: "blocked", policy: policyOut, pii_found: piiInMessage, ms: Date.now() - t0 });
     alert({ userId: user.id, dept: user.dept, reasons: policy.reasons.length ? policy.reasons : [trip.reason], ts }); // bez treści wiadomości
-    const hint = policy.level === "restricted" ? "Usuń te dane z wiadomości albo poproś administratora o model lokalny dla działu." : "Skontaktuj się z administratorem.";
+    const hint = policy.level === "restricted" ? "Usuń te dane z pytania albo poproś administratora o model w firmie." : "Napisz do administratora.";
     return res.json({
-      answer: `Wiadomość została zatrzymana w bramie: ${trip.reason}. Nic nie zostało wysłane. ${hint}`,
+      answer: `Nie wysłałem tego pytania: ${trip.reason}. ${hint}`,
       sources: [], action: null, masked_preview: null, pii_found: piiInMessage, policy: policyOut
     });
   }
@@ -114,7 +114,13 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   if (trip.provider === "mock") {
     out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
   } else {
-    out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS);
+    try {
+      out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS);
+    } catch (e) { // błąd dostawcy: czytelny komunikat dla pracownika, szczegół tylko w logu serwera
+      console.error("model error:", trip.provider, e.message);
+      store.log({ userId: user.id, dept: user.dept, provider: trip.provider, event: "provider_error", policy: policyOut, ms: Date.now() - t0 });
+      return res.status(502).json({ error: `Model „${trip.provider}” nie odpowiada. Spróbuj ponownie za chwilę albo wybierz innego dostawcę.` });
+    }
   }
 
   // 5. Odmaskowanie odpowiedzi i ewentualnej akcji
@@ -194,9 +200,9 @@ function mockAnswer(message, hits, user) {
   }
   if (hits.length) {
     const lines = hits.slice(0, 3).map((h, i) => `[${i + 1}] ${h.text.replace(/^#+\s*/, "").split("\n").filter(Boolean).slice(0, 2).join(": ")}`);
-    answer = `${lines.join("\n\n")}\n\nTryb demo bez modelu: to najtrafniejsze fragmenty dokumentów, nie zredagowana odpowiedź.`;
+    answer = `${lines.join("\n\n")}\n\n(Tryb pokazowy bez modelu: pokazuję fragmenty dokumentów zamiast gotowej odpowiedzi.)`;
   } else {
-    answer = "Nie ma tego w dokumentach, do których masz dostęp. Zapytaj przełożonego albo poproś o dodanie dokumentu do bazy wiedzy.";
+    answer = "W dokumentach Twojego działu nie ma odpowiedzi. Zapytaj przełożonego albo poproś o dodanie dokumentu.";
   }
   return { answer, action };
 }

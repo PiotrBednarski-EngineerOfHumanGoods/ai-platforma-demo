@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Compax – jeden asystent AI dla całej firmy</title>
-<meta name="description" content="Wspólna platforma AI dla firmy wielodziałowej: każdy dział widzi tylko swoje dokumenty, dane osobowe są maskowane przed modelem, a każdą akcję zatwierdza człowiek.">
+<title>Compax – asystent AI dla pracowników Kriomar</title>
+<meta name="description" content="Compax odpowiada na pytania o procedury, cenniki i klientów na podstawie dokumentów firmy. Dane osobowe nie trafiają do modelu, a każdą akcję zatwierdza pracownik.">
 <link rel="stylesheet" href="/start.css">
 <script src="/start.js" defer></script>
 </head>
@@ -15,6 +15,7 @@
     <b>Compax</b><span class="co">Kriomar</span>
   </a>
   <nav class="topnav">
+    <a href="#pomaga">W czym pomaga</a>
     <a href="#jak">Jak działa</a>
     <a href="#dzialy">Działy</a>
     <a href="#dane">Dane</a>
@@ -25,14 +26,14 @@
 
 <section class="hero" id="hero">
   <div class="hero-text">
-    <p class="kicker">Asystent AI dla firmy z kilkoma działami</p>
-    <h1>Jedna platforma dla całej firmy. Każdy dział widzi tylko to, co powinien.</h1>
-    <p class="lead">Pracownik pyta o procedurę, cennik albo klienta i dostaje odpowiedź ze wskazaniem dokumentu. Dane osobowe są maskowane, zanim cokolwiek trafi do modelu. Każdą akcję na zewnątrz zatwierdza człowiek.</p>
+    <p class="kicker">Kriomar · narzędzie wewnętrzne</p>
+    <h1>Asystent, który zna dokumenty firmy i nie wynosi ich na zewnątrz.</h1>
+    <p class="lead">Pytasz o procedurę, cennik albo klienta. Dostajesz odpowiedź z podaniem dokumentu, z którego pochodzi. Widzisz tylko dokumenty swojego działu. Nazwiska i numery są zamazywane, zanim pytanie trafi do modelu. Spotkanie, notatkę czy przypomnienie asystent tylko przygotowuje, Ty zatwierdzasz.</p>
     <div class="cta">
-      <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się do demo</a>
-      <a class="btn btn-ghost btn-lg" href="#jak">Zobacz, jak to działa</a>
+      <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się</a>
+      <a class="btn btn-ghost btn-lg" href="#jak">Jak to działa</a>
     </div>
-    <p class="note">Dane logowania przesyłamy e-mailem. Firma, pracownicy i klienci w demie są fikcyjni.</p>
+    <p class="note">To wersja pokazowa. Firma, pracownicy i klienci są wymyśleni, konta demo są na ekranie logowania.</p>
   </div>
 
   <div class="demo" id="demo" aria-label="Przykład: co widzi pracownik, a co dostaje model">
@@ -40,11 +41,11 @@
       <span class="who">Anna, sprzedaż</span>
       <p class="bubble">Umów spotkanie z Pan Jan Kowalski tel. 600 123 456 we wtorek 10:00</p>
     </div>
-    <div class="demo-sep"><span>co dostał model</span></div>
+    <div class="demo-sep"><span>to samo zdanie, które wyszło do modelu</span></div>
     <p class="masked">Umów spotkanie z Pan <span class="redact r1"><i>Jan Kowalski</i><b>osoba 1</b></span> tel. <span class="redact r2"><i>600 123 456</i><b>telefon 1</b></span> we wtorek 10:00</p>
-    <div class="demo-sum"><span class="dot"></span>serwer firmy · zamaskowano 2: osoba, telefon</div>
+    <div class="demo-sum"><span class="dot"></span>zamazane: nazwisko, telefon</div>
     <div class="demo-action">
-      <div class="da-head"><span>Wniosek W-0412</span><span class="status">Oczekuje</span></div>
+      <div class="da-head"><span>Wniosek W-0412</span><span class="status">Czeka na Ciebie</span></div>
       <strong>Umów spotkanie</strong>
       <dl><dt>z kim</dt><dd>Jan Kowalski</dd><dt>kiedy</dt><dd>wtorek 10:00</dd></dl>
       <div class="da-btns"><span class="btn btn-decide">Zatwierdź</span><span class="btn btn-secondary">Odrzuć</span></div>
@@ -52,46 +53,61 @@
   </div>
 </section>
 
+<section class="help" id="pomaga">
+  <div class="wrap">
+    <h2>W czym pomaga</h2>
+    <p class="sub">Jeden asystent dla wszystkich pracowników. Każdy loguje się do tego samego narzędzia, ale widzi tylko dokumenty i sprawy swojego działu. Księgowość nie zobaczy cennika sprzedaży, sprzedaż nie zobaczy procedur windykacji, zarząd widzi wszystko.</p>
+    <div class="grid3">
+      <div class="reveal"><h3>Odpowiada z dokumentów firmy</h3><p>„Jaki rabat mogę dać sam?”, „Ile mamy czasu na odpowiedź na reklamację?”, „Jak rozliczyć delegację?”. Odpowiedź pochodzi z procedur, cenników i regulaminów działu, z podaniem pliku.</p></div>
+      <div class="reveal"><h3>Przygotowuje akcje</h3><p>Umawia spotkanie, zapisuje notatkę o kliencie, przygotowuje przypomnienie o płatności. Wykonuje je dopiero po Twoim „Zatwierdź”.</p></div>
+      <div class="reveal"><h3>Pamięta sprawy</h3><p>Zatwierdzone spotkania i notatki trafiają do zakładki Sprawy, widocznej w Twoim dziale. Bez wdrażania osobnego CRM.</p></div>
+      <div class="reveal"><h3>Nie wynosi danych</h3><p>Nazwiska, telefony i numery są zamazywane, zanim pytanie trafi do modelu. PESEL czy numer konta w ogóle nie mogą wyjść do chmury.</p></div>
+      <div class="reveal"><h3>Rozlicza koszty</h3><p>Zarząd widzi, ile pytań zadał każdy dział, ile poszło do chmury i ile to kosztowało w tym miesiącu.</p></div>
+      <div class="reveal"><h3>Działa na telefonie</h3><p>Technik w terenie zada pytanie i zatwierdzi wniosek z telefonu, bez instalowania aplikacji.</p></div>
+    </div>
+  </div>
+</section>
+
 <section class="flow" id="jak">
   <div class="wrap">
-    <h2>Co się dzieje z pytaniem, krok po kroku</h2>
-    <p class="sub">Kolejność jest celowa: uprawnienia przed wyszukiwaniem, maskowanie przed modelem, człowiek przed akcją, log po wszystkim.</p>
+    <h2>Co się dzieje po wysłaniu pytania</h2>
+    <p class="sub">Siedem kroków, zawsze w tej kolejności.</p>
     <ol class="steps">
-      <li class="step"><span class="n">1</span><div><h3>Logowanie i rola</h3><p>Z konta wynika dział i uprawnienia. W produkcji to konto firmowe Microsoft lub Google.</p></div></li>
-      <li class="step"><span class="n">2</span><div><h3>Wyszukiwanie tylko w dozwolonych dokumentach</h3><p>Filtr działa na etapie szukania, nie dopiero w odpowiedzi. Sprzedaż nie zobaczy procedur księgowości, nawet jeśli zapyta.</p></div></li>
-      <li class="step"><span class="n">3</span><div><h3>Maskowanie danych osobowych</h3><p>Imiona, telefony, e-maile, NIP-y zamieniają się w etykiety. Prawdziwe wartości zostają na serwerze firmy.</p></div></li>
-      <li class="step"><span class="n">4</span><div><h3>Klasyfikacja i trasa</h3><p>Dane chronione idą wyłącznie do modelu lokalnego. Reszta do dostawcy dozwolonego dla działu, po zamaskowaniu. Chmura ma miesięczny limit.</p></div></li>
-      <li class="step"><span class="n">5</span><div><h3>Model i odpowiedź ze źródłem</h3><p>Odpowiedź powstaje wyłącznie z fragmentów dokumentów i wskazuje, skąd pochodzi. Gdy dokumentów nie ma, asystent mówi to wprost.</p></div></li>
-      <li class="step"><span class="n">6</span><div><h3>Wniosek, nie akcja</h3><p>Spotkanie, notatka, przypomnienie o płatności: asystent przygotowuje, pracownik klika „Zatwierdź”. Nic nie dzieje się bez zgody.</p></div></li>
-      <li class="step"><span class="n">7</span><div><h3>Dziennik dla zarządu</h3><p>Kto, kiedy, co poszło do modelu, ile danych zamaskowano, którą trasą, ile kosztowało. Bez samych danych osobowych.</p></div></li>
+      <li class="step"><span class="n">1</span><div><h3>Logujesz się kontem firmowym</h3><p>Z konta wynika Twój dział i to, co możesz zobaczyć.</p></div></li>
+      <li class="step"><span class="n">2</span><div><h3>Asystent szuka w dokumentach Twojego działu</h3><p>Handlowiec nie zobaczy procedur księgowości, nawet jeśli o nie zapyta. Filtr działa przy szukaniu, nie dopiero przy odpowiedzi.</p></div></li>
+      <li class="step"><span class="n">3</span><div><h3>Nazwiska i numery są zamazywane</h3><p>Imię i nazwisko, telefon, e-mail, NIP zamieniają się w etykiety. Prawdziwe dane zostają u nas.</p></div></li>
+      <li class="step"><span class="n">4</span><div><h3>Pytanie dostaje poziom</h3><p>PESEL, numer konta, dane o zdrowiu mogą iść tylko do modelu stojącego w firmie. Jeśli go nie ma, pytanie zostaje u nas i dostajesz informację dlaczego.</p></div></li>
+      <li class="step"><span class="n">5</span><div><h3>Odpowiedź ze źródłem</h3><p>Pod odpowiedzią jest nazwa dokumentu. Gdy w dokumentach nic nie ma, asystent pisze to wprost zamiast zgadywać.</p></div></li>
+      <li class="step"><span class="n">6</span><div><h3>Wniosek czeka na Twoją decyzję</h3><p>Spotkanie, notatka, przypomnienie o płatności. Asystent przygotowuje, Ty klikasz „Zatwierdź” albo „Odrzuć”.</p></div></li>
+      <li class="step"><span class="n">7</span><div><h3>Zarząd widzi dziennik</h3><p>Kto pytał, co poszło do modelu, ile danych zamazano, ile to kosztowało. Bez treści z danymi osobowymi.</p></div></li>
     </ol>
   </div>
 </section>
 
 <section class="depts" id="dzialy">
   <div class="wrap">
-    <h2>Ten sam asystent, inne dokumenty i narzędzia</h2>
-    <p class="sub">Dodanie działu to konfiguracja, nie nowy projekt: folder z dokumentami, lista narzędzi, polityka dostawców.</p>
+    <h2>Każdy dział ma swoje</h2>
+    <p class="sub">Dokumenty, podpowiedzi i narzędzia zależą od działu. Nowy dział to folder z dokumentami i kilka linii konfiguracji.</p>
     <div class="grid">
-      <article class="card reveal"><h3>Sprzedaż</h3><p>Cennik, zasady rabatów, przygotowanie oferty.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">serwer firmy lub chmura</span></article>
-      <article class="card reveal"><h3>Obsługa klienta</h3><p>Zgłoszenia awarii, statusy zleceń, reklamacje.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">serwer firmy lub chmura</span></article>
-      <article class="card reveal"><h3>Biuro</h3><p>Rezerwacje sal, delegacje, zamówienia.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">serwer firmy lub chmura</span></article>
-      <article class="card reveal"><h3>Księgowość</h3><p>Windykacja, korekty, terminy płatności.</p><ul><li>Przypomnienie o płatności</li></ul><span class="tag tag-local">tylko serwer firmy</span></article>
-      <article class="card reveal"><h3>Zarząd</h3><p>Cele, raporty, wszystkie dokumenty.</p><ul><li>Wszystkie narzędzia</li><li>Logi i koszty</li></ul><span class="tag tag-local">tylko serwer firmy</span></article>
+      <article class="card reveal"><h3>Sprzedaż</h3><p>Cennik, rabaty, jak przygotować ofertę.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">może korzystać z chmury</span></article>
+      <article class="card reveal"><h3>Obsługa klienta</h3><p>Awarie, statusy zleceń, reklamacje.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">może korzystać z chmury</span></article>
+      <article class="card reveal"><h3>Biuro</h3><p>Rezerwacje sal, delegacje, zamówienia.</p><ul><li>Umów spotkanie</li><li>Zapisz sprawę</li></ul><span class="tag tag-cloud">może korzystać z chmury</span></article>
+      <article class="card reveal"><h3>Księgowość</h3><p>Windykacja, korekty, terminy płatności.</p><ul><li>Przypomnienie o płatności</li></ul><span class="tag tag-local">bez chmury</span></article>
+      <article class="card reveal"><h3>Zarząd</h3><p>Cele na rok, raport tygodniowy, dostęp do wszystkiego.</p><ul><li>Wszystkie narzędzia</li><li>Logi i koszty</li></ul><span class="tag tag-local">bez chmury</span></article>
     </div>
   </div>
 </section>
 
 <section class="levels" id="dane">
   <div class="wrap">
-    <h2>Dane nie wychodzą z firmy, jeśli nie muszą</h2>
-    <p class="sub">Każda wiadomość dostaje poziom, zanim cokolwiek pójdzie do modelu. Pracownik widzi decyzję w panelu „Co dostał model”.</p>
+    <h2>Co może wyjść do chmury, a co nie</h2>
+    <p class="sub">Zanim pytanie pójdzie do modelu, dostaje jeden z trzech poziomów. Decyzję widać w panelu „Co dostał model”.</p>
     <table>
       <thead><tr><th>Poziom</th><th>Co to znaczy</th><th>Dokąd może pójść</th></tr></thead>
       <tbody>
-        <tr class="reveal"><td><span class="lvl">jawne</span></td><td>bez danych osobowych, np. „jaki rabat mogę dać sam?”</td><td><span class="dot"></span>serwer firmy albo <span class="dot dot-out"></span>chmura, według polityki działu</td></tr>
-        <tr class="reveal"><td><span class="lvl">wewnętrzne</span></td><td>dane osobowe, zamaskowane etykietami</td><td><span class="dot"></span>serwer firmy albo <span class="dot dot-out"></span>chmura, ale tylko po zamaskowaniu</td></tr>
-        <tr class="reveal"><td><span class="lvl lvl-r">chronione</span></td><td>PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające</td><td><span class="dot"></span>wyłącznie model lokalny; bez niego wiadomość zostaje w bramie, a administrator dostaje alert</td></tr>
+        <tr class="reveal"><td><span class="lvl">jawne</span></td><td>bez danych osobowych, np. „jaki rabat mogę dać sam?”</td><td><span class="dot"></span>model w firmie albo <span class="dot dot-out"></span>chmura, zależnie od działu</td></tr>
+        <tr class="reveal"><td><span class="lvl">wewnętrzne</span></td><td>są dane osobowe, zamazane etykietami</td><td><span class="dot"></span>model w firmie albo <span class="dot dot-out"></span>chmura, ale dopiero po zamazaniu</td></tr>
+        <tr class="reveal"><td><span class="lvl lvl-r">chronione</span></td><td>PESEL, numer konta, zdrowie, wynagrodzenia, hasła</td><td><span class="dot"></span>tylko model w firmie; gdy go nie ma, pytanie nie wychodzi nigdzie, a administrator dostaje powiadomienie</td></tr>
       </tbody>
     </table>
   </div>
@@ -99,24 +115,24 @@
 
 <section class="sec" id="bezpieczenstwo">
   <div class="wrap">
-    <h2>Zbudowane jak narzędzie firmowe, nie jak prezentacja</h2>
+    <h2>Co jest pod spodem</h2>
     <div class="grid3">
-      <div class="reveal"><h3>Logowanie</h3><p>Hasła jako hash scrypt z solą, sesja w ciasteczku HttpOnly, blokada konta po 5 błędach, limit prób z adresu IP.</p></div>
-      <div class="reveal"><h3>Przeglądarka</h3><p>Polityka CSP bez wyjątków, bez skryptów i fontów z obcych serwerów, bez cookies śledzących, ochrona przed CSRF i wstrzykiwaniem treści.</p></div>
-      <div class="reveal"><h3>Serwer</h3><p>HTTPS, firewall, proces bez uprawnień, klucze tylko w zmiennych środowiskowych, serwer w Unii Europejskiej.</p></div>
-      <div class="reveal"><h3>Dziennik</h3><p>Każde pytanie i każda decyzja, bez danych osobowych. Zużycie i koszt per dział w bieżącym miesiącu.</p></div>
-      <div class="reveal"><h3>Testy</h3><p>19 testów automatycznych: uprawnienia, maskowanie, blokada danych chronionych, polityka działów, wnioski, walidacja.</p></div>
-      <div class="reveal"><h3>Wymienny model</h3><p>Tryb demo, model lokalny przez Ollamę, Claude, GPT. Zmiana dostawcy to konfiguracja, nie kod.</p></div>
+      <div class="reveal"><h3>Logowanie</h3><p>Hasła przechowywane jako hash, sesja w ciasteczku niedostępnym dla skryptów, blokada konta po pięciu błędach.</p></div>
+      <div class="reveal"><h3>Przeglądarka</h3><p>Żadnych skryptów ani fontów z obcych serwerów, żadnych cookies śledzących. Zabezpieczenie przed podszywaniem się pod żądania i wstrzykiwaniem treści.</p></div>
+      <div class="reveal"><h3>Serwer</h3><p>HTTPS, firewall, aplikacja bez uprawnień administratora, klucze do modeli poza kodem, serwer w Unii Europejskiej.</p></div>
+      <div class="reveal"><h3>Dziennik</h3><p>Każde pytanie i każda decyzja, bez danych osobowych. Koszt na dział w bieżącym miesiącu.</p></div>
+      <div class="reveal"><h3>Testy</h3><p>19 testów uruchamianych jednym poleceniem: uprawnienia, zamazywanie danych, blokada danych chronionych, wnioski.</p></div>
+      <div class="reveal"><h3>Model do wyboru</h3><p>Tryb pokazowy bez modelu, model stojący w firmie, Claude albo GPT. Zmiana to wpis w konfiguracji.</p></div>
     </div>
     <div class="cta cta-end">
-      <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się do demo</a>
+      <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się</a>
       <a class="btn btn-ghost btn-lg" href="https://github.com/PiotrBednarski-EngineerOfHumanGoods/ai-platforma-demo" rel="noopener">Kod na GitHubie</a>
     </div>
   </div>
 </section>
 
 <footer class="foot">
-  <span>Kriomar sp. z o.o. to fikcyjna firma na potrzeby demonstracji.</span>
+  <span>Kriomar sp. z o.o. jest firmą wymyśloną na potrzeby tej wersji pokazowej.</span>
   <a href="/prywatnosc.html">Prywatność i zasady korzystania</a>
 </footer>
 </body>
