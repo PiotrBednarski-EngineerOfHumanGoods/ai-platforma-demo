@@ -25,7 +25,7 @@ npx n8n            # otwórz http://localhost:5678, załóż konto lokalne
 ```bash
 curl -X POST http://localhost:5678/webhook-test/asystent \
   -H "content-type: application/json" \
-  -d '{"user":"anna","dept":"sprzedaz","message":"Umów spotkanie z Pan Jan Kowalski tel. 600 123 456 we wtorek 10:00"}'
+  -d '{"user":"anna","dept":"sprzedaz","message":"Umów spotkanie z panem Janem Kowalskim, tel. 600 123 456, we wtorek o 10:00"}'
 ```
 
 W odpowiedzi dostaniesz `answer` i `pii_found: 2`. W węźle *Code: rola + maskowanie PII* zobaczysz, że do modelu poszło `[OSOBA_1]` i `[TELEFON_1]`.

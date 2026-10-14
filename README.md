@@ -1,6 +1,8 @@
-# Platforma AI dla firmy wielodziałowej – demo
+# Compax – asystent AI dla firmy z kilkoma działami
 
-Demo do koncepcji „jedna wspólna platforma AI, osobni agenci dla działów”. Pokazuje fundament w praktyce:
+**Demo na żywo:** https://195-201-97-88.sslip.io (ekran startowy) · logowanie: https://195-201-97-88.sslip.io/app.html, konta demo pod formularzem.
+
+Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale działy różnią się danymi i uprawnieniami – jak to zrobić?* Jedna wspólna platforma, a na niej osobna konfiguracja dla każdego działu: własne dokumenty, narzędzia i polityka modeli. Wszyscy logują się do tego samego asystenta, ale dostęp do danych zależy od działu.
 
 - **logowanie z rolą** – użytkownik widzi tylko dokumenty swojego działu i dokumenty wspólne (zarząd widzi wszystko),
 - **baza wiedzy** – pliki `.md` w `knowledge/<dział>/`, odpowiedzi z podaniem źródła,
@@ -10,7 +12,11 @@ Demo do koncepcji „jedna wspólna platforma AI, osobni agenci dla działów”
 - **pamięć spraw** zamiast CRM – lekki rejestr klientów i następnych kroków,
 - **logi** – co poszło do modelu, ile danych zamaskowano, jakie źródła, jaka akcja (zakładka dla zarządu).
 
-Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe.
+- **brama danych** – klasyfikacja jawne / wewnętrzne / chronione; dane chronione tylko do modelu w firmie, reszta do chmury po zamazaniu,
+- **koszty pod kontrolą** – tani model do prostych pytań, mocny do analiz, pamięć odpowiedzi, budżet miesięczny i limity na dział,
+- **dokumenty od pracowników** – dodawane w aplikacji do bazy działu; dane na dysku szyfrowane, codzienne kopie.
+
+Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na żywo działa prawdziwy model Claude z budżetem 3 USD miesięcznie; księgowość i zarząd celowo nie korzystają z chmury.
 
 ## Dokumentacja dla klienta
 
@@ -35,13 +41,13 @@ Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
 
 ## Konta demo
 
-| Użytkownik | Dział |
-|---|---|
-| anna (Anna Lis) | sprzedaż |
-| marek (Marek Wójcik) | obsługa klienta |
-| ewa (Ewa Nowak) | biuro / administracja |
-| tomasz (Tomasz Kaczmarek) | księgowość |
-| prezes (Jan Zieliński) | zarząd, widzi wszystko i logi |
+| Login | Osoba | Dział | Co sprawdzić |
+|---|---|---|---|
+| `a.lis` | Anna Lis | sprzedaż | pytanie o rabat (Claude, ze źródłem), spotkanie z zamazanym nazwiskiem i zatwierdzeniem |
+| `m.wojcik` | Marek Wójcik | obsługa klienta | czas reakcji na awarię, reklamacje |
+| `e.nowak` | Ewa Nowak | biuro | rezerwacja sali, delegacje |
+| `t.kaczmarek` | Tomasz Kaczmarek | księgowość | windykacja; nic nie wychodzi do chmury, PESEL zatrzymany |
+| `j.zielinski` | Jan Zieliński | zarząd | zakładka Logi: trasa, model i koszt każdego pytania, budżet miesiąca |
 
 Hasła kont demo są wypisane na ekranie logowania (rozwijana lista „Konta demo”), bo firma i dane są fikcyjne. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W produkcji logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
 
@@ -54,17 +60,18 @@ Skopiuj `.env.example` do `.env` i ustaw `AI_PROVIDER`:
 | `mock` (domyślny) | brak klucza | pokaz architektury bez kosztów; odpowiedzi = najtrafniejsze fragmenty bazy wiedzy |
 | `anthropic` | `ANTHROPIC_API_KEY`; modele dobierane automatycznie (`ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG`), `MODEL` ustawia jeden na sztywno | pełne odpowiedzi, narzędzia wybierane przez model |
 | `openai` | `OPENAI_API_KEY`, `MODEL=gpt-4o-mini` | to samo, inny dostawca – zmiana w jednym miejscu |
-| `ollama` | `OLLAMA_URL=http://localhost:11434`, `MODEL=llama3.1` | model lokalny, dane nie opuszczają serwera |
+| `ollama` | `OLLAMA_URL=http://localhost:11434`, `OLLAMA_MODEL=llama3.1` (np. Bielik) | model w firmie, dane nie opuszczają serwera; obsługuje dane chronione |
 
 Zmiana dostawcy nie wymaga zmian w kodzie agentów – to jest sens bramy AI.
 
 ## Co pokazać na prezentacji (5 minut)
 
-1. Zaloguj się jako **Anna (sprzedaż)**: „Jaki rabat mogę dać sam?” → odpowiedź ze źródłem.
+1. Zaloguj się jako **Anna (sprzedaż)**: „Jaki rabat mogę dać sam?” → odpowiedź ze źródłem; w panelu „Co dostał model” trasa i koszt.
 2. Zapytaj o coś z księgowości: „Kiedy wysyłamy wezwanie do zapłaty?” → asystent nie widzi tych dokumentów (uprawnienia).
-3. „Umów spotkanie z Pan Jan Kowalski tel. 600 123 456 we wtorek 10:00” → w panelu po prawej widać, że do modelu poszło `[OSOBA_1]`, `[TELEFON_1]`; akcja czeka na zatwierdzenie.
+3. „Umów spotkanie z panem Janem Kowalskim, tel. 600 123 456, we wtorek o 10:00” → do modelu poszło „osoba 1”, „telefon 1”; wniosek czeka na zatwierdzenie.
 4. Zatwierdź → zakładka **Sprawy** pokazuje wpis (pamięć bez CRM).
-5. Zaloguj się jako **Prezes** → zakładka **Logi**: co, kto, ile PII, jakie źródła, ile ms.
+5. Zaloguj się jako **Tomasz (księgowość)**: „Zapisz: PESEL 85010112345 klienta” → pytanie nie wychodzi z firmy.
+6. Zaloguj się jako **Jan (zarząd)** → zakładka **Logi**: kto, co poszło do modelu, którą trasą, ile kosztowało, budżet miesiąca.
 
 ## Struktura
 
