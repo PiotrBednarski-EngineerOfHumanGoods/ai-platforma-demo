@@ -100,12 +100,12 @@ export function decide({ level, dept, requested, cloudUsed, spentUsd = 0 }) {
   const budget = appMonthlyBudgetUsd();
   if (chosen.kind === "external" && budget > 0 && spentUsd >= budget) {
     const fallback = local || allowed.find(p => p.kind === "mock");
-    if (fallback) return { provider: fallback.id, kind: fallback.kind, blocked: false, reason: `budżet na chmurę w tym miesiącu wyczerpany (${budget} USD), użyto: ${fallback.kind === "local" ? "modelu w firmie" : "trybu pokazowego"}` };
-    return { provider: null, kind: "blocked", blocked: true, reason: `budżet na chmurę w tym miesiącu wyczerpany (${budget} USD)` };
+    if (fallback) return { provider: fallback.id, kind: fallback.kind, blocked: false, reason: `budżet na chmurę na ten miesiąc został wyczerpany (${budget} USD), dlatego odpowiada ${fallback.kind === "local" ? "model w firmie" : "tryb pokazowy"}` };
+    return { provider: null, kind: "blocked", blocked: true, reason: `budżet na chmurę na ten miesiąc został wyczerpany (${budget} USD)` };
   }
   if (chosen.kind === "external" && cloudUsed >= cloudMonthlyLimit()) {
-    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()}), użyto modelu w firmie` };
-    return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()})` };
+    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc został wyczerpany (${cloudMonthlyLimit()}), dlatego odpowiada model w firmie` };
+    return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc został wyczerpany (${cloudMonthlyLimit()})` };
   }
   return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamaskowane przed wysłaniem" : "dane zostały w firmie" };
 }

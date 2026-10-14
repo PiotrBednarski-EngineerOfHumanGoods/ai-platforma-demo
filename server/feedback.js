@@ -9,7 +9,7 @@ export const FEEDBACK_TYPES = { problem: "Problem", pomysl: "Pomysł", pytanie: 
 export function validateFeedback(body) {
   const { type, text, context } = body || {};
   if (!FEEDBACK_TYPES[type]) return { error: "Wybierz rodzaj zgłoszenia." };
-  if (typeof text !== "string" || text.trim().length < 10) return { error: "Opisz sprawę w co najmniej 10 znakach." };
+  if (typeof text !== "string" || text.trim().length < 10) return { error: "Opis musi mieć co najmniej 10 znaków." };
   if (text.length > 2000) return { error: "Zgłoszenie może mieć najwyżej 2000 znaków." };
   const ctx = context && typeof context === "object" ? context : {};
   // kontekst techniczny tylko z listy pól, przycięty: żadnych dowolnych danych z przeglądarki

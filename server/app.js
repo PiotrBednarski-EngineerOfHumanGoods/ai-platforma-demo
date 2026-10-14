@@ -74,11 +74,11 @@ app.get("/api/meta", (req, res) => res.json({
 }));
 
 app.post("/api/login", (req, res) => {
-  if (loginLimiter.blocked(req.ip)) return res.status(429).json({ error: "Za dużo nieudanych prób. Spróbuj za 15 minut." });
+  if (loginLimiter.blocked(req.ip)) return res.status(429).json({ error: "Za dużo nieudanych prób. Spróbuj ponownie za 15 minut." });
   const { userId, password } = req.body;
   const who = String(userId ?? "").trim().toLowerCase();
   const u = users.find(x => x.id === who || x.login === who);
-  if (u && accountLock.blocked(`${u.id}|${req.ip}`)) return res.status(423).json({ error: "Konto jest czasowo zablokowane po kilku błędnych próbach. Spróbuj za 15 minut albo skontaktuj się z administratorem." });
+  if (u && accountLock.blocked(`${u.id}|${req.ip}`)) return res.status(423).json({ error: "Po kilku nieudanych próbach logowania konto zostało czasowo zablokowane. Spróbuj za 15 minut albo skontaktuj się z administratorem." });
   const ok = u ? verifyPassword(password, u.passwordHash) : (verifyPassword(password, DUMMY_HASH), false); // scrypt zawsze, żeby czas nie zdradzał, czy konto istnieje
   if (!ok) {
     loginLimiter.failed(req.ip); if (u) accountLock.failed(`${u.id}|${req.ip}`);
@@ -107,7 +107,7 @@ app.post("/api/documents", auth, (req, res) => {
   const { name, content, dept = req.user.dept } = req.body || {};
   if (!uploadTargets(req.user).includes(dept)) return res.status(403).json({ error: "Nie możesz dodawać dokumentów do tego działu." });
   const base = String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\.(md|txt)$/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
-  if (!base || !/\.(md|txt)$/i.test(String(name))) return res.status(400).json({ error: "Można dodać tylko plik .md lub .txt." });
+  if (!base || !/\.(md|txt)$/i.test(String(name))) return res.status(400).json({ error: "Możesz dodać tylko plik tekstowy (.txt lub .md)." });
   if (typeof content !== "string" || !content.trim()) return res.status(400).json({ error: "Plik jest pusty." });
   if (Buffer.byteLength(content, "utf8") > MAX_DOC) return res.status(400).json({ error: "Plik jest większy niż 200 KB." });
   const file = base + ".md";
@@ -132,7 +132,7 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const t0 = Date.now();
   const { message, history = [], provider: requested } = req.body;
   // Walidacja wejścia: treść to dane, ale rozmiar i typ muszą być pod kontrolą
-  if (typeof message !== "string" || !message.trim() || message.length > 2000) return res.status(400).json({ error: "Wiadomość nie może być pusta i może mieć najwyżej 2000 znaków." });
+  if (typeof message !== "string" || !message.trim() || message.length > 2000) return res.status(400).json({ error: "Wpisz wiadomość. Może mieć najwyżej 2000 znaków." });
   if (!Array.isArray(history) || history.length > 20 || history.some(h => !h || typeof h.content !== "string" || h.content.length > 4000 || !["user", "assistant"].includes(h.role))) return res.status(400).json({ error: "Nie udało się odczytać rozmowy. Odśwież stronę i spróbuj ponownie." });
   const user = req.user;
   const depts = allowedDepts(user);
@@ -178,7 +178,7 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const key = policy.level === "public" && history.length === 0 ? cacheKey(user.dept, trip.provider, message) : null;
   const cached = key ? store.cacheGet(key) : null;
   if (cached) {
-    const out = { ...policyOut, route: "cache", note: "to samo pytanie padło już wcześniej, odpowiedź z pamięci, bez modelu" };
+    const out = { ...policyOut, route: "cache", note: "to samo pytanie padło już wcześniej; odpowiedź pochodzi z pamięci, bez udziału modelu" };
     store.log({ userId: user.id, dept: user.dept, provider: cached.provider, policy: out, prompt_masked: masked, pii_found: 0, sources: cached.sourceIds, action: null, tokens_in: 0, tokens_out: 0, cost: 0, ms: Date.now() - t0 });
     return res.json({ answer: cached.answer, sources: cached.sources, action: null, masked_preview: masked, pii_found: 0, policy: out, usage: { tokens_in: 0, tokens_out: 0, cost: 0 } });
   }
@@ -257,13 +257,13 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
 app.get("/api/actions", auth, (req, res) => res.json(store.pendingFor(req.user)));
 app.post("/api/actions/:id/approve", auth, (req, res) => {
   const a = store.takePending(req.params.id, req.user);
-  if (!a) return res.status(404).json({ error: "Nie ma takiego wniosku albo został już rozpatrzony." });
+  if (!a) return res.status(404).json({ error: "Ten wniosek nie istnieje albo został już rozpatrzony." });
   const result = executeTool(a, store);
   store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_approved", action: a.tool }); // bez wyniku: zawiera dane osobowe z wniosku
   res.json({ ok: true, result });
 });
 app.post("/api/actions/:id/reject", auth, (req, res) => {
-  if (!store.takePending(req.params.id, req.user)) return res.status(404).json({ error: "Nie ma takiego wniosku albo został już rozpatrzony." });
+  if (!store.takePending(req.params.id, req.user)) return res.status(404).json({ error: "Ten wniosek nie istnieje albo został już rozpatrzony." });
   store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_rejected" });
   res.json({ ok: true });
 });
@@ -292,7 +292,7 @@ app.post("/api/admin/flags/:id", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   if (!users.some(u => u.id === req.params.id)) return res.status(404).json({ error: "Nie ma takiego pracownika." });
   const patch = {}; for (const k of ["general", "web"]) if (typeof req.body?.[k] === "boolean") patch[k] = req.body[k];
-  if (!Object.keys(patch).length) return res.status(400).json({ error: "Podaj general albo web (true/false)." });
+  if (!Object.keys(patch).length) return res.status(400).json({ error: "Nie udało się zmienić ustawienia. Spróbuj ponownie." });
   const now = store.setFlags(req.params.id, patch);
   store.log({ userId: req.user.id, dept: req.user.dept, event: "flags_changed", action: `${req.params.id}: ${Object.entries(patch).map(([k, v]) => `${k === "web" ? "internet" : "wiedza ogólna"} ${v ? "włączone" : "wyłączone"}`).join(", ")}` });
   res.json({ ok: true, flags: now });
@@ -320,7 +320,7 @@ app.post("/api/admin/depts/:dept", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   const d = req.params.dept;
   if (!Object.hasOwn(DEPTS, d) || d === "wspolne") return res.status(404).json({ error: "Nie ma takiego działu." });
-  if (typeof req.body?.cloud !== "boolean") return res.status(400).json({ error: "Podaj cloud (true/false)." });
+  if (typeof req.body?.cloud !== "boolean") return res.status(400).json({ error: "Nie udało się zmienić ustawienia. Spróbuj ponownie." });
   store.setDeptCloud(d, req.body.cloud);
   store.log({ userId: req.user.id, dept: req.user.dept, event: "policy_changed", action: `${DEPTS[d]}: chmura ${req.body.cloud ? "włączona" : "wyłączona"}` });
   res.json({ ok: true, dept: d, cloud: deptCloudAllowed(d) });
@@ -378,11 +378,11 @@ function mockAnswer(message, hits, user) {
       zapisz_sprawe: `Notatka o kliencie ${a.klient}.`,
       przypomnienie_platnosc: `Przypomnienie o płatności: ${a.kontrahent}, ${a.faktura}, ${a.kwota}.`
     }[action.tool];
-    return { answer: `${summary} Sprawdź dane i zatwierdź wniosek. Wykonam go dopiero po zatwierdzeniu.`, action };
+    return { answer: `${summary} Sprawdź dane i kliknij „Zatwierdź”. Bez tego niczego nie wykonam.`, action };
   }
   if (hits.length) {
     const lines = hits.slice(0, 3).map((h, i) => `[${i + 1}] ${h.text.replace(/^#+\s*/, "").split("\n").filter(Boolean).slice(0, 2).join(": ")}`);
-    answer = `${lines.join("\n\n")}\n\n(Tryb pokazowy bez modelu: pokazuję fragmenty dokumentów zamiast gotowej odpowiedzi.)`;
+    answer = `${lines.join("\n\n")}\n\n(Tryb pokazowy bez modelu AI: zamiast gotowej odpowiedzi widzisz fragmenty dokumentów.)`;
   } else {
     answer = "W dokumentach Twojego działu nie ma odpowiedzi. Zapytaj przełożonego albo poproś o dodanie dokumentu.";
   }

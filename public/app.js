@@ -21,10 +21,10 @@ const shortId = id => "W-" + String(id).slice(-5).toUpperCase();
 const isPhone = () => matchMedia("(max-width:900px)").matches;
 
 const EXAMPLES = {
-  sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Kiedy wysyłamy wezwanie do zapłaty? (pytanie z księgowości)"],
+  sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek o 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Kiedy wysyłamy wezwanie do zapłaty? (pytanie z księgowości)"],
   obsluga: ["Klient bez umowy zgłasza awarię – w jakim czasie przyjedziemy?", "Jakie mamy statusy zlecenia?", "Ile mamy czasu na odpowiedź na reklamację?", "Zapisz: Jan Kowalski tel. 600 123 456 zgłasza awarię chłodni w Sopocie"],
   biuro: ["Jak zarezerwować salę?", "Kiedy składa się zamówienia biurowe?", "Umów spotkanie z panią Martą Zielińską jutro o 12:00", "Jak rozliczyć delegację?"],
-  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz: PESEL 90010112345 klienta do umowy (dane chronione)", "Jaki rabat może dać handlowiec? (pytanie ze sprzedaży)"],
+  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz PESEL klienta do umowy: 90010112345 (dane chronione)", "Jaki rabat może dać handlowiec? (pytanie ze sprzedaży)"],
   zarzad: ["Jakie mamy cele na 2026?", "Co zawiera raport tygodniowy?", "Jaki rabat może dać handlowiec?", "Kiedy wysyłamy wezwanie do zapłaty?"]
 };
 
@@ -127,7 +127,7 @@ async function refreshActions() {
   if (n) $("#decideText").textContent = Object.values(pendingList[0].args)[0] || TITLES[pendingList[0].tool] || "";
   $("#bnDot").setAttribute("aria-label", n + " do zatwierdzenia");
   if (!n) {
-    $("#actions").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Nic do zatwierdzenia</span><p>Gdy asystent przygotuje spotkanie, notatkę albo przypomnienie, pojawi się tutaj.</p></div>`;
+    $("#actions").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Nic do zatwierdzenia</span><p>Spotkania, notatki i przypomnienia przygotowane przez asystenta pojawią się tutaj.</p></div>`;
     return;
   }
   $("#actions").innerHTML = pendingList.map(a => `<article class="action" data-id="${esc(a.id)}">
@@ -186,7 +186,7 @@ async function loadKb() {
   const up = Object.fromEntries((r.uploaded || []).map(u => [u.path, u]));
   const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
   $("#kb").innerHTML = r.files.map(f => { const [dept, name] = f.split("/"); const u = up[f];
-    return `<li class="li"><div class="li-main"><span class="file-ico">${ICON.docx}</span><div class="grow"><div class="li-title">${esc(name.replace(/\.md$/, "").replace(/-/g, " "))}</div><div class="li-sub">${esc(meta.depts[dept] || dept)}${u ? ` · dodane przez: ${esc(who(u.by))}, ${esc(plDate(u.at, false))}` : ""}</div></div></div>${u && u.canDelete ? `<button class="btn btn-secondary" data-del="${esc(f)}">Usuń</button>` : ""}</li>`; }).join("")
+    return `<li class="li"><div class="li-main"><span class="file-ico">${ICON.docx}</span><div class="grow"><div class="li-title">${esc(name.replace(/\.md$/, "").replace(/-/g, " "))}</div><div class="li-sub">${esc(meta.depts[dept] || dept)}${u ? ` · dodał(a): ${esc(who(u.by))}, ${esc(plDate(u.at, false))}` : ""}</div></div></div>${u && u.canDelete ? `<button class="btn btn-secondary" data-del="${esc(f)}">Usuń</button>` : ""}</li>`; }).join("")
     || `<div class="empty">${ICON.emptyKb}<span class="empty-title">Brak dokumentów</span><p>Dodaj procedurę albo cennik przyciskiem „Dodaj dokument”.</p></div>`;
   const targets = r.canUploadTo || [];
   $("#upDept").hidden = targets.length < 2;
@@ -200,7 +200,7 @@ async function loadKb() {
 }
 $("#upFile").onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
-  if (file.size > 200 * 1024) { $("#upMsg").textContent = "Plik jest większy niż 200 KB."; e.target.value = ""; return; }
+  if (file.size > 200 * 1024) { $("#upMsg").textContent = "Plik może mieć najwyżej 200 KB."; e.target.value = ""; return; }
   const content = await file.text();
   const r = await api("/documents", { method: "POST", body: JSON.stringify({ name: file.name, content, dept: $("#upDept").value || user.dept }) });
   $("#upMsg").textContent = r.error || `Dodano „${r.path}”. ${($("#upDept").value || user.dept) === "wspolne" ? "Asystent od teraz korzysta z niego we wszystkich działach." : `Asystent od teraz korzysta z niego w dziale „${meta.depts[($("#upDept").value || user.dept)]}”.`}`;
@@ -227,7 +227,7 @@ function renderCases() {
   $("#cfCount").textContent = casesAll.length ? (filtered ? `${r.length} z ${casesAll.length}` : `${casesAll.length} ${plural(casesAll.length, "sprawa", "sprawy", "spraw")}`) : "";
   $("#cases").innerHTML = r.map(c => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(c.when))}</span><div class="grow"><div class="li-title">${esc(c.klient)}</div><div class="li-sub">${esc(c.notatka)}</div></div></div><span class="badge badge-wait">${esc(c.nastepny_krok || "")}</span><span class="li-sub">${esc(meta.depts[c.dept] || c.dept)}</span></li>`).join("")
     || (casesAll.length
-      ? `<div class="empty"><span class="empty-title">Brak spraw dla tych filtrów</span><p>Zmień wyszukiwanie albo wybierz „Wszystkie”.</p></div>`
+      ? `<div class="empty"><span class="empty-title">Żadna sprawa nie pasuje do filtrów</span><p>Zmień wyszukiwanie albo wybierz „Wszystkie”.</p></div>`
       : `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`);
 }
 ["#cfQ", "#cfType", "#cfDept", "#cfSort"].forEach(s => $(s).addEventListener("input", renderCases));
@@ -324,8 +324,8 @@ function renderModelPicker(allowed) {
     $("#mpLabel").textContent = it.name; $("#mpDot").className = "mp-dot " + (it.where === "in" ? "in" : "out");
     list.querySelectorAll("[role=option]").forEach(o => o.setAttribute("aria-selected", o.dataset.id === id));
   };
-  const note = items.length ? "" : `<p class="mp-note">Ten dział korzysta tylko z modelu w firmie. Do czasu jego podłączenia asystent odpowiada fragmentami dokumentów działu.</p>`;
-  list.innerHTML = `<div class="mp-head">Model dla działu ${esc(meta.depts[user.dept] || "")}</div>` + note + [...items, ...soon].map(it => `
+  const note = items.length ? "" : `<p class="mp-note">Ten dział korzysta tylko z modelu w firmie. Dopóki model nie zostanie podłączony, asystent pokazuje fragmenty dokumentów działu.</p>`;
+  list.innerHTML = `<div class="mp-head">Model dla działu: ${esc(meta.depts[user.dept] || "")}</div>` + note + [...items, ...soon].map(it => `
     <div class="mp-opt${it.disabled ? " is-off" : ""}" role="option" data-id="${esc(it.id)}" tabindex="${it.disabled ? -1 : 0}" aria-disabled="${!!it.disabled}">
       <i class="mp-dot ${it.where}"></i>
       <span class="mp-text"><b>${esc(it.name)}</b><small>${esc(it.sub)}</small></span>
@@ -367,7 +367,7 @@ function renderModelPicker(allowed) {
   });
   const fromFile = async file => {
     if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) { msg.textContent = "Dodaj obraz PNG, JPG albo WebP."; msg.className = "rp-msg is-err"; return; }
-    if (file.size > 15e6) { msg.textContent = "Obraz jest za duży (najwyżej 15 MB przed zmniejszeniem)."; msg.className = "rp-msg is-err"; return; }
+    if (file.size > 15e6) { msg.textContent = "Obraz jest za duży. Może mieć najwyżej 15 MB."; msg.className = "rp-msg is-err"; return; }
     // odczyt jako data URL (CSP dopuszcza obrazy data:, nie blob:)
     const url = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => bad(new Error("Nie udało się odczytać pliku.")); r.readAsDataURL(file); }).catch(e => { msg.textContent = e.message; msg.className = "rp-msg is-err"; return null; });
     if (!url) return;
@@ -399,13 +399,13 @@ function renderModelPicker(allowed) {
   form.onsubmit = async e => {
     e.preventDefault();
     const text = $("#reportText").value.trim();
-    if (text.length < 10) { msg.textContent = "Opisz sprawę w co najmniej 10 znakach."; msg.className = "rp-msg is-err"; return; }
+    if (text.length < 10) { msg.textContent = "Opis musi mieć co najmniej 10 znaków."; msg.className = "rp-msg is-err"; return; }
     const context = $("#reportCtx").checked ? { tab: $(".tab.on")?.textContent.trim(), screen: `${innerWidth}×${innerHeight}`, browser: navigator.userAgent, theme: document.documentElement.dataset.theme || "system" } : {};
     send.disabled = true; send.textContent = "Wysyłanie…";
     const r = await api("/feedback", { method: "POST", body: JSON.stringify({ type: form.rtype.value, text, context, screenshot: shot }) }).catch(() => ({ error: "Brak połączenia z serwerem. Spróbuj ponownie." }));
     send.disabled = false; send.textContent = "Wyślij zgłoszenie";
     if (r.error) { msg.textContent = r.error; msg.className = "rp-msg is-err"; return; }
-    msg.textContent = r.via ? `Dziękujemy! Zgłoszenie ${r.id} trafiło do opiekuna systemu.` : `Dziękujemy! Zgłoszenie ${r.id} zostało zapisane, opiekun systemu je zobaczy.`; msg.className = "rp-msg is-ok";
+    msg.textContent = r.via ? `Dziękujemy! Zgłoszenie ${r.id} trafiło do opiekuna systemu.` : `Dziękujemy! Zgłoszenie ${r.id} zostało zapisane. Opiekun systemu je zobaczy.`; msg.className = "rp-msg is-ok";
     $("#reportText").value = ""; setShot(null);
     setTimeout(close, 1800);
   };

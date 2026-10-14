@@ -19,30 +19,30 @@
   <h2>Jakie dane są przetwarzane</h2>
   <table>
     <tr><th>Dane logowania</th><td>Login i hasło konta demonstracyjnego. Hasło jest przechowywane wyłącznie jako hash (scrypt z solą). Sesja trwa do 8 godzin lub do wylogowania i istnieje tylko w pamięci serwera.</td></tr>
-    <tr><th>Treść rozmów</th><td>Pytania i prośby wpisane na czacie są zapisywane w dzienniku zdarzeń razem z identyfikatorem konta demo, listą użytych dokumentów i nazwą zaproponowanego wniosku. Dane osobowe w pytaniach są wcześniej maskowane. Dziennik widzi wyłącznie konto zarządu.</td></tr>
+    <tr><th>Treść rozmów</th><td>Pytania i prośby wpisane na czacie są zapisywane w dzienniku zdarzeń razem z identyfikatorem konta pokazowego, listą użytych dokumentów i nazwą zaproponowanego wniosku. Dane osobowe w pytaniach są wcześniej maskowane. Dziennik widzi wyłącznie zarząd.</td></tr>
     <tr><th>Zapisane sprawy</th><td>Notatki, spotkania i przypomnienia zatwierdzone przez użytkownika są zapisywane na serwerze w postaci, w jakiej zostały wpisane. Widzą je użytkownicy tego samego działu.</td></tr>
-    <tr><th>Adres IP</th><td>Używany tylko w pamięci serwera do limitu prób logowania i limitu zapytań. Nie jest zapisywany w dzienniku ani przekazywany dalej.</td></tr>
-    <tr><th>Pliki cookie, analityka</th><td>Tylko niezbędne: ciasteczko sesji (do wylogowania lub 8 godzin) i zapamiętany tryb jasny/ciemny. Strona nie korzysta z Google Analytics ani innych narzędzi śledzących i nie ładuje zasobów z serwerów zewnętrznych.</td></tr>
-    <tr><th>Dostawca modelu AI</th><td>W wersji demonstracyjnej odpowiedzi powstają bez modelu językowego i żadne dane nie opuszczają serwera. Po włączeniu modelu zewnętrznego do dostawcy trafia wyłącznie treść z zamaskowanymi danymi osobowymi. Panel „Co dostał model” pokazuje ją dokładnie.</td></tr>
+    <tr><th>Adres IP</th><td>Przechowywany tylko w pamięci serwera, żeby ograniczyć liczbę prób logowania i zapytań. Nie jest zapisywany w dzienniku ani przekazywany dalej.</td></tr>
+    <tr><th>Pliki cookie, analityka</th><td>Tylko niezbędne: ciasteczko sesji (ważne do wylogowania, najdłużej 8 godzin) i zapamiętany tryb jasny/ciemny. Strona nie korzysta z Google Analytics ani innych narzędzi śledzących i nie ładuje zasobów z serwerów zewnętrznych.</td></tr>
+    <tr><th>Dostawca modelu AI</th><td>W wersji pokazowej działy z dostępem do chmury korzystają z Claude’a (Anthropic). Do dostawcy trafia wyłącznie treść z zamaskowanymi danymi osobowymi, a dane chronione nie trafiają tam nigdy. Panel „Co dostał model” pokazuje ją dokładnie.</td></tr>
     <tr><th>Gdzie</th><td>Serwer w Unii Europejskiej (Hetzner, Helsinki). Połączenie szyfrowane (HTTPS).</td></tr>
     <tr><th>Jak długo</th><td>Dziennik zdarzeń przechowuje najwyżej 500 ostatnich wpisów. Wszystkie dane demonstracji są usuwane po zakończeniu procesu rekrutacyjnego, a na żądanie – wcześniej.</td></tr>
   </table>
 
   <h2>Twoje prawa</h2>
-  <p>W wersji demonstracyjnej nie są przetwarzane dane osobowe realnych osób poza loginami przekazanymi przez autora. Każdy, kto otrzymał dostęp, może poprosić o usunięcie swoich wpisów i konta, pisząc do autora demonstracji.</p>
+  <p>W wersji pokazowej nie są przetwarzane dane osobowe realnych osób poza loginami przekazanymi przez autora. Każdy, kto otrzymał dostęp, może poprosić o usunięcie swoich wpisów i konta, pisząc do autora demonstracji.</p>
 
   <h2>Zasady korzystania z asystenta</h2>
   <ul>
-    <li>Asystent służy do szukania informacji w dokumentach firmy, przygotowywania szkiców i prostych czynności, takich jak spotkanie czy notatka. Każdy dział widzi tylko swoje dokumenty oraz dokumenty wspólne.</li>
-    <li>Do asystenta nie wkleja się danych, których nie potrzebuje do zadania.</li>
+    <li>Asystent służy do szukania informacji w dokumentach firmy, przygotowywania szkiców i wykonywania prostych czynności, takich jak umówienie spotkania czy zapisanie notatki. Każdy dział widzi tylko swoje dokumenty oraz dokumenty wspólne.</li>
+    <li>Do asystenta nie wkleja się danych, których nie potrzebuje on do wykonania zadania.</li>
     <li>Treści przygotowanej przez asystenta nie wysyła się do klienta bez przeczytania.</li>
-    <li>Każde działanie ze skutkiem na zewnątrz czeka na zatwierdzenie przez pracownika. Nic nie dzieje się bez kliknięcia „Zatwierdź”.</li>
+    <li>Każde działanie, które ma skutki poza aplikacją, czeka na zatwierdzenie przez pracownika. Nic nie dzieje się bez kliknięcia „Zatwierdź”.</li>
     <li>Decyzje dotyczące ludzi zawsze podejmuje człowiek. Rozmówca zawsze wie, że ma do czynienia z asystentem AI.</li>
-    <li>Wszystkie pytania i decyzje są zapisywane w dzienniku, który widzi zarząd. Zgłoszenia z przycisku „Zgłoś” trafiają e-mailem do opiekuna systemu, z zamaskowanymi danymi osobowymi.</li>
+    <li>Wszystkie pytania i decyzje są zapisywane w dzienniku, który widzi zarząd. Zgłoszenia wysłane przyciskiem „Zgłoś” trafiają e-mailem do opiekuna systemu. Dane osobowe w treści są maskowane, a zrzutów ekranu nie maskujemy.</li>
   </ul>
 
   <h2>W prawdziwym wdrożeniu</h2>
-  <p>Ten dokument zastępują: informacja dla pracowników o przetwarzaniu danych (art. 13 RODO), wpis w rejestrze czynności przetwarzania, umowa powierzenia z dostawcą modelu, regulamin korzystania z AI podpisany przez pracowników oraz ustalony czas retencji dzienników.</p>
+  <p>Ten dokument zastąpią: informacja dla pracowników o przetwarzaniu danych (art. 13 RODO), wpis w rejestrze czynności przetwarzania, umowa powierzenia z dostawcą modelu, regulamin korzystania z AI podpisany przez pracowników oraz ustalony czas retencji dzienników.</p>
 
   <p>Administrator demonstracji: Piotr Bednarski, Gdańsk.</p>
   <a class="back" href="/app">Wróć do logowania</a>

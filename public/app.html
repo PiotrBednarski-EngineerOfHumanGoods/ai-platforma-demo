@@ -24,7 +24,7 @@
         <button type="button" class="btn btn-secondary" id="reportShot" hidden>Zrób zrzut ekranu</button>
         <label class="btn btn-secondary rp-file">Dodaj obraz<input type="file" id="reportFile" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
       </div>
-      <p class="rp-note">Możesz też wkleić obraz (Ctrl+V). Zrzutu nie maskujemy automatycznie: zasłoń na nim dane osobowe.</p>
+      <p class="rp-note">Możesz też wkleić obraz (Ctrl+V). Zrzut ekranu nie jest maskowany automatycznie. Zasłoń na nim dane osobowe.</p>
       <div class="rp-preview" id="reportPreview" hidden><img id="reportImg" alt="Podgląd dołączonego zrzutu ekranu"><button type="button" class="hdr-btn hdr-icon rp-remove" id="reportRemove" aria-label="Usuń zrzut ekranu">×</button></div>
     </div>
     <p class="rp-msg" id="reportMsg" role="status" aria-live="polite"></p>
@@ -46,7 +46,7 @@
         <span class="brand-name">Compax</span>
       </div>
       <h1>Zaloguj się</h1>
-      <p class="lead">Zaloguj się danymi z e-maila od administratora.</p>
+      <p class="lead">Użyj loginu i hasła z e-maila od administratora.</p>
       <form class="form" id="loginForm" autocomplete="off">
         <div class="field">
           <label for="login-id">Login</label>
@@ -62,7 +62,7 @@
       <p class="help">Nie masz loginu albo nie pamiętasz hasła? Napisz do administratora.</p>
       <details class="accounts" id="accounts">
         <summary>Konta pokazowe</summary>
-        <p class="hint">Kliknij konto, pola wypełnią się same. Firma i ludzie są wymyśleni.</p>
+        <p class="hint">Kliknij konto, pola wypełnią się same. Firma i osoby są fikcyjne.</p>
         <ul>
           <li><button type="button" data-login="a.lis" data-pw="anna-kriomar-2026"><b>Anna Lis</b><small>sprzedaż · a.lis</small></button></li>
           <li><button type="button" data-login="m.wojcik" data-pw="marek-kriomar-2026"><b>Marek Wójcik</b><small>obsługa klienta · m.wojcik</small></button></li>
@@ -123,7 +123,7 @@
       <div class="pane tabpanel" id="t-cases" role="tabpanel">
         <div class="tp-head"><div><h2>Sprawy</h2><p>Zatwierdzone notatki, spotkania i przypomnienia.</p></div></div>
         <div class="cf" role="search" aria-label="Filtruj sprawy">
-          <input class="input cf-q" id="cfQ" type="search" placeholder="Szukaj klienta, notatki albo kroku" aria-label="Szukaj w sprawach">
+          <input class="input cf-q" id="cfQ" type="search" placeholder="Szukaj klienta, notatki albo następnego kroku" aria-label="Szukaj w sprawach">
           <select class="cf-sel" id="cfType" aria-label="Rodzaj sprawy"><option value="">Wszystkie rodzaje</option><option value="spotkanie">Spotkania</option><option value="platnosc">Przypomnienia o płatności</option><option value="notatka">Notatki</option></select>
           <select class="cf-sel" id="cfDept" aria-label="Dział" hidden></select>
           <select class="cf-sel" id="cfSort" aria-label="Kolejność"><option value="new">Najnowsze</option><option value="old">Najstarsze</option><option value="az">Klient A–Z</option></select>
@@ -133,7 +133,7 @@
       </div>
 
       <div class="pane tabpanel" id="t-kb" role="tabpanel">
-        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, z których asystent odpowiada w Twoim dziale.</p></div>
+        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, na podstawie których asystent odpowiada w Twoim dziale.</p></div>
           <form class="upload" id="upload">
             <select id="upDept" aria-label="Dział" hidden></select>
             <label class="btn btn-secondary" for="upFile">Dodaj dokument</label>
@@ -147,8 +147,8 @@
       <div class="pane tabpanel" id="t-logs" role="tabpanel">
         <div class="tp-head"><div><h2>Dziennik</h2><p>Kto pytał, co wyszło do modelu, co zatwierdzono. Tylko dla zarządu.</p></div></div>
         <div class="usage" id="usage"></div>
-        <div class="perm" id="permDepts"><h3>Działy i modele</h3><p class="perm-sub">Chmura: dział może pytać Claude, a dane osobowe są maskowane przed wysłaniem. Bez chmury odpowiada tylko model w firmie. Dane chronione (PESEL, konto, zdrowie) nigdy nie wychodzą, niezależnie od ustawienia.</p><div class="table-wrap"><table class="perm-t"><thead><tr><th>Dział</th><th>Osób</th><th>Chmura</th></tr></thead><tbody id="deptRows"></tbody></table></div></div>
-        <div class="perm" id="perm"><h3>Uprawnienia pracowników</h3><p class="perm-sub">Dział decyduje, które dokumenty, narzędzia i modele widzi pracownik; zmiana działa od jego następnego pytania. Wiedza ogólna: asystent może odpowiedzieć spoza dokumentów i wyraźnie to oznacza. Internet: wyszukuje w sieci (tylko Claude, po maskowaniu, nigdy z danymi chronionymi). Każda zmiana trafia do dziennika.</p><div class="table-wrap"><table class="perm-t"><thead><tr><th>Pracownik</th><th>Dział</th><th>Wiedza ogólna</th><th>Internet</th></tr></thead><tbody id="permRows"></tbody></table></div></div>
+        <div class="perm" id="permDepts"><h3>Działy i modele</h3><p class="perm-sub">Chmura: dział może pytać Claude’a, a dane osobowe są maskowane przed wysłaniem. Bez chmury odpowiada tylko model w firmie. Dane chronione (PESEL, konto, zdrowie) nigdy nie wychodzą, niezależnie od ustawienia.</p><div class="table-wrap"><table class="perm-t"><thead><tr><th>Dział</th><th>Liczba osób</th><th>Chmura</th></tr></thead><tbody id="deptRows"></tbody></table></div></div>
+        <div class="perm" id="perm"><h3>Uprawnienia pracowników</h3><p class="perm-sub">Od działu zależy, jakie dokumenty, narzędzia i modele widzi pracownik. Zmiana obowiązuje od jego następnego pytania. Wiedza ogólna: asystent może odpowiadać na podstawie wiedzy spoza dokumentów i wyraźnie to zaznacza. Internet: wyszukuje w sieci (tylko Claude, po maskowaniu, nigdy z danymi chronionymi). Każda zmiana trafia do dziennika.</p><div class="table-wrap"><table class="perm-t"><thead><tr><th>Pracownik</th><th>Dział</th><th>Wiedza ogólna</th><th>Internet</th></tr></thead><tbody id="permRows"></tbody></table></div></div>
         <div class="fb" id="fb" hidden><h3>Zgłoszenia pracowników</h3><ul class="fb-list" id="fbList"></ul></div>
         <div class="table-wrap"><table><thead><tr><th>Czas</th><th>Kto</th><th>Zdarzenie</th><th>Model</th><th>Tokeny</th><th>Szczegóły</th><th>Dokumenty</th></tr></thead><tbody id="logs"></tbody></table></div>
       </div>

@@ -20,7 +20,7 @@ export function securityHeaders(req, res, next) {
 // Razem z ciasteczkiem SameSite=Strict daje dwie niezależne warstwy.
 export function requireCsrfHeader(req, res, next) {
   if (req.path.startsWith("/api") && req.method !== "GET" && req.get("x-requested-with") !== "compax") {
-    return res.status(400).json({ error: "Nieprawidłowe żądanie. Odśwież stronę." });
+    return res.status(400).json({ error: "Coś poszło nie tak. Odśwież stronę." });
   }
   next();
 }
