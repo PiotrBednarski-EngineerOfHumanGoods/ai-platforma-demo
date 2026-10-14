@@ -30,9 +30,9 @@ async function init() {
   meta = await fetch("/api/meta").then(r => r.json());
   $("#loginForm").onsubmit = e => { e.preventDefault(); login($("#login-id").value, $("#pw").value); };
   [...document.querySelectorAll("#accounts button")].forEach(b => b.onclick = () => { $("#login-id").value = b.dataset.login; $("#pw").value = b.dataset.pw; loginError(""); $("#loginBtn").focus(); });
-  $("#login-id").focus();
+  if (matchMedia("(pointer:fine)").matches) $("#login-id").focus(); // na telefonie bez automatycznej klawiatury
 }
-function loginError(msg) { const b = $("#loginErr"); b.querySelector("span").textContent = msg; b.classList.toggle("on", !!msg); $$("#loginForm .input").forEach(i => i.classList.toggle("is-invalid", !!msg)); }
+function loginError(msg) { const b = $("#loginErr"); b.querySelector("span").textContent = msg; b.classList.toggle("on", !!msg); $$("#loginForm .input").forEach(i => i.toggleAttribute("aria-invalid", !!msg)); $$("#loginForm .input").forEach(i => i.classList.toggle("is-invalid", !!msg)); }
 async function login(id, password) {
   loginError("");
   const mark = document.querySelector(".brand-mark"), btn = $("#loginBtn");
@@ -44,6 +44,7 @@ async function login(id, password) {
   if (r.error) return loginError(r.error);
   $("#pw").value = "";
   user = r.user; history = [];
+  meta = await fetch("/api/meta").then(x => x.json()).catch(() => meta); // po zalogowaniu: z listą pracowników (imiona w dzienniku)
   $("#login").hidden = true; $("#app").hidden = false;
   $("#who").textContent = user.name; $("#whoDept").textContent = `${meta.depts[user.dept]} · ${user.role}`;
   $("#av").textContent = user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -52,15 +53,18 @@ async function login(id, password) {
   const allowed = (r.providers || []).map(id => meta.providers.find(p => p.id === id)).filter(Boolean);
   renderModelPicker(allowed);
   $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod odpowiedzią będzie nazwa dokumentu, z którego pochodzi. ${user.dept === "zarzad" ? "Masz dostęp do dokumentów wszystkich działów." : `Masz dostęp do dokumentów działu „${esc(meta.depts[user.dept])}” oraz do dokumentów wspólnych.`}</p></div>`;
+  $("#chips").classList.remove("used");
   $("#chips").innerHTML = (EXAMPLES[user.dept] || []).map(e => `<button class="chip" type="button">${ICON.bulb}${esc(e)}</button>`).join("");
   $$("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
   showTab("chat"); refreshActions(); renderMasked(null); loadKb(); loadCases();
 }
-$("#logout").onclick = async () => { await api("/logout", { method: "POST" }).catch(() => {}); location.reload(); };
+$("#logout").onclick = async () => { await api("/logout", { method: "POST" }).catch(() => {}); location.replace("/app"); };
 
 /* ---------- zakładki (desktop: górne, telefon: dolny pasek) ---------- */
 function showTab(t) {
   $$(".tab,.bn-item").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  $$(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.t === t));
+  $$(".bn-item").forEach(b => b.toggleAttribute("aria-current", b.dataset.t === t));
   $$(".pane").forEach(p => p.classList.toggle("on", p.id === "t-" + t));
   $("#body").classList.toggle("not-chat", t !== "chat");
   if (t === "logs") loadLogs(); if (t === "cases") loadCases();
@@ -68,7 +72,7 @@ function showTab(t) {
 $$(".tab,.bn-item").forEach(b => b.onclick = () => showTab(b.dataset.t));
 
 /* ---------- czat ---------- */
-function addMsg(role, text, sources, action) {
+function addMsg(role, text, sources, action, opts = {}) {
   const d = document.createElement("div"); d.className = "msg " + (role === "me" ? "msg-user" : "msg-ai");
   const srcHtml = sources?.length ? `<div class="sources"><span class="sources-label">Źródła</span>${sources.map((x, i) => `<span class="src" data-n="${Number(x.n) || i + 1}" title="${esc(x.snippet)}">${ICON.docx}${esc(x.file)}</span>`).join("")}</div>` : "";
   const reqHtml = action ? `<a class="req-link" href="#akcje" data-req="${esc(action.id)}"><span class="req-id">${esc(shortId(action.id))}</span><span class="req-name">${esc(TITLES[action.tool] || action.tool)}</span><span class="req-state is-pending">Czeka na Ciebie</span></a>` : "";
@@ -78,12 +82,12 @@ function addMsg(role, text, sources, action) {
   d.querySelector(".bubble").textContent = text;
   const empty = $("#chat .empty"); if (empty) empty.remove();
   $("#chat").appendChild(d); $("#chat").scrollTop = 1e9;
-  if (role !== "me" && isPhone()) d.scrollIntoView({ block: "nearest" });
+  if (role !== "me" && isPhone() && opts.scroll !== false) d.scrollIntoView({ block: d.offsetHeight > innerHeight * 0.5 ? "start" : "nearest", behavior: "smooth" });
 }
 function setReqState(id, state, label) { $$(`[data-req="${id}"] .req-state`).forEach(s => { s.className = "req-state " + state; s.textContent = label; }); }
 async function send() {
   const t = $("#inp").value.trim(); if (!t) return;
-  $("#inp").value = ""; $("#inp").style.height = ""; addMsg("me", t); $("#send").disabled = true;
+  $("#inp").value = ""; $("#inp").style.height = ""; $("#chips").classList.add("used"); addMsg("me", t); $("#send").disabled = true;
   const typing = document.createElement("div"); typing.className = "msg msg-ai typing"; typing.setAttribute("aria-label", "Asystent pisze");
   typing.innerHTML = `<span class="bot-av">${ICON.mark}</span><div class="msg-col"><div class="dots"><i></i><i></i><i></i></div></div>`;
   $("#chat").appendChild(typing); $("#chat").scrollTop = 1e9;
@@ -108,7 +112,8 @@ async function refreshActions() {
   $("#pendingCount").textContent = n; $("#pendingCount").className = "counter" + (n ? " counter-decide" : "");
   $("#bnDot").textContent = n; $("#bnDot").classList.toggle("off", !n);
   $("#decideBar").classList.toggle("off", !n);
-  if (n) $("#decideText").textContent = `${TITLES[pendingList[0].tool] || pendingList[0].tool}: ${Object.values(pendingList[0].args)[0]}`;
+  if (n) $("#decideText").textContent = Object.values(pendingList[0].args)[0] || TITLES[pendingList[0].tool] || "";
+  $("#bnDot").setAttribute("aria-label", n + " do zatwierdzenia");
   if (!n) {
     $("#actions").innerHTML = `<div class="empty empty-tight"><span class="empty-title">Nic do zatwierdzenia</span><p>Gdy asystent przygotuje spotkanie, notatkę albo przypomnienie, pojawi się tutaj.</p></div>`;
     return;
@@ -123,9 +128,10 @@ async function refreshActions() {
   $$("[data-a]").forEach(b => b.onclick = async () => {
     const r = await api(`/actions/${b.dataset.a}/approve`, { method: "POST" });
     setReqState(b.dataset.a, "is-ok", "Zatwierdzono");
-    addMsg("ai", r.result || r.error || "");
+    addMsg("ai", r.result || r.error || "", null, null, { scroll: false });
     await refreshActions(); loadCases();
-    $("#actions").insertAdjacentHTML("afterbegin", `<div class="result result-ok" role="status">${ICON.check}<span>${esc(r.result)}</span></div>`);
+    $("#actions").insertAdjacentHTML("afterbegin", `<div class="result result-ok" role="status" tabindex="-1">${ICON.check}<span>${esc(r.result)}</span></div>`);
+    ($("#actions .action [data-a]") || $("#actions .result"))?.focus();
   });
   $$("[data-r]").forEach(b => b.onclick = async () => {
     await api(`/actions/${b.dataset.r}/reject`, { method: "POST" });
@@ -175,6 +181,7 @@ async function loadKb() {
   $("#upDept").innerHTML = targets.map(d => `<option value="${esc(d)}"${d === user.dept ? " selected" : ""}>${esc(meta.depts[d] || d)}</option>`).join("");
   $$("[data-del]").forEach(b => b.onclick = async () => {
     const [dept, file] = b.dataset.del.split("/");
+    if (!confirm(`Usunąć „${file}” z bazy działu?`)) return;
     const res = await api(`/documents/${encodeURIComponent(dept)}/${encodeURIComponent(file)}`, { method: "DELETE" });
     $("#upMsg").textContent = res.error || "Usunięto dokument z bazy działu."; loadKb();
   });
@@ -207,7 +214,7 @@ async function loadLogs() {
     const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : l.policy.route === "cache" ? "z pamięci" : l.policy.route === "mock" ? "bez modelu" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
     const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt nieznany" : l.cost.toFixed(4) + " USD") : ""}` : "";
-    return `<tr><td class="mono">${esc(new Date(l.ts).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }))}</td><td>${esc(who(l.userId))}</td><td>${ev}</td><td class="mono">${esc(l.event && l.event !== "blocked" ? "" : (l.policy?.model || prov(l.provider)))}${l.policy?.tier && l.policy.route !== "blocked" ? "<br>" + esc(TIER[l.policy.tier] || "") : ""}</td><td class="mono">${tok}</td><td class="mono">${det}</td><td class="mono">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
+    return `<tr><td class="mono" data-label="Czas">${esc(new Date(l.ts).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }))}</td><td data-label="Kto">${esc(who(l.userId))}</td><td data-label="Zdarzenie">${ev}</td><td class="mono" data-label="Model">${esc(l.event && l.event !== "blocked" ? "" : (l.policy?.model || prov(l.provider)))}${l.policy?.tier && l.policy.route !== "blocked" ? "<br>" + esc(TIER[l.policy.tier] || "") : ""}</td><td class="mono" data-label="Tokeny">${tok}</td><td class="mono" data-label="Szczegóły">${det}</td><td class="mono" data-label="Dokumenty">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
   }).join("") || `<tr><td colspan="7"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Pytania i decyzje pracowników pojawią się tutaj.</p></div></td></tr>`;
 }
 init();

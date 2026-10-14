@@ -263,13 +263,8 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .face .needle{transform-origin:12px 12px;transform:rotate(var(--ang,0deg))}
 /* awers: biała emalia w srebrnym rancie */
 .face.front{transform:translateZ(calc(var(--t) / 2));color:var(--fg1)}
-.face.front .rim{position:absolute;inset:0;border-radius:50%;
-  background:radial-gradient(circle closest-side,var(--bg1) 0 74%,rgba(0,0,0,.3) 74.4%,transparent 75.4%),
-    radial-gradient(circle closest-side,transparent 0 93%,rgba(0,0,0,.28) 93.4%,rgba(255,255,255,.5) 94.6%,transparent 95.6%),
-    repeating-conic-gradient(rgba(0,0,0,.09) 0 .75deg,rgba(255,255,255,.12) .75deg 1.5deg),
-    conic-gradient(from 200deg,#eceef0,#7b8189 12%,#d5d8dc 25%,#6f757d 38%,#f1f2f4 52%,#868c94 66%,#cfd2d6 80%,#757b83 90%,#eceef0);
-  box-shadow:inset 0 0 0 calc(var(--size) * .006) rgba(255,255,255,.7),inset 0 calc(var(--size) * .02) calc(var(--size) * .04) rgba(0,0,0,.12)}
-.face.front .rim::before{content:"";position:absolute;inset:12.6%;border-radius:50%;box-shadow:inset 0 calc(var(--size) * .012) calc(var(--size) * .03) rgba(0,0,0,.14)}
+.face.front .rim{position:absolute;inset:0;border-radius:50%;background:var(--bg1);box-shadow:inset 0 0 0 1px var(--stroke2),0 1px 2px rgba(0,0,0,.04)}
+.face.front .ring{stroke:var(--stroke2);stroke-width:.6}
 /* rewers: srebro, delikatne szlify i wytłoczony znak */
 .face.back{transform:rotateY(180deg) translateZ(calc(var(--t) / 2));color:#8a9098;
   background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.95),rgba(255,255,255,0) 42%),
@@ -282,7 +277,6 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .face.back svg{filter:drop-shadow(0 1.5px 0 rgba(255,255,255,.9)) drop-shadow(0 -1px 0 rgba(0,0,0,.35))}
 /* refleks światła przesuwający się po monecie */
 .face::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,rgba(255,255,255,0) 38%,rgba(255,255,255,.65) 50%,rgba(255,255,255,0) 62%);translate:-110% 0;pointer-events:none}
-.face.front::after{animation:introShine 1.1s ease-in-out 3.55s}
 .intro .front .needle{animation:introFind 1.6s cubic-bezier(.2,.7,.15,1) 3.6s both}
 
 .intro-cta{position:relative;font:600 17px/1 var(--font);height:54px;padding:0 34px;border-radius:999px;border:1px solid var(--brand);background:var(--brand);color:var(--brand-fg);cursor:pointer;
@@ -301,9 +295,9 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 
 /* wyjście: moneta obraca się, maleje i wlatuje w kompas strony (Web Animations w start.js); tło się rozpływa */
 .intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor,.intro.go .coin-shadow{animation:introFadeOut .25s ease forwards}
-.intro.go::before{animation:introFadeOut .75s ease .2s forwards}
+.intro.go::before{animation:introFadeOut 1s ease .3s forwards}
 .intro.go .coin,.intro.go .coin-wrap{animation:none;opacity:1}
-.intro.go .face::after{animation:introShine .55s ease-in-out 2}
+.intro.go .back::after{animation:introShine .6s ease-in-out .15s}
 .intro.skip{animation:introFadeOut .35s ease forwards}
 
 @keyframes introRise{to{opacity:1;translate:0 0;filter:blur(0)}}
@@ -320,3 +314,8 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 @keyframes introCtaTap{0%,40%,100%{scale:1}14%{scale:.95;background:var(--brand-hover)}}
 @keyframes introCtaRing{0%,10%{opacity:0;scale:1}16%{opacity:.55}55%,100%{opacity:0;scale:1.35 1.6}}
 @media (max-width:600px){html.with-intro .intro{--size:min(64vw,calc(80svh - 230px))}.intro-q{font-size:clamp(32px,9vw,44px)}}
+
+/* telefon: maskowanie w historii pytania nie łamie się na dwie linie; atrapy przycisków nie udają klikalnych; cele dotyku 44px */
+.sc-pii{display:inline-block;white-space:nowrap}
+.da-btns .btn{pointer-events:none;cursor:default}
+@media (max-width:900px){.theme-btn{width:44px;height:44px}.topnav .btn{height:44px}}

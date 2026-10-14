@@ -42,12 +42,13 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     // moneta leci w kompas strony: środek do środka, skala tak, żeby jej znak miał rozmiar kompasu
     const wrap = coin.parentElement, w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect();
     const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2);
-    const s = t.width / (w.width * 0.58), D = 1150, ease = "cubic-bezier(.62,0,.2,1)", opts = { duration: D, easing: ease, fill: "forwards" };
-    needle.style.setProperty("--ang", "0deg"); // ląduje wskazując północ, jak kompas strony
-    wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: `translate(0,-4%) scale(1.06)`, offset: .22 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], opts);
-    el.querySelector(".coin").animate([{ transform: "rotateY(0deg)" }, { transform: "rotateX(14deg) rotateY(190deg)", offset: .45 }, { transform: "rotateY(360deg)" }], opts);
+    const s = t.width / (w.width * 0.58), D = 1600, opts = { duration: D, easing: "cubic-bezier(.45,.05,.2,1)", fill: "forwards" };
+    needle.animate([{ transform: getComputedStyle(needle).transform }, { transform: "rotate(0deg)" }], { duration: 1100, easing: "cubic-bezier(.3,0,.2,1)", fill: "forwards" }); // igła ląduje tak jak w kompasie strony
+    wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: "translate(0,-3%) scale(1.04)", offset: .18 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], opts);
+    el.querySelector(".coin").animate([{ transform: "rotateY(0deg)", easing: "cubic-bezier(.5,0,.3,1)" }, { transform: "rotateX(10deg) rotateY(180deg)", offset: .36, easing: "cubic-bezier(.3,0,.25,1)" }, { transform: "rotateY(360deg)", offset: .7 }, { transform: "rotateY(360deg)" }], { duration: D, fill: "forwards" });
     const fade = { duration: D, easing: "linear", fill: "forwards" };
-    [el.querySelector(".rim"), ...el.querySelectorAll(".edge i")].forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .55 }, { opacity: 0 }], fade));
+    el.querySelectorAll(".edge i").forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .6 }, { opacity: 0, offset: .7 }, { opacity: 0 }], fade)); // krawędź gaśnie, gdy zasłania ją awers
+    el.querySelector(".rim").animate([{ opacity: 1 }, { opacity: 1, offset: .74 }, { opacity: 0 }], fade); // potem znika tarcza, zostaje sam znak
     setTimeout(end, D + 40);
   };
   coin.onclick = () => finish("go");
