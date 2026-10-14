@@ -66,10 +66,23 @@ server/tools.js      – narzędzia agenta i ich wykonanie po zatwierdzeniu
 server/store.js      – pamięć spraw, kolejka akcji, logi (JSON w data/)
 server/users.js      – użytkownicy demo i działy
 server/security.js   – nagłówki HTTP, sesje z wygasaniem, limit prób logowania
+server/policy.js     – klasyfikacja wrażliwości, trasowanie (lokalny / zewnętrzny / blokada), alert
 knowledge/<dział>/   – dokumenty firmy (.md)
 public/index.html    – interfejs (bez frameworka, żeby demo działało offline)
 skills/              – przykładowy skill dla Claude Code: checklista bezpieczeństwa wdrożenia AI
 ```
+
+## Klasyfikacja danych i trasowanie w bramie
+
+Każda wiadomość dostaje poziom i trasę, zanim cokolwiek pójdzie do modelu (`server/policy.js`):
+
+| Poziom | Co to znaczy | Dokąd może pójść |
+|---|---|---|
+| jawne | brak danych osobowych | dowolny skonfigurowany model |
+| wewnętrzne | dane osobowe, zamaskowane tokenami | dowolny model, ale tylko po zamaskowaniu |
+| chronione | PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające | wyłącznie model lokalny (`OLLAMA_URL`); bez niego wiadomość jest zatrzymana w bramie |
+
+Zatrzymana wiadomość nie opuszcza serwera, użytkownik dostaje wyjaśnienie, w logu pojawia się wpis `blocked` bez treści, a jeśli ustawiono `ALERT_WEBHOOK_URL`, administrator dostaje powiadomienie (Teams, Slack, n8n). Decyzja o trasie jest widoczna w panelu „Co dostał model” i w logach zarządu.
 
 ## Co jest uproszczone (i jak wygląda w produkcji)
 
@@ -77,7 +90,7 @@ skills/              – przykładowy skill dla Claude Code: checklista bezpiecz
 |---|---|
 | hasła z hashem scrypt, lista użytkowników w kodzie | SSO Microsoft Entra / Google Workspace, role z katalogu firmy |
 | wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia per dokument |
-| maskowanie regułami + lista imion | Microsoft Presidio + NER dla polskiego |
+| maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla polskiego, polityka per dział w konfiguracji |
 | akcje zapisują do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |
 | logi w JSON | baza z retencją, alerty błędów (Telegram/Teams), panel kosztów per dział |
 | jeden proces Node | serwer w UE, HTTPS, sekrety w sejfie, kopie zapasowe |

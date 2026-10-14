@@ -12,10 +12,13 @@ import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store } from "./store.js";
 import { securityHeaders, createSessions, createLoginLimiter, verifyPassword, rateLimit } from "./security.js";
+import { classify, route, alert } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const PROVIDER = process.env.AI_PROVIDER || "mock";
+// Model lokalny dla danych chronionych: dostępny, gdy skonfigurowano Ollamę (dane nie opuszczają serwera)
+const LOCAL_PROVIDER = PROVIDER === "ollama" || process.env.OLLAMA_URL ? "ollama" : null;
 
 const app = express();
 app.set("trust proxy", 1); // za Caddy/Nginx: prawdziwe IP klienta dla limitu logowań
@@ -83,29 +86,43 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   // Licznik dla użytkownika: tokeny w jego wiadomości. Fragmenty dokumentów też są maskowane tym samym stanem.
   const piiInMessage = (masked.match(/\[[A-Z]+_\d+\]/g) || []).length;
 
-  // 3. Wywołanie modelu przez bramę (provider wybierany konfiguracją)
-  const sys = systemPrompt(user, maskedHits);
-  let out;
-  if (PROVIDER === "mock") {
-    out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
-  } else {
-    out = await callModel(PROVIDER, sys, maskedHistory, masked, TOOLS);
+  // 3. Klasyfikacja i trasa: dane chronione tylko do modelu lokalnego, bez niego nie wychodzą nigdzie
+  const policy = classify(message, piiInMessage);
+  const trip = route(policy.level, PROVIDER, LOCAL_PROVIDER);
+  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider };
+  if (trip.blocked) {
+    const ts = new Date().toISOString();
+    store.log({ userId: user.id, dept: user.dept, provider: null, event: "blocked", policy: policyOut, pii_found: piiInMessage, ms: Date.now() - t0 });
+    alert({ userId: user.id, dept: user.dept, reasons: policy.reasons, ts }); // bez treści wiadomości
+    return res.json({
+      answer: `Ta wiadomość zawiera dane chronione (${policy.reasons.join(", ")}). Takie dane nie mogą opuścić firmy, a model lokalny nie jest skonfigurowany, więc nic nie zostało wysłane. Usuń te dane z wiadomości albo poproś administratora o włączenie modelu lokalnego.`,
+      sources: [], action: null, masked_preview: null, pii_found: piiInMessage, policy: policyOut
+    });
   }
 
-  // 4. Odmaskowanie odpowiedzi i ewentualnej akcji
+  // 4. Wywołanie modelu przez bramę (dostawca z trasy)
+  const sys = systemPrompt(user, maskedHits);
+  let out;
+  if (trip.provider === "mock") {
+    out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
+  } else {
+    out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS);
+  }
+
+  // 5. Odmaskowanie odpowiedzi i ewentualnej akcji
   const answer = unmask(out.answer, map);
   let action = out.action ? JSON.parse(unmask(JSON.stringify(out.action), map)) : null;
   if (action) action = store.addPending({ ...action, userId: user.id, dept: user.dept });
 
-  // 5. Log: co faktycznie poszło do modelu
+  // 6. Log: co faktycznie poszło do modelu i którą trasą
   store.log({
-    userId: user.id, dept: user.dept, provider: PROVIDER,
+    userId: user.id, dept: user.dept, provider: trip.provider, policy: policyOut,
     prompt_masked: masked, pii_found: piiInMessage,
     sources: hits.map(h => `${h.dept}/${h.file}#${h.idx}`),
     action: action ? action.tool : null, ms: Date.now() - t0
   });
 
-  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: piiInMessage });
+  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut });
 });
 
 // Akcje wymagające zatwierdzenia przez człowieka

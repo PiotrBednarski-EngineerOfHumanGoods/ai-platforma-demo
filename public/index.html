@@ -364,7 +364,7 @@ const EXAMPLES = {
   sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Jaki jest termin płatności dla faktur? (nie mój dział)"],
   obsluga: ["Klient bez umowy zgłasza awarię – w jakim czasie przyjedziemy?", "Jakie mamy statusy zlecenia?", "Ile mamy czasu na odpowiedź na reklamację?", "Zapisz: Jan Kowalski tel. 600 123 456 zgłasza awarię chłodni w Sopocie"],
   biuro: ["Jak zarezerwować salę?", "Kiedy składa się zamówienia biurowe?", "Umów spotkanie z Pani Marta Zielińska jutro 12:00", "Jak rozliczyć delegację?"],
-  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Jaki rabat może dać handlowiec? (nie mój dział)"],
+  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz: PESEL 90010112345 klienta do umowy (dane chronione)", "Jaki rabat może dać handlowiec? (nie mój dział)"],
   zarzad: ["Jakie mamy cele na 2026?", "Co zawiera raport tygodniowy?", "Jaki rabat może dać handlowiec?", "Kiedy wysyłamy wezwanie do zapłaty?"]
 };
 
@@ -475,11 +475,20 @@ function renderMasked(r) {
     $("#masked").innerHTML = `<div class="empty" style="padding:16px 8px 8px"><span class="empty-title">Nic jeszcze nie wysłano</span><p>Po pierwszym pytaniu zobaczysz tu tekst, który trafił do modelu, z danymi osobowymi zastąpionymi etykietami.</p></div>`;
     return;
   }
+  const p = r.policy || {};
+  const ROUTE = { blocked: "zablokowano, nic nie wyszło", local: "model lokalny, dane nie opuściły serwera", external: "model zewnętrzny, po zamaskowaniu", mock: "tryb demo, nic nie wyszło" };
+  const LEVEL = { public: "jawne", internal: "wewnętrzne", restricted: "chronione" };
+  const routeHtml = `<div class="mask-sum"><b>Poziom:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}<b>Trasa:</b><span>${esc(ROUTE[p.route] || p.route || "")}</span></div>`;
+  if (p.route === "blocked") {
+    $("#maskedCount").textContent = "0";
+    $("#masked").innerHTML = `<div class="result" role="status">${ICON.info}<span>Wiadomość zatrzymana w bramie. Do żadnego modelu nie wyszedł ani jeden znak.</span></div>${routeHtml}`;
+    return;
+  }
   const types = tokTypes(r.masked_preview);
   $("#maskedCount").textContent = r.pii_found;
   $("#masked").innerHTML = `<p class="panel-sub">Ostatnie zapytanie dokładnie w takiej postaci, w jakiej wyszło z firmy.</p>
     <p class="masked">${tokens(r.masked_preview)}</p>
-    <div class="mask-sum">${r.pii_found ? `<b>Zamaskowano ${r.pii_found}:</b>${types.map(t => `<span class="mask-type">${esc(t)}</span>`).join("")}` : `<span>Nie wykryto danych osobowych.</span>`}</div>`;
+    <div class="mask-sum">${r.pii_found ? `<b>Zamaskowano ${r.pii_found}:</b>${types.map(t => `<span class="mask-type">${esc(t)}</span>`).join("")}` : `<span>Nie wykryto danych osobowych.</span>`}</div>${routeHtml}`;
 }
 
 /* ---------- zakładki: sprawy, dokumenty, logi ---------- */
@@ -497,8 +506,9 @@ async function loadLogs() {
   const r = await api("/logs"); if (r.error) return;
   const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
   $("#logs").innerHTML = r.map(l => {
-    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : "Zapytanie";
-    const det = l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "");
+    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge" style="background:var(--decide-bg);color:var(--decide-fg)">Zablokowano</span>` : "Zapytanie";
+    const routeTxt = l.policy ? `<br>trasa: ${esc(l.policy.route)}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
+    const det = l.event === "blocked" ? `dane chronione nie wyszły z firmy${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     return `<tr><td class="mono">${esc(l.ts.slice(11, 19))}</td><td>${esc(who(l.userId))}</td><td>${ev}</td><td class="mono">${det}</td><td class="mono">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
   }).join("") || `<tr><td colspan="5"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Każde zapytanie i każda decyzja pracowników pojawi się tutaj.</p></div></td></tr>`;
 }
