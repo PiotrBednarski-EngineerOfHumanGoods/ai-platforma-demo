@@ -24,6 +24,7 @@ Jeden agent buduje, wyspecjalizowani agenci sprawdzają. Każdy dostaje wąskie 
 | Skill `claude-api` | integracja z API Claude: modele, ceny, dobór modelu do pytania |
 | Własny skill `ai-security-checklist` | lista kontrolna przeglądu wdrożeń AI, w katalogu `skills/` |
 | Claude Design | paleta, typografia i projekt ekranów |
+| HyperFrames (skille HeyGen) | film demo aplikacji (42 s, napisy po polsku): kompozycja w HTML, sprawdzenie układu i kontrastu (`hyperframes check`), render do MP4 |
 | Artefakt Slides (Claude) | prezentacja dla klienta |
 | Playwright | zrzuty ekranu do prezentacji, testy w przeglądarce, pomiar płynności animacji (klatki przy czterokrotnie spowolnionym procesorze) |
 | Claude API: Haiku i Sonnet | odpowiedzi; tańszy model do prostych pytań, mocniejszy do analiz |
