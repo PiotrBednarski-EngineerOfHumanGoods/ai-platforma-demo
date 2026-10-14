@@ -41,9 +41,13 @@ async function login(id, password) {
   $("#logsTab").hidden = $("#bnLogs").hidden = user.dept !== "zarzad";
   // dostawcy AI dozwoleni dla działu (ustawia administrator); pracownik wybiera tylko spośród nich
   const allowed = (r.providers || []).map(id => meta.providers.find(p => p.id === id)).filter(Boolean);
-  $("#prov").innerHTML = allowed.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
-  $("#prov").disabled = allowed.length < 2;
-  $("#prov").title = allowed.length < 2 ? "Twój dział ma jeden model do wyboru" : "Modele dostępne w Twoim dziale";
+  // model w firmie: gdy nie jest jeszcze podłączony, widać go na liście jako opcję do podłączenia (dla danych wrażliwych)
+  const localReady = allowed.some(p => p.id === "ollama");
+  $("#prov").innerHTML = allowed.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("")
+    + (localReady ? "" : `<option disabled>Model w firmie (Ollama), do podłączenia</option>`);
+  $("#prov").disabled = false;
+  $("#prov").title = localReady ? "Modele dostępne w Twoim dziale"
+    : "Model w firmie, np. Bielik przez Ollamę, obsłuży dane wrażliwe bez wysyłania ich do chmury. Podłączenie: OLLAMA_URL i OLLAMA_MODEL w konfiguracji serwera.";
   $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod odpowiedzią będzie nazwa dokumentu, z którego pochodzi. Masz dostęp do dokumentów działu ${esc(meta.depts[user.dept])} i wspólnych.</p></div>`;
   $("#chips").innerHTML = (EXAMPLES[user.dept] || []).map(e => `<button class="chip" type="button">${ICON.bulb}${esc(e)}</button>`).join("");
   $$("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
