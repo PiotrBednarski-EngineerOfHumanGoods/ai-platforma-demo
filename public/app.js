@@ -194,12 +194,31 @@ $("#upFile").onchange = async e => {
   $("#upMsg").textContent = r.error || `Dodano „${r.path}”. ${($("#upDept").value || user.dept) === "wspolne" ? "Asystent od teraz korzysta z niego we wszystkich działach." : `Asystent od teraz korzysta z niego w dziale „${meta.depts[($("#upDept").value || user.dept)]}”.`}`;
   e.target.value = ""; loadKb();
 };
+let casesAll = [];
+// rodzaj sprawy rozpoznany po treści zapisanej przez narzędzie (spotkanie / przypomnienie o płatności / notatka)
+const caseType = c => /^Spotkanie/i.test(c.notatka || "") ? "spotkanie" : /płatno/i.test(c.notatka || "") ? "platnosc" : "notatka";
 async function loadCases() {
-  const r = await api("/cases");
-  $("#casesTag").textContent = r.length || "";
-  $("#cases").innerHTML = r.map(c => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(c.when))}</span><div class="grow"><div class="li-title">${esc(c.klient)}</div><div class="li-sub">${esc(c.notatka)}</div></div></div><span class="badge badge-wait">${esc(c.nastepny_krok || "")}</span><span class="li-sub">${esc(meta.depts[c.dept] || c.dept)}</span></li>`).join("")
-    || `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`;
+  casesAll = await api("/cases"); if (!Array.isArray(casesAll)) casesAll = [];
+  $("#casesTag").textContent = casesAll.length || "";
+  const depts = [...new Set(casesAll.map(c => c.dept))];
+  $("#cfDept").hidden = depts.length < 2;
+  const cur = $("#cfDept").value;
+  $("#cfDept").innerHTML = `<option value="">Wszystkie działy</option>` + depts.map(d => `<option value="${esc(d)}">${esc(meta.depts[d] || d)}</option>`).join("");
+  $("#cfDept").value = depts.includes(cur) ? cur : "";
+  renderCases();
 }
+function renderCases() {
+  const q = $("#cfQ").value.trim().toLowerCase(), type = $("#cfType").value, dept = $("#cfDept").value, sort = $("#cfSort").value;
+  let r = casesAll.filter(c => (!q || [c.klient, c.notatka, c.nastepny_krok].join(" ").toLowerCase().includes(q)) && (!type || caseType(c) === type) && (!dept || c.dept === dept));
+  r = [...r].sort(sort === "old" ? (a, b) => a.when.localeCompare(b.when) : sort === "az" ? (a, b) => String(a.klient).localeCompare(String(b.klient), "pl") : (a, b) => b.when.localeCompare(a.when));
+  const filtered = q || type || dept;
+  $("#cfCount").textContent = casesAll.length ? (filtered ? `${r.length} z ${casesAll.length}` : `${casesAll.length} ${plural(casesAll.length, "sprawa", "sprawy", "spraw")}`) : "";
+  $("#cases").innerHTML = r.map(c => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(c.when))}</span><div class="grow"><div class="li-title">${esc(c.klient)}</div><div class="li-sub">${esc(c.notatka)}</div></div></div><span class="badge badge-wait">${esc(c.nastepny_krok || "")}</span><span class="li-sub">${esc(meta.depts[c.dept] || c.dept)}</span></li>`).join("")
+    || (casesAll.length
+      ? `<div class="empty"><span class="empty-title">Brak spraw dla tych filtrów</span><p>Zmień wyszukiwanie albo wybierz „Wszystkie”.</p></div>`
+      : `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`);
+}
+["#cfQ", "#cfType", "#cfDept", "#cfSort"].forEach(s => $(s).addEventListener("input", renderCases));
 async function loadLogs() {
   const [r, usage, fb] = await Promise.all([api("/logs"), api("/usage"), api("/feedback")]); if (r.error) return;
   const FB = { problem: "Problem", pomysl: "Pomysł", pytanie: "Pytanie" };

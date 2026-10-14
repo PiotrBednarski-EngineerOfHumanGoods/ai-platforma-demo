@@ -122,6 +122,13 @@
 
       <div class="pane tabpanel" id="t-cases" role="tabpanel">
         <div class="tp-head"><div><h2>Sprawy</h2><p>Zatwierdzone notatki, spotkania i przypomnienia.</p></div></div>
+        <div class="cf" role="search" aria-label="Filtruj sprawy">
+          <input class="input cf-q" id="cfQ" type="search" placeholder="Szukaj klienta, notatki albo kroku" aria-label="Szukaj w sprawach">
+          <select class="cf-sel" id="cfType" aria-label="Rodzaj sprawy"><option value="">Wszystkie rodzaje</option><option value="spotkanie">Spotkania</option><option value="platnosc">Przypomnienia o płatności</option><option value="notatka">Notatki</option></select>
+          <select class="cf-sel" id="cfDept" aria-label="Dział" hidden></select>
+          <select class="cf-sel" id="cfSort" aria-label="Kolejność"><option value="new">Najnowsze</option><option value="old">Najstarsze</option><option value="az">Klient A–Z</option></select>
+          <span class="cf-count" id="cfCount" aria-live="polite"></span>
+        </div>
         <ul class="list" id="cases"></ul>
       </div>
 
