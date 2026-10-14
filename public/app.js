@@ -25,7 +25,7 @@ const EXAMPLES = {
 async function init() {
   meta = await fetch("/api/meta").then(r => r.json());
   $("#loginForm").onsubmit = e => { e.preventDefault(); login($("#login-id").value, $("#pw").value); };
-  $("#accounts button").forEach(b => b.onclick = () => { $("#login-id").value = b.dataset.login; $("#pw").value = b.dataset.pw; loginError(""); $("#loginBtn").focus(); });
+  [...document.querySelectorAll("#accounts button")].forEach(b => b.onclick = () => { $("#login-id").value = b.dataset.login; $("#pw").value = b.dataset.pw; loginError(""); $("#loginBtn").focus(); });
   $("#login-id").focus();
 }
 function loginError(msg) { const b = $("#loginErr"); b.querySelector("span").textContent = msg; b.classList.toggle("on", !!msg); $$("#loginForm .input").forEach(i => i.classList.toggle("is-invalid", !!msg)); }
