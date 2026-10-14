@@ -256,6 +256,7 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .edge i:nth-child(8){transform:translateZ(calc(var(--t) * 0.5000))}
 .face{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .face svg{position:relative;width:58%;height:58%;shape-rendering:geometricPrecision}
+.face>*,.face::before,.face::after{backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .face .needle{transform-origin:12px 12px;transform:rotate(var(--ang,0deg))}
 /* awers: biała emalia w srebrnym rancie */
 .face.front{transform:translateZ(calc(var(--t) / 2));color:var(--fg1)}
@@ -290,9 +291,13 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .intro.real .intro-cursor{visibility:hidden}
 
 /* wyjście: moneta obraca się, maleje i wlatuje w kompas strony (Web Animations w start.js); tło się rozpływa */
-.intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor{animation:introFadeOut .25s ease forwards}
+/* gasną w miejscu: zachowujemy końcowe położenie (bez powrotu napisu na środek za monetę) */
+.intro.go .intro-q{animation:introQUp 1ms forwards,introFadeOut .2s ease forwards}
+.intro.go .intro-cta{animation:introRise 1ms forwards,introFadeOut .2s ease forwards}
+.intro.go .intro-skip{animation:introFadeOut .2s ease forwards}
+.intro.go .intro-cursor{visibility:hidden}
 .intro.go .coin-shadow{animation:introFadeOut .15s ease forwards}
-.intro.go::before{animation:introFadeOut 1s ease .75s forwards} /* strona pojawia się, gdy moneta już leci */
+.intro.go::before{animation:introFadeOut 1.1s ease 1.55s forwards} /* strona wyłania się dopiero przy lądowaniu monety */
 .intro.go .coin,.intro.go .coin-wrap{animation:none}
 .intro.go .coin-wrap{opacity:1}
 .intro.go .back::after{animation:introShine .6s ease-in-out .15s}
@@ -322,13 +327,14 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
    karta graficzna skaluje gotowy obraz, bez liczenia rozmycia tła, więc płynnie także na słabszym laptopie. */
 .water{position:fixed;left:var(--wx);top:var(--wy);width:var(--wd);height:var(--wd);margin:calc(var(--wd) / -2) 0 0 calc(var(--wd) / -2);border-radius:50%;pointer-events:none;z-index:90;
   transform:scale(.02);opacity:0;will-change:transform,opacity;contain:strict;
-  background:radial-gradient(closest-side,transparent 70%,rgba(24,24,27,.03) 76%,rgba(24,24,27,.07) 82%,rgba(255,255,255,.8) 88%,rgba(255,255,255,.55) 91%,rgba(24,24,27,.1) 95%,transparent 99.5%);
-  animation:water 4.6s cubic-bezier(.22,.55,.3,1) forwards}
-.water.w2{animation-delay:.38s;animation-duration:2.9s;--peak:.6}
-.water.w3{animation-delay:.76s;animation-duration:3s;--peak:.32}
+  background:radial-gradient(closest-side,transparent 58%,rgba(24,24,27,.025) 66%,rgba(24,24,27,.07) 76%,rgba(255,255,255,.85) 86%,rgba(255,255,255,.6) 90%,rgba(24,24,27,.11) 95%,transparent 99.5%);
+  animation:water 5.6s cubic-bezier(.33,.2,.45,1) forwards} /* równomierne narastanie od krawędzi kompasu */
+.water.w2{animation-delay:.75s;--peak:.7}
+.water.w3{animation-delay:1.5s;--peak:.48}
+.water.w4{animation-delay:2.25s;--peak:.3}
 :root[data-theme=dark] .water{background:radial-gradient(closest-side,transparent 70%,rgba(0,0,0,.18) 80%,rgba(255,255,255,.14) 88%,rgba(0,0,0,.32) 95%,transparent 99.5%)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .water{background:radial-gradient(closest-side,transparent 70%,rgba(0,0,0,.18) 80%,rgba(255,255,255,.14) 88%,rgba(0,0,0,.32) 95%,transparent 99.5%)}}
-@keyframes water{0%{transform:scale(.02);opacity:0}10%{opacity:var(--peak,1)}65%{opacity:calc(var(--peak,1) * .75)}100%{transform:scale(1);opacity:0}}
+@keyframes water{0%{transform:scale(var(--s0,.04));opacity:0}5%{opacity:var(--peak,1)}65%{opacity:calc(var(--peak,1) * .75)}100%{transform:scale(1);opacity:0}}
 
 /* lot znaku z monety do kompasu: płaski wektor nad intro, przerysowywany w każdej klatce (ostry) */
 .fly{position:fixed;z-index:101;pointer-events:none;display:grid;place-items:center}

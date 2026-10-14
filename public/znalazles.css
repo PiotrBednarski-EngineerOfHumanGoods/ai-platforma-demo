@@ -6,7 +6,7 @@
   --skin:#f1d3bf; --skin-sh:#ddb79f;
   --blazer:#2a2a31; --blazer-hi:#383842;
   --gold:#c8952a; --gold-hi:#f0cf6e;
-  position:absolute; right:0; bottom:calc(100% - 20px * var(--size)); z-index:50;
+  position:fixed; right:max(12px,env(safe-area-inset-right)); bottom:calc(-20px * var(--size)); z-index:50; /* stale w prawym dolnym rogu ekranu startowego */
   display:flex; align-items:flex-start; gap:4px;
   pointer-events:none; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
 }
@@ -309,4 +309,5 @@
 @media (max-width:480px){.znalazles{--size:.4}.znalazles .zn-bubble{font-size:13px;padding:7px 11px}}
 
 .znalazles .anger{transform-box:fill-box;transform-origin:center}
-@media (max-width:600px){.foot{margin-top:180px}} /* telefon: miejsce nad stopką, żeby postać nie zasłaniała przycisków */
+@media (max-width:600px){.znalazles{--size:.34}}
+html.with-intro .znalazles{visibility:hidden} /* nie w intro */

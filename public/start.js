@@ -38,13 +38,14 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
     const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.1;
     // tafla: soczewka + grzbiet fali, potem drugi, słabszy krąg
-    ["w1"].forEach(k => {
+    ["w1", "w2", "w3", "w4"].forEach(k => {
       const w = document.createElement("div"); w.className = "water " + k;
       w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px");
+      w.style.setProperty("--s0", ((c.width / 2) / (R * .58)).toFixed(4)); // wewnętrzna krawędź kręgu startuje na krawędzi kompasu
       document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
     });
     // elementy strony uginają się, gdy grzbiet fali przez nie przechodzi (tylko transformacje: płynnie)
-    const T = 4600, ease = r => 1 - Math.pow(1 - r, 1.8); // ten sam profil co animacja kręgu
+    const T = 5600, ease = r => 1 - Math.pow(1 - r, 1.5); // ten sam profil co animacja pierwszego kręgu
     const at = d => { let lo = 0, hi = 1; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (ease(m) * R * .9 < d) lo = m; else hi = m; } return lo * T; };
     document.querySelectorAll(".top .brand, .topnav > *, .hero h1, .hero .lead, .hero .cta, .hero .note, .demo, .hero ~ section h2").forEach(el => {
       const r = el.getBoundingClientRect(); if (r.top > innerHeight) return;
@@ -65,13 +66,13 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const wrap = coin.parentElement, coinEl = el.querySelector(".coin");
     const w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect(); // opakowanie jest płaskie: pomiar zawsze poprawny
     const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2), s = t.width / (w.width * 0.58);
-    const D = 1800, from = angleOf(needle), to = parseFloat(getComputedStyle(heroWrap).getPropertyValue("--ang")) || 0;
+    const D = 2600, from = angleOf(needle), to = parseFloat(getComputedStyle(heroWrap).getPropertyValue("--ang")) || 0;
     needle.animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${to}deg)` }], { duration: D, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
-    coinEl.animate([{ transform: "rotateY(0deg)" }, { transform: "rotateX(8deg) rotateY(540deg)", offset: .45 }, { transform: "rotateY(1080deg)" }], { duration: D, easing: "cubic-bezier(.42,0,.18,1)", fill: "forwards" });
-    wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: "translate(0,-2%) scale(1.04)", offset: .14 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], { duration: D, easing: "cubic-bezier(.55,0,.2,1)", fill: "forwards" });
+    coinEl.animate([{ transform: "rotateY(0deg)" }, { transform: "rotateX(9deg) rotateY(900deg)", offset: .45 }, { transform: "rotateY(1800deg)" }], { duration: D, easing: "cubic-bezier(.37,0,.2,1)", fill: "forwards" }); // pięć obrotów, miękki start i hamowanie
+    wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: "translate(0,-2%) scale(1.03)", offset: .12 }, { transform: `translate(${dx * .55}px,${dy * .45 - 18}px) scale(${(1 + s) / 2})`, offset: .62 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], { duration: D, easing: "cubic-bezier(.45,0,.25,1)", fill: "forwards" });
     const fade = (n, at) => n.animate([{ opacity: 1 }, { opacity: 1, offset: at }, { opacity: 0 }], { duration: D, fill: "forwards" });
-    el.querySelectorAll(".edge i").forEach(n => fade(n, .76)); // srebrna krawędź gaśnie, gdy moneta zwalnia awersem do przodu
-    fade(el.querySelector(".rim"), .8);                       // biała tarcza na samym końcu: zostaje znak w rozmiarze kompasu
+    el.querySelectorAll(".edge i").forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .66 }, { opacity: 0, offset: .82 }, { opacity: 0 }], { duration: D, fill: "forwards" })); // krawędź gaśnie najpierw // srebrna krawędź gaśnie, gdy moneta zwalnia awersem do przodu
+    fade(el.querySelector(".rim"), .86);                      // potem biała tarcza                       // biała tarcza na samym końcu: zostaje znak w rozmiarze kompasu
     setTimeout(() => end(true), D);                            // ląduje w miejscu kompasu strony (wektor)
   };
   coin.onclick = () => finish("go");
