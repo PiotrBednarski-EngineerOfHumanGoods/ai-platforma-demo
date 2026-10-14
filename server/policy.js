@@ -91,10 +91,10 @@ export function decide({ level, dept, requested, cloudUsed, spentUsd = 0 }) {
 }
 
 // Dobór modelu do trudności pytania: proste (krótkie, jest trafienie w dokumentach, bez prośby o analizę) -> tani model,
-// trudne (długie, "porównaj", "podsumuj", "raport", brak trafień) -> mocny. Pracownik wybiera dostawcę, poziom dobiera brama.
+// trudne (długie, "porównaj", "podsumuj", "raport") -> mocny. Pracownik wybiera dostawcę, poziom dobiera brama.
 const HARD = /\b(porówna|podsumuj|streszcz|przeanalizuj|analiz|zestaw|raport|dlaczego|zaproponuj|napisz|przygotuj ofert|wyjaśnij|oceń|policz)/i;
 export function tier(message, hits) {
-  if (HARD.test(message) || message.length > 300 || !hits.length) return "strong";
+  if (HARD.test(message) || message.length > 300) return "strong"; // brak dokumentów nie jest trudnością: takie pytania i tak omijają model albo są prośbą o akcję
   return "cheap";
 }
 // Nazwa modelu dla dostawcy i poziomu. Konfiguracja: ANTHROPIC_MODEL_CHEAP / ANTHROPIC_MODEL_STRONG (analogicznie OPENAI_),

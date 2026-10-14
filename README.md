@@ -17,7 +17,7 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe.
 ```bash
 npm install
 npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app.html
-npm test     # 27 testów automatycznych (node --test), bez dodatkowych zależności
+npm test     # 28 testów automatycznych (node --test), bez dodatkowych zależności
 ```
 
 Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
@@ -87,7 +87,7 @@ Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), pote
 | Klasyfikacja | jawne / wewnętrzne (dane osobowe, zamaskowane) / chronione (PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające) | reguły w `policy.js` (produkcja: Presidio/NER) |
 | Trasa | chronione: wyłącznie model lokalny, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
 | Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model lokalny albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |
-| Dobór modelu | proste pytanie (krótkie, jest trafienie w dokumentach) idzie do taniego modelu, analiza lub brak trafień do mocnego; pracownik wybiera dostawcę, poziom dobiera brama | `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG` |
+| Dobór modelu | proste pytanie i prośba o akcję idą do taniego modelu, analiza (porównaj, podsumuj, raport, długie pytanie) do mocnego; pytanie bez trafień w dokumentach nie idzie do modelu w ogóle; pracownik wybiera dostawcę, poziom dobiera brama | `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG` |
 | Pamięć odpowiedzi | pytanie bez danych osobowych i bez akcji, na które już odpowiedziano z tych samych dokumentów, wraca z pamięci za 0; klucz zawiera dział i wersję dokumentów, ważność 7 dni | automatycznie |
 | Koszty | tokeny z odpowiedzi dostawcy i koszt z cennika w logu każdego zapytania; zarząd widzi sumy per dział i budżet w bieżącym miesiącu | `PRICING_JSON`, `APP_MONTHLY_BUDGET_USD` |
 | Alert | zatrzymana wiadomość = wpis `blocked` bez treści i powiadomienie administratora | `ALERT_WEBHOOK_URL` |

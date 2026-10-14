@@ -45,6 +45,7 @@ export function search(KB, query, depts, k = 4) {
   const MIN_SCORE = 2.0;
   const best = scored[0].s;
   const matched = c => new Set(q).size ? [...new Set(q)].filter(t => c.tokens.includes(t)).length : 0;
-  const need = Math.max(1, Math.floor(new Set(q).size * 0.3));
+  // długie pytanie: wystarczą 2 trafione słowa (inaczej "porównaj ... przegląd ... rabat ..." nie znajduje cennika)
+  const need = Math.min(2, Math.max(1, Math.floor(new Set(q).size * 0.3)));
   return scored.filter(x => x.s >= MIN_SCORE && x.s >= best * 0.45 && matched(x.c) >= need).slice(0, k).map(x => x.c);
 }

@@ -219,12 +219,12 @@ test("budżet w dolarach: po wyczerpaniu chmura wraca do trybu pokazowego, a nie
   } finally { delete process.env.ANTHROPIC_API_KEY; delete process.env.APP_MONTHLY_BUDGET_USD; process.env.AI_PROVIDER = "mock"; }
 });
 
-test("dobór modelu: proste pytanie -> tani model, analiza lub brak dokumentów -> mocny", async () => {
+test("dobór modelu: proste pytanie i prośba o akcję -> tani model, analiza -> mocny", async () => {
   const { tier, modelFor } = await import("../server/policy.js");
   const hit = [{ dept: "sprzedaz" }];
   assert.equal(tier("Jaki rabat mogę dać sam?", hit), "cheap");
   assert.equal(tier("Porównaj warunki umowy serwisowej z cennikiem i podsumuj różnice", hit), "strong");
-  assert.equal(tier("Jaki rabat?", []), "strong", "bez trafień w dokumentach pytanie idzie do mocnego modelu");
+  assert.equal(tier("Umów spotkanie z firmą Delta we wtorek", []), "cheap", "prośba o akcję bez dokumentów nie wymaga mocnego modelu");
   process.env.ANTHROPIC_MODEL_CHEAP = "model-tani"; process.env.ANTHROPIC_MODEL_STRONG = "model-mocny";
   try { assert.equal(modelFor("anthropic", "cheap"), "model-tani"); assert.equal(modelFor("anthropic", "strong"), "model-mocny"); assert.equal(modelFor("mock", "cheap"), null); }
   finally { delete process.env.ANTHROPIC_MODEL_CHEAP; delete process.env.ANTHROPIC_MODEL_STRONG; }
@@ -284,4 +284,12 @@ test("dane chronione w innych formatach: PESEL ze spacją, IBAN z PL, dowód oso
     assert.equal(classify(s, 0).level, "restricted", s);
     assert.notEqual(mask(s, newState()).masked, s, "maskowanie: " + s);
   }
+});
+
+test("wyszukiwanie: długie pytanie analityczne znajduje cennik", async () => {
+  const { loadKnowledge, search } = await import("../server/knowledge.js");
+  const { fileURLToPath } = await import("node:url");
+  const KB = loadKnowledge(fileURLToPath(new URL("../knowledge", import.meta.url)));
+  const hits = search(KB, "Porównaj, ile klient zapłaci za przegląd klimatyzacji z rabatem 10% i bez rabatu, i podsumuj w dwóch zdaniach.", ["wspolne", "sprzedaz"], 4);
+  assert.ok(hits.some(h => h.file === "cennik-i-oferty.md"));
 });
