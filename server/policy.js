@@ -56,7 +56,7 @@ const RESTRICTED = [
 export function classify(message, piiCount) {
   const reasons = [...new Set(RESTRICTED.filter(([re]) => re.test(message)).map(([, label]) => label))];
   if (reasons.length) return { level: "restricted", reasons };
-  if (piiCount > 0) return { level: "internal", reasons: ["dane osobowe (zamazane)"] };
+  if (piiCount > 0) return { level: "internal", reasons: ["dane osobowe (zamaskowane)"] };
   return { level: "public", reasons: [] };
 }
 
@@ -73,7 +73,7 @@ export function decide({ level, dept, requested, cloudUsed, spentUsd = 0 }) {
   const def = byId(process.env.AI_PROVIDER) || local || allowed.find(p => p.kind === "mock") || allowed[0];
   if (level === "restricted") {
     if (local) return { provider: local.id, kind: "local", blocked: false, reason: "dane chronione, zostają w firmie" };
-    return { provider: null, kind: "blocked", blocked: true, reason: "dane chronione, a dział nie ma modelu w firmie" };
+    return { provider: null, kind: "blocked", blocked: true, reason: "zawiera dane chronione, a Twój dział nie ma dostępu do modelu w firmie" };
   }
   let chosen = byId(requested) || def;
   if (!chosen) return { provider: null, kind: "blocked", blocked: true, reason: "dział nie ma żadnego modelu do wyboru" };
@@ -87,7 +87,7 @@ export function decide({ level, dept, requested, cloudUsed, spentUsd = 0 }) {
     if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()}), użyto modelu w firmie` };
     return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()})` };
   }
-  return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamazane przed wysyłką" : "dane zostały w firmie" };
+  return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamaskowane przed wysłaniem" : "dane zostały w firmie" };
 }
 
 // Dobór modelu do trudności pytania: proste (krótkie, jest trafienie w dokumentach, bez prośby o analizę) -> tani model,

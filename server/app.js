@@ -60,7 +60,8 @@ function allowedDepts(user) {
 app.get("/api/meta", (req, res) => res.json({
   provider: PROVIDER, model: process.env.MODEL || null, depts: DEPTS,
   providers: availableProviders(), cloudMonthlyLimit: cloudMonthlyLimit(),
-  users: users.map(u => ({ id: u.id, name: u.name, dept: u.dept, role: u.role }))
+  // lista pracowników tylko po zalogowaniu: bez sesji pusta, żeby nie ujawniać kadry
+  users: sessions.get(sessions.tokenFrom(req)) ? users.map(u => ({ id: u.id, name: u.name, dept: u.dept, role: u.role })) : []
 }));
 
 app.post("/api/login", (req, res) => {
@@ -73,7 +74,7 @@ app.post("/api/login", (req, res) => {
   if (!ok) {
     loginLimiter.failed(req.ip); if (u) accountLock.failed(`${u.id}|${req.ip}`);
     store.log({ userId: u ? u.id : null, dept: u ? u.dept : null, event: "login_failed" }); // bez loginu i hasła
-    return res.status(401).json({ error: "Nieprawidłowy użytkownik lub hasło" }); // ten sam komunikat: nie zdradzamy, które konta istnieją
+    return res.status(401).json({ error: "Nieprawidłowy login lub hasło." }); // ten sam komunikat: nie zdradzamy, które konta istnieją
   }
   loginLimiter.reset(req.ip); accountLock.reset(`${u.id}|${req.ip}`);
   const token = sessions.create(u);
@@ -96,7 +97,7 @@ app.post("/api/documents", auth, (req, res) => {
   const { name, content, dept = req.user.dept } = req.body || {};
   if (!uploadTargets(req.user).includes(dept)) return res.status(403).json({ error: "Nie możesz dodawać dokumentów do tego działu." });
   const base = String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\.(md|txt)$/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
-  if (!base || !/\.(md|txt)$/i.test(String(name))) return res.status(400).json({ error: "Dodaj plik .md albo .txt z nazwą." });
+  if (!base || !/\.(md|txt)$/i.test(String(name))) return res.status(400).json({ error: "Można dodać tylko plik .md lub .txt." });
   if (typeof content !== "string" || !content.trim()) return res.status(400).json({ error: "Plik jest pusty." });
   if (Buffer.byteLength(content, "utf8") > MAX_DOC) return res.status(400).json({ error: "Plik jest większy niż 200 KB." });
   const file = base + ".md";
@@ -109,8 +110,8 @@ app.post("/api/documents", auth, (req, res) => {
 app.delete("/api/documents/:dept/:file", auth, (req, res) => {
   const { dept, file } = req.params;
   const doc = store.docs().find(d => d.dept === dept && d.file === file);
-  if (!doc || !allowedDepts(req.user).includes(dept)) return res.status(404).json({ error: "Brak dokumentu" });
-  if (doc.by !== req.user.id && req.user.dept !== "zarzad") return res.status(403).json({ error: "Możesz usuwać tylko dokumenty, które dodałeś." });
+  if (!doc || !allowedDepts(req.user).includes(dept)) return res.status(404).json({ error: "Nie znaleziono dokumentu." });
+  if (doc.by !== req.user.id && req.user.dept !== "zarzad") return res.status(403).json({ error: "Możesz usuwać tylko dokumenty dodane przez siebie." });
   store.removeDoc(dept, file); reloadKnowledge();
   store.log({ userId: req.user.id, dept: req.user.dept, event: "doc_removed", action: `${dept}/${file}` });
   res.json({ ok: true });
@@ -121,8 +122,8 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const t0 = Date.now();
   const { message, history = [], provider: requested } = req.body;
   // Walidacja wejścia: treść to dane, ale rozmiar i typ muszą być pod kontrolą
-  if (typeof message !== "string" || !message.trim() || message.length > 2000) return res.status(400).json({ error: "Wiadomość: 1–2000 znaków" });
-  if (!Array.isArray(history) || history.length > 20 || history.some(h => !h || typeof h.content !== "string" || h.content.length > 4000 || !["user", "assistant"].includes(h.role))) return res.status(400).json({ error: "Nieprawidłowa historia rozmowy" });
+  if (typeof message !== "string" || !message.trim() || message.length > 2000) return res.status(400).json({ error: "Wiadomość nie może być pusta i może mieć najwyżej 2000 znaków." });
+  if (!Array.isArray(history) || history.length > 20 || history.some(h => !h || typeof h.content !== "string" || h.content.length > 4000 || !["user", "assistant"].includes(h.role))) return res.status(400).json({ error: "Nie udało się odczytać rozmowy. Odśwież stronę i spróbuj ponownie." });
   const user = req.user;
   const depts = allowedDepts(user);
 
@@ -148,16 +149,16 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   // Notatka o zamazaniu tylko wtedy, gdy coś faktycznie zamazano (w pytaniu, historii albo fragmentach)
   const maskedCount = Object.keys(map || {}).length;
   const note = trip.kind === "external" && !trip.blocked
-    ? (maskedCount ? `zamazano przed wysyłką: ${maskedCount}` : "w pytaniu nie było danych osobowych")
+    ? (maskedCount ? `zamaskowano przed wysłaniem: ${maskedCount}` : "w pytaniu nie było danych osobowych")
     : trip.reason;
   const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, model, tier: trip.provider === "mock" ? null : tierName, note };
   if (trip.blocked) {
     const ts = new Date().toISOString();
     store.log({ userId: user.id, dept: user.dept, provider: null, event: "blocked", policy: policyOut, pii_found: piiInMessage, ms: Date.now() - t0 });
     alert({ userId: user.id, dept: user.dept, reasons: policy.reasons.length ? policy.reasons : [trip.reason], ts }); // bez treści wiadomości
-    const hint = policy.level === "restricted" ? "Usuń te dane z pytania albo poproś administratora o model w firmie." : "Napisz do administratora.";
+    const hint = policy.level === "restricted" ? "Usuń te dane z pytania albo poproś administratora o włączenie modelu w firmie." : "Napisz do administratora.";
     return res.json({
-      answer: `Nie wysłałem tego pytania: ${trip.reason}. ${hint}`,
+      answer: `To pytanie nie zostało wysłane: ${trip.reason}. ${hint}`,
       sources: [], action: null, masked_preview: null, pii_found: piiInMessage, policy: policyOut
     });
   }
@@ -166,7 +167,7 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const key = policy.level === "public" && history.length === 0 ? cacheKey(user.dept, trip.provider, message) : null;
   const cached = key ? store.cacheGet(key) : null;
   if (cached) {
-    const out = { ...policyOut, route: "cache", note: "to samo pytanie padło już wcześniej, odpowiedź z pamięci bez wywołania modelu" };
+    const out = { ...policyOut, route: "cache", note: "to samo pytanie padło już wcześniej, odpowiedź z pamięci, bez modelu" };
     store.log({ userId: user.id, dept: user.dept, provider: cached.provider, policy: out, prompt_masked: masked, pii_found: 0, sources: cached.sourceIds, action: null, tokens_in: 0, tokens_out: 0, cost: 0, ms: Date.now() - t0 });
     return res.json({ answer: cached.answer, sources: cached.sources, action: null, masked_preview: masked, pii_found: 0, policy: out, usage: { tokens_in: 0, tokens_out: 0, cost: 0 } });
   }
@@ -204,6 +205,7 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   }
   if (action) {
     const args = Object.fromEntries(Object.keys(def.args).map(k => [k, action.args[k] == null ? null : String(action.args[k]).slice(0, 300)]));
+    if (args.z_kim) args.z_kim = args.z_kim.replace(/^(?:z\s+)?(?:pan(?:em|a|u|ią|i)?|p\.)\s+/iu, ""); // „pan Janem” -> „Janem”
     action = store.addPending({ tool: def.name, args, userId: user.id, dept: user.dept });
   }
 
@@ -234,13 +236,13 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
 app.get("/api/actions", auth, (req, res) => res.json(store.pendingFor(req.user)));
 app.post("/api/actions/:id/approve", auth, (req, res) => {
   const a = store.takePending(req.params.id, req.user);
-  if (!a) return res.status(404).json({ error: "Brak akcji" });
+  if (!a) return res.status(404).json({ error: "Nie ma takiego wniosku albo został już rozpatrzony." });
   const result = executeTool(a, store);
-  store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_approved", action: a.tool, result });
+  store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_approved", action: a.tool }); // bez wyniku: zawiera dane osobowe z wniosku
   res.json({ ok: true, result });
 });
 app.post("/api/actions/:id/reject", auth, (req, res) => {
-  if (!store.takePending(req.params.id, req.user)) return res.status(404).json({ error: "Brak akcji" });
+  if (!store.takePending(req.params.id, req.user)) return res.status(404).json({ error: "Nie ma takiego wniosku albo został już rozpatrzony." });
   store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_rejected" });
   res.json({ ok: true });
 });
@@ -248,12 +250,12 @@ app.post("/api/actions/:id/reject", auth, (req, res) => {
 // Pamięć spraw (zamiast CRM) i logi
 app.get("/api/cases", auth, (req, res) => res.json(store.cases(allowedDepts(req.user))));
 app.get("/api/logs", auth, (req, res) => {
-  if (!["zarzad", "admin"].includes(req.user.dept) && req.user.role !== "admin") return res.status(403).json({ error: "Tylko zarząd/admin" });
+  if (!["zarzad", "admin"].includes(req.user.dept) && req.user.role !== "admin") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   res.json(store.logs());
 });
 // Zużycie i koszty w bieżącym miesiącu per dział (panel zarządu)
 app.get("/api/usage", auth, (req, res) => {
-  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Tylko zarząd" });
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   res.json({ month: new Date().toISOString().slice(0, 7), cloudMonthlyLimit: cloudMonthlyLimit(), budgetUsd: appMonthlyBudgetUsd(), spentUsd: +store.spentThisMonthUsd().toFixed(4), depts: store.usageThisMonth() });
 });
 
@@ -280,11 +282,11 @@ function mockAnswer(message, hits, user) {
   if (action) { // prośba o akcję: konkret z danymi, bez formułek
     const a = action.args;
     const summary = {
-      umow_spotkanie: `Spotkanie z ${a.z_kim}, ${a.kiedy}.`,
+      umow_spotkanie: `Spotkanie: ${a.z_kim}, ${a.kiedy}.`,
       zapisz_sprawe: `Notatka o kliencie ${a.klient}.`,
-      przypomnienie_platnosc: `Przypomnienie o płatności dla ${a.kontrahent}, ${a.faktura}, ${a.kwota}.`
+      przypomnienie_platnosc: `Przypomnienie o płatności: ${a.kontrahent}, ${a.faktura}, ${a.kwota}.`
     }[action.tool];
-    return { answer: `${summary} Sprawdź dane i zatwierdź, wtedy to wykonam.`, action };
+    return { answer: `${summary} Sprawdź dane i zatwierdź wniosek. Wykonam go dopiero po zatwierdzeniu.`, action };
   }
   if (hits.length) {
     const lines = hits.slice(0, 3).map((h, i) => `[${i + 1}] ${h.text.replace(/^#+\s*/, "").split("\n").filter(Boolean).slice(0, 2).join(": ")}`);

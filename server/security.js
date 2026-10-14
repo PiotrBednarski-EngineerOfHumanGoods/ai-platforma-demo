@@ -19,7 +19,7 @@ export function securityHeaders(req, res, next) {
 // Razem z ciasteczkiem SameSite=Strict daje dwie niezależne warstwy.
 export function requireCsrfHeader(req, res, next) {
   if (req.path.startsWith("/api") && req.method !== "GET" && req.get("x-requested-with") !== "compax") {
-    return res.status(400).json({ error: "Brak nagłówka X-Requested-With" });
+    return res.status(400).json({ error: "Nieprawidłowe żądanie. Odśwież stronę." });
   }
   next();
 }
@@ -47,11 +47,13 @@ export function createSessions({ ttlMs = 8 * 60 * 60 * 1000 } = {}) {
     },
     clearCookie(res) { res.clearCookie(SESSION_COOKIE, { path: "/" }); },
     tokenFrom,
+    // sesja ważna albo null (bez odpowiedzi 401), np. do treści zależnych od zalogowania
+    get(token) { const s = token && sessions.get(token); return s && s.exp >= Date.now() ? s : null; },
     // middleware Express: ustawia req.user albo odpowiada 401
     auth(req, res, next) {
       const token = tokenFrom(req);
       const s = sessions.get(token);
-      if (!s || s.exp < Date.now()) { sessions.delete(token); return res.status(401).json({ error: "Zaloguj się" }); }
+      if (!s || s.exp < Date.now()) { sessions.delete(token); return res.status(401).json({ error: "Sesja wygasła. Zaloguj się ponownie." }); }
       req.user = s.user; next();
     },
     destroy(token) { sessions.delete(token); }
@@ -89,7 +91,7 @@ export function rateLimit({ max, windowMs }) {
   return (req, res, next) => {
     const now = Date.now();
     const list = (hits.get(req.ip) || []).filter(t => now - t < windowMs);
-    if (list.length >= max) return res.status(429).json({ error: "Za dużo żądań. Spróbuj za chwilę." });
+    if (list.length >= max) return res.status(429).json({ error: "Za dużo pytań w krótkim czasie. Spróbuj ponownie za minutę." });
     list.push(now); hits.set(req.ip, list); next();
   };
 }

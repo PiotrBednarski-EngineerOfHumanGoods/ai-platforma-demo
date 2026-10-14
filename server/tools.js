@@ -5,7 +5,7 @@ export const TOOLS = [
   { name: "zapisz_sprawe", title: "Zapisz sprawę / notatkę o kliencie", depts: ["sprzedaz", "obsluga", "biuro", "zarzad"],
     args: { klient: "nazwa firmy lub osoby", notatka: "treść", nastepny_krok: "co dalej", termin: "YYYY-MM-DD lub null" } },
   { name: "umow_spotkanie", title: "Umów spotkanie w kalendarzu", depts: ["sprzedaz", "obsluga", "biuro", "zarzad"],
-    args: { z_kim: "osoba/firma", kiedy: "data i godzina", temat: "temat" } },
+    args: { z_kim: "osoba lub firma (sama nazwa albo etykieta, bez „pan/pani”)", kiedy: "data i godzina", temat: "temat" } },
   { name: "przypomnienie_platnosc", title: "Wyślij przypomnienie o płatności", depts: ["ksiegowosc", "zarzad"],
     args: { kontrahent: "nazwa", faktura: "numer", kwota: "kwota" } }
 ];
@@ -18,11 +18,11 @@ export function executeTool(a, store) {
   }
   if (a.tool === "umow_spotkanie") {
     store.addCase({ dept: a.dept, klient: a.args.z_kim, notatka: `Spotkanie: ${a.args.temat}`, nastepny_krok: `Spotkanie ${a.args.kiedy}`, termin: a.args.kiedy, by: a.userId, when });
-    return `Spotkanie z ${a.args.z_kim} (${a.args.kiedy}) zapisane. W produkcji: wpis w kalendarzu + zaproszenie e-mail.`;
+    return `Zapisano spotkanie: ${a.args.z_kim}, ${a.args.kiedy}. W pełnej wersji trafi też do kalendarza, a uczestnik dostanie zaproszenie e-mailem.`;
   }
   if (a.tool === "przypomnienie_platnosc") {
     store.addCase({ dept: a.dept, klient: a.args.kontrahent, notatka: `Przypomnienie o płatności FV ${a.args.faktura} (${a.args.kwota})`, nastepny_krok: "Czekamy na wpłatę", termin: null, by: a.userId, when });
-    return `Przypomnienie dla ${a.args.kontrahent} przygotowane. W produkcji: e-mail z szablonu + wpis w programie do faktur.`;
+    return `Przygotowano przypomnienie o płatności: ${a.args.kontrahent}. W pełnej wersji zostanie wysłane e-mailem i odnotowane w programie do faktur.`;
   }
   return "Nieznane narzędzie";
 }

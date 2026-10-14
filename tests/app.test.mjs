@@ -135,6 +135,17 @@ test("dziennik nie zawiera danych osobowych z pytań", async () => {
   assert.ok(dump.includes("[OSOBA_1]"));
 });
 
+test("dziennik: zatwierdzenie wniosku zapisuje tylko rodzaj akcji, bez danych osobowych z wniosku", async () => {
+  const anna = await login("anna", PASS.anna);
+  const r = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: { message: "Umów spotkanie z panem Janem Kowalskim we wtorek o 9:00" } });
+  assert.ok(!/^(z\s+)?pan/i.test(r.json.action.args.z_kim), "„z kim” bez zwrotu grzecznościowego");
+  assert.equal((await call(`/api/actions/${r.json.action.id}/approve`, { method: "POST", cookie: anna.cookie })).status, 200);
+  const prezes = await login("prezes", PASS.prezes);
+  const dump = JSON.stringify((await call("/api/logs", { cookie: prezes.cookie })).json);
+  assert.ok(dump.includes("action_approved"));
+  assert.ok(!/Kowalsk/.test(dump), "dane osobowe z wniosku nie mogą trafić do dziennika");
+});
+
 // ---------- brama: klasyfikacja, trasa, limity ----------
 test("klasyfikacja: PESEL, konto, zdrowie są chronione; dane osobowe wewnętrzne; reszta jawna", () => {
   assert.equal(classify("PESEL 90010112345", 0).level, "restricted");
