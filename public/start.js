@@ -1,3 +1,57 @@
+/* ---------- igła kompasu: płynnie za kursorem (rAF, najkrótszy łuk), po bezruchu wraca na północ ---------- */
+function smoothNeedle(el, { idleMs = 2000 } = {}) {
+  let cur = 0, target = 0, raf = 0, idle = 0, last = 0;
+  const step = t => {
+    const dt = Math.min(64, t - (last || t)); last = t;
+    const diff = ((target - cur + 540) % 360) - 180;          // najkrótsza droga, bez obrotu „dookoła”
+    cur += diff * (1 - Math.exp(-dt / (target === 0 && idle < 0 ? 260 : 90)));
+    el.style.setProperty("--ang", cur.toFixed(2) + "deg");
+    raf = Math.abs(diff) > 0.05 ? requestAnimationFrame(step) : (last = 0, 0);
+  };
+  return deg => {
+    target = deg; idle = 1;
+    if (!raf) raf = requestAnimationFrame(step);
+    clearTimeout(el._idleT);
+    el._idleT = setTimeout(() => { target = 0; idle = -1; if (!raf) raf = requestAnimationFrame(step); }, idleMs);
+  };
+}
+
+/* ---------- intro (tylko gdy theme-init.js ustawił html.with-intro) ---------- */
+(() => {
+  const root = document.documentElement, el = document.getElementById("intro");
+  if (!el || !root.classList.contains("with-intro")) return;
+  const coin = document.getElementById("introCoin"), needle = el.querySelector(".front .needle");
+  const center = () => { const r = coin.getBoundingClientRect(); el.style.setProperty("--cx", r.left + r.width / 2 + "px"); el.style.setProperty("--cy", r.top + r.height / 2 + "px"); };
+  center(); addEventListener("resize", center);
+  let done = false;
+  const finish = mode => {
+    if (done) return; done = true;
+    try { sessionStorage.setItem("compax-intro", "1"); } catch {}
+    center(); el.classList.add(mode);
+    setTimeout(() => {
+      root.classList.remove("with-intro"); el.remove();
+      dispatchEvent(new Event("compax:intro-done"));
+      document.querySelector(".hero h1")?.focus?.();
+    }, mode === "go" ? 1800 : 380);
+  };
+  coin.onclick = () => finish("go");
+  el.querySelector(".intro-cta").onclick = () => finish("go");
+  el.querySelector(".intro-skip").onclick = () => finish("skip");
+  addEventListener("keydown", e => {
+    if (done) return;
+    if (e.key === "Escape") finish("skip");
+    else if ((e.key === "Enter" || e.key === " ") && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); finish("go"); }
+  });
+  // igła monety podąża za prawdziwym kursorem (jak na stronie startowej)
+  if (matchMedia("(hover: hover)").matches) {
+    const aim = smoothNeedle(needle);
+    el.addEventListener("pointermove", e => {
+      const r = coin.getBoundingClientRect();
+      aim(Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI + 45);
+    });
+  }
+})();
+
 // Ekran startowy: jedno wejście (zaczernienie danych w karcie demo), ujawnianie sekcji przy przewijaniu
 // i światło za kursorem. Bez bibliotek, bez zewnętrznych skryptów, z poszanowaniem „ogranicz ruch”.
 (() => {
@@ -6,7 +60,8 @@
   if (reduce) { document.documentElement.classList.add("no-motion"); masked.classList.add("on"); demo.classList.add("on"); return; }
 
   // 1. Wejście: dane osobowe znikają pod etykietami chwilę po załadowaniu
-  setTimeout(() => { masked.classList.add("on"); demo.classList.add("on"); }, 700);
+  const enter = () => setTimeout(() => { masked.classList.add("on"); demo.classList.add("on"); }, 700);
+  if (document.documentElement.classList.contains("with-intro")) addEventListener("compax:intro-done", enter, { once: true }); else enter();
 
   // 2. Przewijanie: zapas dla przeglądarek bez animation-timeline, plus kroki dostają klasę .in (kolor numeru)
   const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -12% 0px", threshold: 0.2 });
@@ -15,16 +70,12 @@
   // 3. Kursor: igła kompasu wskazuje kursor (jak prawdziwa igła biegun), po chwili bezruchu wraca na północ;
   //    plus lekkie pochylenie karty demo w sekcji otwierającej. Tylko dla urządzeń z myszą.
   if (!matchMedia("(hover: hover)").matches) return;
-  const compass = document.getElementById("compass");
-  let idleTimer = 0;
+  const compass = document.getElementById("compass"), aim = smoothNeedle(compass);
   // igła w znaku wskazuje domyślnie północny wschód (45°), więc kąt do kursora liczymy względem tego kierunku
   const point = (x, y) => {
     const r = compass.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const deg = Math.atan2(y - cy, x - cx) * 180 / Math.PI; // 0° = w prawo
-    compass.classList.remove("idle");
-    compass.style.setProperty("--ang", (deg + 45).toFixed(1) + "deg");
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { compass.classList.add("idle"); compass.style.setProperty("--ang", "0deg"); }, 2000);
+    aim(deg + 45);
   };
   let raf = 0, px = 0, py = 0;
   window.addEventListener("pointermove", e => {
