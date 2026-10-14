@@ -38,45 +38,54 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
     const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.1;
     // tafla: soczewka + grzbiet fali, potem drugi, słabszy krąg
-    ["w1", "w2", "w3"].forEach(k => {
+    ["w1"].forEach(k => {
       const w = document.createElement("div"); w.className = "water " + k;
       w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px");
       document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
     });
     // elementy strony uginają się, gdy grzbiet fali przez nie przechodzi (tylko transformacje: płynnie)
-    const T = 2800, ease = r => 1 - Math.pow(1 - r, 2.2); // ten sam profil co animacja kręgu
+    const T = 3400, ease = r => 1 - Math.pow(1 - r, 2); // ten sam profil co animacja kręgu
     const at = d => { let lo = 0, hi = 1; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (ease(m) * R * .9 < d) lo = m; else hi = m; } return lo * T; };
     document.querySelectorAll(".top .brand, .topnav > *, .hero h1, .hero .lead, .hero .cta, .hero .note, .demo, .hero ~ section h2").forEach(el => {
       const r = el.getBoundingClientRect(); if (r.top > innerHeight) return;
       const ex = r.left + r.width / 2 - x, ey = r.top + r.height / 2 - y, d = Math.hypot(ex, ey) || 1, k = 5 * Math.max(.35, 1 - d / R);
       el.animate([{ translate: "0 0", scale: 1 }, { translate: `${(ex / d) * k}px ${(ey / d) * k}px`, scale: 1.012, offset: .35 }, { translate: `${(-ex / d) * k * .35}px ${(-ey / d) * k * .35}px`, scale: .997, offset: .7 }, { translate: "0 0", scale: 1 }],
-        { duration: 1100, delay: at(d), easing: "cubic-bezier(.37,0,.25,1)" });
+        { duration: 1300, delay: at(d), easing: "cubic-bezier(.37,0,.25,1)" });
     });
   };
   const end = withWave => { root.classList.remove("with-intro"); el.remove(); if (withWave) wave(); dispatchEvent(new Event("compax:intro-done")); };
+  const angleOf = n => { const m = new DOMMatrix(getComputedStyle(n).transform); return Math.atan2(m.b, m.a) * 180 / Math.PI; };
   const finish = mode => {
     if (done) return; done = true;
     try { sessionStorage.setItem("compax-intro", "1"); } catch {}
     el.classList.add(mode);
-    const hero = document.querySelector("#compass svg");
+    const hero = document.querySelector("#compass svg"), heroWrap = document.getElementById("compass");
     if (mode !== "go" || !hero || !Element.prototype.animate) return setTimeout(() => end(false), 380);
-    // moneta leci w kompas strony: środek do środka, skala tak, żeby jej znak miał rozmiar kompasu
-    const wrap = coin.parentElement, w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect();
-    wrap.style.willChange = "transform, opacity"; el.querySelector(".coin").style.willChange = "transform";
-    const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2);
-    const s = t.width / (w.width * 0.58), D = 1900, opts = { duration: D, easing: "cubic-bezier(.45,.05,.2,1)", fill: "forwards" };
-    const heroWrap = document.getElementById("compass"), heroAng = parseFloat(getComputedStyle(heroWrap).getPropertyValue("--ang")) || 0;
-    needle.animate([{ transform: getComputedStyle(needle).transform }, { transform: `rotate(${heroAng}deg)` }], { duration: 1100, easing: "cubic-bezier(.3,0,.2,1)", fill: "forwards" }); // igła ląduje tak, jak wskazuje kompas strony
-    wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: "translate(0,-3%) scale(1.04)", offset: .18 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], opts);
-    el.querySelector(".coin").animate([{ transform: "rotateY(0deg)", easing: "cubic-bezier(.45,0,.4,1)" }, { transform: "rotateX(12deg) rotateY(380deg)", offset: .38, easing: "cubic-bezier(.25,0,.2,1)" }, { transform: "rotateY(720deg)", offset: .74 }, { transform: "rotateY(720deg)" }], { duration: D, fill: "forwards" }); // dwa pełne obroty
-    const fade = { duration: D, easing: "linear", fill: "forwards" };
-    el.querySelectorAll(".edge i").forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .68 }, { opacity: 0, offset: .76 }, { opacity: 0 }], fade)); // krawędź gaśnie, gdy zasłania ją awers
-    el.querySelector(".rim").animate([{ opacity: 1 }, { opacity: 1, offset: .78 }, { opacity: 0 }], fade); // potem znika tarcza, zostaje sam znak
-    // koniec lotu: moneta przechodzi w prawdziwy kompas strony (wektor, ostry), zamiast pokazywać pomniejszony obraz
-    wrap.animate([{ opacity: 1 }, { opacity: 1, offset: .84 }, { opacity: 0 }], { duration: D, fill: "forwards" });
-    const heroIn = heroWrap.animate([{ opacity: 0 }, { opacity: 0, offset: .82 }, { opacity: 1 }], { duration: D, fill: "forwards" });
-    heroIn.finished.then(() => setTimeout(() => heroIn.cancel(), 50)).catch(() => {});
-    setTimeout(() => end(true), D + 20);
+    const wrap = coin.parentElement, coinEl = el.querySelector(".coin");
+    // 1) moneta robi dwa obroty w miejscu (srebrny rewers w połowie) i wraca awersem
+    const SPIN = 950;
+    coinEl.animate([{ transform: "rotateY(0deg)" }, { transform: "rotateX(10deg) rotateY(360deg)", offset: .5 }, { transform: "rotateY(720deg)" }], { duration: SPIN, easing: "cubic-bezier(.45,0,.25,1)", fill: "forwards" });
+    wrap.animate([{ transform: "none" }, { transform: "translateY(-3%) scale(1.05)", offset: .5 }, { transform: "none" }], { duration: SPIN, easing: "ease-in-out" });
+    // 2) podmiana na płaski znak (wektor, zawsze ostry) i lot łukiem prosto w kompas strony
+    setTimeout(() => {
+      const face = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect(); // całe opakowanie monety (płaskie): element obrócony w 3D mierzy się błędnie
+      const fly = document.createElement("div"); fly.className = "fly";
+      const disc = document.createElement("span"); disc.className = "fly-disc";
+      const logo = hero.cloneNode(true); logo.removeAttribute("width"); logo.removeAttribute("height"); logo.classList.add("fly-logo");
+      const from = angleOf(needle), to = parseFloat(getComputedStyle(heroWrap).getPropertyValue("--ang")) || 0;
+      logo.querySelector(".needle")?.style.setProperty("--ang", from + "deg");
+      fly.append(disc, logo); document.body.appendChild(fly);
+      const box = (x, y, s) => ({ left: x - s / 2 + "px", top: y - s / 2 + "px", width: s + "px", height: s + "px" });
+      const fx = face.left + face.width / 2, fy = face.top + face.height / 2, tx = t.left + t.width / 2, ty = t.top + t.height / 2;
+      const S0 = face.width, S1 = t.width / 0.58, mid = box((fx + tx) / 2, Math.min(fy, ty) - Math.abs(fy - ty) * .18, (S0 + S1) / 2.6);
+      Object.assign(fly.style, box(fx, fy, S0));
+      wrap.style.opacity = "0"; // ta sama klatka: moneta znika, płaski znak jest w jej miejscu
+      const FLY = 1150;
+      fly.animate([box(fx, fy, S0), { ...mid, offset: .5 }, box(tx, ty, S1)], { duration: FLY, easing: "cubic-bezier(.5,0,.15,1)", fill: "forwards" });
+      disc.animate([{ opacity: 1 }, { opacity: 1, offset: .55 }, { opacity: 0, offset: .92 }, { opacity: 0 }], { duration: FLY, fill: "forwards" }); // tarcza zostaje, aż znak jest blisko kompasu
+      logo.querySelector(".needle")?.animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${to}deg)` }], { duration: FLY, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+      setTimeout(() => { fly.remove(); end(true); }, FLY); // ląduje dokładnie ten sam wektor: bez przenikania
+    }, SPIN);
   };
   coin.onclick = () => finish("go");
   cta.onclick = () => finish("go");
@@ -100,6 +109,14 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
 // i światło za kursorem. Bez bibliotek, bez zewnętrznych skryptów, z poszanowaniem „ogranicz ruch”.
 (() => {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // kompas na pełnych pikselach ekranu: bez półpikselowego rozmycia krawędzi przy skalowaniu 100% i 125%
+  const heroCompass = document.getElementById("compass");
+  const snap = () => {
+    if (!heroCompass) return;
+    heroCompass.style.translate = ""; const r = heroCompass.getBoundingClientRect(), d = devicePixelRatio || 1;
+    heroCompass.style.translate = `${(Math.round(r.left * d) - r.left * d) / d}px ${(Math.round(r.top * d) - r.top * d) / d}px`;
+  };
+  snap(); addEventListener("resize", snap); document.fonts?.ready.then(snap);
   const hero = document.getElementById("hero"), demo = document.getElementById("demo"), masked = demo.querySelector(".masked");
   if (reduce) { document.documentElement.classList.add("no-motion"); masked.classList.add("on"); demo.classList.add("on"); return; }
 
