@@ -39,7 +39,7 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     setTimeout(() => {
       root.classList.remove("with-intro"); el.remove();
       dispatchEvent(new Event("compax:intro-done"));
-    }, mode === "go" ? 2450 : 380);
+    }, mode === "go" ? 1650 : 380);
   };
   coin.onclick = () => finish("go");
   cta.onclick = () => finish("go");

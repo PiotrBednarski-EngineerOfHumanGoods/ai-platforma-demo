@@ -226,7 +226,7 @@ h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
 html.with-intro body{overflow:hidden}
 html.with-intro .intro{display:block;position:fixed;inset:0;z-index:100;overflow:hidden;color:var(--fg1);
   background:radial-gradient(120% 90% at 50% 45%,var(--bg1) 0,var(--bg1) 45%,var(--bg3) 100%);
-  --size:min(65vmin,calc(100svh - 300px),86vw);--t:calc(var(--size) * .075);--cx:50vw;--cy:55vh;--bx:50vw;--by:85vh}
+  --size:min(52vmin,calc(80svh - 240px),70vw);--t:calc(var(--size) * .075);--cx:50vw;--cy:55vh;--bx:50vw;--by:85vh}
 
 /* pytanie: najpierw samo na środku, potem odsuwa się do góry */
 .intro-q{position:absolute;left:0;right:0;top:50%;translate:0 -50%;margin:0;padding:0 24px;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(36px,6.4vw,80px);line-height:1.08;letter-spacing:-.025em;
@@ -262,16 +262,21 @@ html.with-intro .intro{display:block;position:fixed;inset:0;z-index:100;overflow
 .face .needle{transform-origin:12px 12px;transform:rotate(var(--ang,0deg))}
 /* awers: biała emalia w srebrnym rancie */
 .face.front{transform:translateZ(calc(var(--t) / 2));color:var(--fg1);
-  background:radial-gradient(circle,var(--bg1) 0 74%,rgba(0,0,0,.3) 74.4%,transparent 75.4%),
+  background:radial-gradient(circle closest-side,var(--bg1) 0 74%,rgba(0,0,0,.3) 74.4%,transparent 75.4%),
+    radial-gradient(circle closest-side,transparent 0 93%,rgba(0,0,0,.28) 93.4%,rgba(255,255,255,.5) 94.6%,transparent 95.6%),
+    repeating-conic-gradient(rgba(0,0,0,.09) 0 .75deg,rgba(255,255,255,.12) .75deg 1.5deg),
     conic-gradient(from 200deg,#eceef0,#7b8189 12%,#d5d8dc 25%,#6f757d 38%,#f1f2f4 52%,#868c94 66%,#cfd2d6 80%,#757b83 90%,#eceef0);
   box-shadow:inset 0 0 0 calc(var(--size) * .006) rgba(255,255,255,.7),inset 0 calc(var(--size) * .02) calc(var(--size) * .04) rgba(0,0,0,.12)}
 .face.front::before{content:"";position:absolute;inset:12.6%;border-radius:50%;box-shadow:inset 0 calc(var(--size) * .012) calc(var(--size) * .03) rgba(0,0,0,.14)}
 /* rewers: srebro, delikatne szlify i wytłoczony znak */
 .face.back{transform:rotateY(180deg) translateZ(calc(var(--t) / 2));color:#8a9098;
   background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.95),rgba(255,255,255,0) 42%),
-    repeating-radial-gradient(circle,rgba(255,255,255,.10) 0 1px,rgba(0,0,0,0) 1px 4px),
+    radial-gradient(circle at 70% 78%,rgba(0,0,0,.18),rgba(0,0,0,0) 45%),
+    repeating-conic-gradient(from 3deg,rgba(255,255,255,.16) 0 .5deg,rgba(0,0,0,.05) .5deg 1deg),
+    repeating-radial-gradient(circle,rgba(255,255,255,.12) 0 1px,rgba(0,0,0,.03) 1px 3px),
     conic-gradient(from 20deg,#c7cbd0,#f2f3f5 10%,#a7acb3 22%,#e6e8eb 36%,#979da5 50%,#eff1f3 64%,#b1b6bc 78%,#dfe2e5 90%,#c7cbd0);
   box-shadow:inset 0 0 0 calc(var(--size) * .032) #cfd3d7,inset 0 0 0 calc(var(--size) * .04) #8b9198,inset 0 0 calc(var(--size) * .08) rgba(0,0,0,.25)}
+.face.back::before{content:"";position:absolute;inset:9%;border-radius:50%;box-shadow:inset 0 0 0 calc(var(--size) * .006) rgba(0,0,0,.22),0 0 0 calc(var(--size) * .006) rgba(255,255,255,.7)}
 .face.back svg{filter:drop-shadow(0 1.5px 0 rgba(255,255,255,.9)) drop-shadow(0 -1px 0 rgba(0,0,0,.35))}
 /* refleks światła przesuwający się po monecie */
 .face::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,rgba(255,255,255,0) 38%,rgba(255,255,255,.65) 50%,rgba(255,255,255,0) 62%);translate:-110% 0;pointer-events:none}
@@ -294,12 +299,12 @@ html.with-intro .intro{display:block;position:fixed;inset:0;z-index:100;overflow
 
 /* wyjście: moneta wzlatuje, obraca się (srebrny rewers), okno rośnie od jej środka */
 .intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor{animation:introFadeOut .3s ease forwards}
-.intro.go .coin-wrap{opacity:1;animation:introLift 1.5s cubic-bezier(.3,0,.2,1) forwards}
-.intro.go .coin{animation:introFlip 1.5s cubic-bezier(.3,0,.2,1) forwards}
-.intro.go .coin-shadow{opacity:1;scale:1;animation:introShadowFlip 1.5s cubic-bezier(.3,0,.2,1) forwards}
-.intro.go .face::after{animation:introShine .75s ease-in-out 2}
+.intro.go .coin-wrap{opacity:1;animation:introLift 1s cubic-bezier(.3,0,.2,1) forwards}
+.intro.go .coin{animation:introFlip 1s cubic-bezier(.3,0,.2,1) forwards}
+.intro.go .coin-shadow{opacity:1;scale:1;animation:introShadowFlip 1s cubic-bezier(.3,0,.2,1) forwards}
+.intro.go .face::after{animation:introShine .5s ease-in-out 2}
 .intro.go{-webkit-mask:radial-gradient(circle at var(--cx) var(--cy),transparent var(--hole),#000 calc(var(--hole) + 1px));mask:radial-gradient(circle at var(--cx) var(--cy),transparent var(--hole),#000 calc(var(--hole) + 1px));
-  animation:introOpen 1.15s cubic-bezier(.7,0,.2,1) 1.2s forwards}
+  animation:introOpen .9s cubic-bezier(.7,0,.2,1) .7s forwards}
 .intro.skip{animation:introFadeOut .35s ease forwards}
 
 @keyframes introRise{to{opacity:1;translate:0 0;filter:blur(0)}}
@@ -319,4 +324,4 @@ html.with-intro .intro{display:block;position:fixed;inset:0;z-index:100;overflow
 @keyframes introFlip{0%{transform:rotateX(0) rotateY(0)}50%{transform:rotateX(14deg) rotateY(560deg)}100%{transform:rotateX(0) rotateY(900deg)}}
 @keyframes introShadowFlip{0%{scale:1 1;opacity:1}45%{scale:.6 1;opacity:.45}100%{scale:.9 1;opacity:.7}}
 @keyframes introOpen{to{--hole:150vmax}}
-@media (max-width:600px){html.with-intro .intro{--size:min(78vw,calc(100svh - 290px))}.intro-q{font-size:clamp(32px,9vw,44px)}}
+@media (max-width:600px){html.with-intro .intro{--size:min(64vw,calc(80svh - 230px))}.intro-q{font-size:clamp(32px,9vw,44px)}}
