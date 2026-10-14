@@ -38,7 +38,7 @@ export function allowedFor(dept) {
   const allowed = policy[dept] || policy["*"];
   return availableProviders().filter(p => allowed.includes(p.id));
 }
-export const CLOUD_MONTHLY_LIMIT = Number(process.env.CLOUD_MONTHLY_LIMIT || 500);
+export const cloudMonthlyLimit = () => Number(process.env.CLOUD_MONTHLY_LIMIT || 500);
 
 // Klasyfikacja wiadomości: "public" | "internal" | "restricted"
 const RESTRICTED = [
@@ -71,9 +71,9 @@ export function decide({ level, dept, requested, cloudUsed }) {
   }
   let chosen = byId(requested) || def;
   if (!chosen) return { provider: null, kind: "blocked", blocked: true, reason: "dział nie ma żadnego dozwolonego dostawcy" };
-  if (chosen.kind === "external" && cloudUsed >= CLOUD_MONTHLY_LIMIT) {
-    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${CLOUD_MONTHLY_LIMIT}), użyto modelu lokalnego` };
-    return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc wyczerpany (${CLOUD_MONTHLY_LIMIT})` };
+  if (chosen.kind === "external" && cloudUsed >= cloudMonthlyLimit()) {
+    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()}), użyto modelu lokalnego` };
+    return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc wyczerpany (${cloudMonthlyLimit()})` };
   }
   return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamaskowane przed wysyłką" : "dane nie opuszczają serwera firmy" };
 }

@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
+const DIR = process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data"); // DATA_DIR: osobny katalog np. w testach
 fs.mkdirSync(DIR, { recursive: true });
 const f = n => path.join(DIR, n + ".json");
 const read = n => fs.existsSync(f(n)) ? JSON.parse(fs.readFileSync(f(n), "utf8")) : [];

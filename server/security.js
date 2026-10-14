@@ -9,23 +9,46 @@ export function securityHeaders(req, res, next) {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'"
   });
   next();
 }
 
-// Sesje: losowy token (nie do zgadnięcia) ważny przez określony czas.
+// Anty-CSRF: żądania zmieniające dane muszą nieść nagłówek, którego zwykły formularz z obcej strony nie wyśle.
+// Razem z ciasteczkiem SameSite=Strict daje dwie niezależne warstwy.
+export function requireCsrfHeader(req, res, next) {
+  if (req.path.startsWith("/api") && req.method !== "GET" && req.get("x-requested-with") !== "compax") {
+    return res.status(400).json({ error: "Brak nagłówka X-Requested-With" });
+  }
+  next();
+}
+
+// Sesje: losowy token (nie do zgadnięcia) ważny przez określony czas, przenoszony w ciasteczku
+// HttpOnly + SameSite=Strict (skrypt na stronie nie ma do niego dostępu, obca strona go nie wyśle).
+// Nagłówek Authorization: Bearer jest akceptowany dla narzędzi API i testów.
+export const SESSION_COOKIE = "compax.sid";
 export function createSessions({ ttlMs = 8 * 60 * 60 * 1000 } = {}) {
   const sessions = new Map();
+  const tokenFrom = req => {
+    const bearer = req.headers.authorization?.replace("Bearer ", "");
+    if (bearer) return bearer;
+    const m = (req.headers.cookie || "").match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([a-f0-9]+)`));
+    return m ? m[1] : null;
+  };
   return {
     create(user) {
       const token = crypto.randomBytes(24).toString("hex");
       sessions.set(token, { user, exp: Date.now() + ttlMs });
       return token;
     },
+    setCookie(res, token, secure) {
+      res.cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: "strict", secure, maxAge: ttlMs, path: "/" });
+    },
+    clearCookie(res) { res.clearCookie(SESSION_COOKIE, { path: "/" }); },
+    tokenFrom,
     // middleware Express: ustawia req.user albo odpowiada 401
     auth(req, res, next) {
-      const token = req.headers.authorization?.replace("Bearer ", "");
+      const token = tokenFrom(req);
       const s = sessions.get(token);
       if (!s || s.exp < Date.now()) { sessions.delete(token); return res.status(401).json({ error: "Zaloguj się" }); }
       req.user = s.user; next();
