@@ -9,11 +9,11 @@ const SCHEMA_HINT = `Odpowiedz WYŁĄCZNIE poprawnym JSON: {"answer": "<tekst od
 function toolsText(tools) {
   return tools.map(t => `${t.name} (${t.title}) args: ${JSON.stringify(t.args)}`).join("; ");
 }
-function parse(text) {
+function parse(text, usage = null) {
   const m = text.match(/\{[\s\S]*\}/);
-  if (!m) return { answer: text.trim(), action: null };
-  try { const j = JSON.parse(m[0]); return { answer: j.answer || "", action: j.action || null }; }
-  catch { return { answer: text.trim(), action: null }; }
+  if (!m) return { answer: text.trim(), action: null, usage };
+  try { const j = JSON.parse(m[0]); return { answer: j.answer || "", action: j.action || null, usage }; }
+  catch { return { answer: text.trim(), action: null, usage }; }
 }
 
 export async function callModel(provider, system, history, userMsg, tools) {
@@ -25,11 +25,13 @@ export async function callModel(provider, system, history, userMsg, tools) {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: model || "claude-opus-5-5", max_tokens: 1024, system: sys, messages: msgs })
+      // max_tokens obejmuje też myślenie modelu, stąd zapas; effort "low" = krótkie, tanie odpowiedzi na pytania o procedury
+      body: JSON.stringify({ model: model || "claude-opus-5-5", max_tokens: 4096, output_config: { effort: "low" }, system: sys, messages: msgs })
     });
     const j = await r.json();
     if (!r.ok) throw new Error(JSON.stringify(j));
-    return parse(j.content.map(c => c.text || "").join(""));
+    if (j.stop_reason === "refusal") return { answer: "Model odmówił odpowiedzi na to pytanie.", action: null, usage: j.usage };
+    return parse(j.content.filter(c => c.type === "text").map(c => c.text).join(""), j.usage ? { input: j.usage.input_tokens, output: j.usage.output_tokens } : null);
   }
 
   if (provider === "openai") {
@@ -40,7 +42,7 @@ export async function callModel(provider, system, history, userMsg, tools) {
     });
     const j = await r.json();
     if (!r.ok) throw new Error(JSON.stringify(j));
-    return parse(j.choices[0].message.content);
+    return parse(j.choices[0].message.content, j.usage ? { input: j.usage.prompt_tokens, output: j.usage.completion_tokens } : null);
   }
 
   if (provider === "ollama") {
@@ -49,7 +51,7 @@ export async function callModel(provider, system, history, userMsg, tools) {
       body: JSON.stringify({ model: model || "llama3.1", stream: false, format: "json", messages: [{ role: "system", content: sys }, ...msgs] })
     });
     const j = await r.json();
-    return parse(j.message?.content || "");
+    return parse(j.message?.content || "", j.prompt_eval_count != null ? { input: j.prompt_eval_count, output: j.eval_count || 0 } : null);
   }
 
   throw new Error(`Nieznany dostawca: ${provider}`);

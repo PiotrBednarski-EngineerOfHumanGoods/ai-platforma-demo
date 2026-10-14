@@ -169,9 +169,10 @@ async function loadLogs() {
   const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
   const prov = id => (meta.providers.find(p => p.id === id) || {}).label || id || "";
   const money = (u) => u.cloud ? (u.costKnown ? u.cost.toFixed(2) + " USD" : "koszt nieznany, brak cennika") : "0 USD";
-  $("#usage").innerHTML = (usage.depts || []).length
+  const budgetHtml = usage.budgetUsd ? `<div><b>Budżet na chmurę</b><small>${usage.spentUsd.toFixed(2)} z ${usage.budgetUsd} USD w tym miesiącu</small><small>po wyczerpaniu pytania wracają do trybu pokazowego</small></div>` : "";
+  $("#usage").innerHTML = budgetHtml + ((usage.depts || []).length
     ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} pytań w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} tokenów · ${money(u)}</small></div>`).join("")
-    : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`;
+    : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`);
   $("#logs").innerHTML = r.map(l => {
     const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Błędne logowanie</span>` : "Pytanie";
     const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";

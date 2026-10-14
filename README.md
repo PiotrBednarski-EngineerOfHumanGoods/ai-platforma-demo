@@ -106,4 +106,8 @@ Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona 
 
 Gotowe skrypty i instrukcja krok po kroku dla Hetzner Cloud (Caddy + HTTPS, pm2, firewall, użytkownik bez uprawnień): [deploy/README.md](deploy/README.md).
 
+## Licencja
+
+© 2026 Piotr Bednarski, wszelkie prawa zastrzeżone. Kod opublikowany do oceny w procesie rekrutacyjnym; wykorzystanie poza tym celem wymaga zgody autora. Szczegóły w pliku `LICENSE`.
+
 Autor: Piotr Bednarski, październik 2026.

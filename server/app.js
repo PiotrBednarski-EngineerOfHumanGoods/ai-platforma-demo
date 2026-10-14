@@ -12,7 +12,7 @@ import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, rateLimit } from "./security.js";
-import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit } from "./policy.js";
+import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -95,7 +95,7 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
 
   // 3. Klasyfikacja i trasa: poziom wiadomości + polityka działu + wybór pracownika + limit chmury
   const policy = classify(message, piiInMessage);
-  const trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept) });
+  const trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() });
   const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, note: trip.reason };
   if (trip.blocked) {
     const ts = new Date().toISOString();
@@ -129,8 +129,8 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   if (action) action = store.addPending({ ...action, userId: user.id, dept: user.dept });
 
   // 6. Koszt: szacunek tokenów i cena z cennika (chmura), lokalnie i w demie 0
-  const tokensIn = estimateTokens(sys) + maskedHistory.reduce((s, h) => s + estimateTokens(h.content), 0) + estimateTokens(masked);
-  const tokensOut = estimateTokens(out.answer);
+  const tokensIn = out.usage?.input ?? estimateTokens(sys) + maskedHistory.reduce((s, h) => s + estimateTokens(h.content), 0) + estimateTokens(masked);
+  const tokensOut = out.usage?.output ?? estimateTokens(out.answer);
   const cost = costOf(trip.provider, tokensIn, tokensOut);
 
   // 7. Log: co faktycznie poszło do modelu, którą trasą i ile kosztowało
@@ -168,7 +168,7 @@ app.get("/api/logs", auth, (req, res) => {
 // Zużycie i koszty w bieżącym miesiącu per dział (panel zarządu)
 app.get("/api/usage", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Tylko zarząd" });
-  res.json({ month: new Date().toISOString().slice(0, 7), cloudMonthlyLimit: cloudMonthlyLimit(), depts: store.usageThisMonth() });
+  res.json({ month: new Date().toISOString().slice(0, 7), cloudMonthlyLimit: cloudMonthlyLimit(), budgetUsd: appMonthlyBudgetUsd(), spentUsd: +store.spentThisMonthUsd().toFixed(4), depts: store.usageThisMonth() });
 });
 
 // --- Prompt systemowy ---

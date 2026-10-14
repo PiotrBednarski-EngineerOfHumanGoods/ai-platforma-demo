@@ -15,6 +15,7 @@ export const store = {
   log(entry) { const l = read("logs"); l.push({ ts: new Date().toISOString(), ...entry }); write("logs", l.slice(-500)); },
   logs() { return read("logs").slice().reverse().slice(0, 100); },
   // Zużycie w bieżącym miesiącu (do limitów chmury i panelu kosztów zarządu)
+  spentThisMonthUsd() { const m = new Date().toISOString().slice(0, 7); return read("logs").filter(l => l.ts.startsWith(m) && l.policy?.route === "external").reduce((s, l) => s + (l.cost || 0), 0); },
   cloudCallsThisMonth(dept) { const m = new Date().toISOString().slice(0, 7); return read("logs").filter(l => l.dept === dept && l.ts.startsWith(m) && l.policy?.route === "external").length; },
   usageThisMonth() {
     const m = new Date().toISOString().slice(0, 7), by = {};
