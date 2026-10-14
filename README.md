@@ -82,16 +82,33 @@ Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik dział
 
 **Rekomendacja: hybryda.** Dane chronione obsługuje model w firmie, resztę tani model w chmurze. Brama już to obsługuje.
 
+## Jak ograniczam halucynacje
+
+Model językowy potrafi napisać coś pewnym tonem, choć nie ma tego w żadnym dokumencie. W firmie to groźne, bo pracownik może podać klientowi zmyślony rabat albo termin. Dlatego Compax nie polega na tym, że model „będzie uważał”, tylko ogranicza mu pole do zmyślania na kilku poziomach:
+
+| Zabezpieczenie | Jak działa | Gdzie w kodzie |
+|---|---|---|
+| Odpowiedź tylko z dokumentów działu | Najpierw wyszukiwarka wybiera do 4 fragmentów z dokumentów działu pracownika. Model dostaje tylko je i polecenie, żeby odpowiadał wyłącznie na ich podstawie i podawał numer źródła, np. [1]. | `systemPrompt` w [server/app.js](server/app.js) |
+| Brak dokumentów, brak modelu | Jeśli wyszukiwarka nic nie znajdzie, pytanie w ogóle nie trafia do modelu. Pracownik dostaje stały komunikat, że w dokumentach działu nie ma odpowiedzi, i radę, kogo zapytać. Model nie ma okazji niczego wymyślić. | krok 3b w [server/app.js](server/app.js) |
+| „Nie wiem” zamiast zgadywania | Gdy fragmenty nie zawierają odpowiedzi, model ma odpisać „Nie znajduję tego w dokumentach firmy” i wskazać, kogo zapytać. | `systemPrompt` |
+| Źródła z serwera, nie od modelu | Lista źródeł pod odpowiedzią pochodzi z wyszukiwarki, a nie z tekstu modelu. Numery [n], których model nie dostał, serwer usuwa z odpowiedzi i zapisuje w dzienniku. | [server/grounding.js](server/grounding.js), test w [tests/grounding.test.mjs](tests/grounding.test.mjs) |
+| Wiedza spoza firmy tylko za zgodą i z oznaczeniem | Odpowiedź z wiedzy ogólnej albo z internetu jest możliwa tylko dla osób, którym zarząd to włączył. Taka odpowiedź ma etykietę „Odpowiedź ogólna, nie z procedur firmy” albo „Z internetu” i linki do stron. | [server/app.js](server/app.js), [public/app.js](public/app.js) |
+| Model niczego nie wykonuje sam | Model może tylko zaproponować spotkanie, notatkę albo przypomnienie. Serwer przepuszcza wyłącznie znane narzędzia dozwolone dla działu, przycina argumenty do schematu, a o wykonaniu decyduje człowiek przyciskiem „Zatwierdź”. Zmyślona akcja nie ma jak się wykonać. | krok 5 w [server/app.js](server/app.js), [server/tools.js](server/tools.js) |
+| Dokumenty to dane, nie polecenia | Polecenia ukryte w dokumencie albo w wiadomości („zignoruj instrukcje…”) model ma traktować jako treść, a nie jako rozkaz. | `systemPrompt` |
+| Stały format odpowiedzi | Model odpowiada w ustalonym formacie JSON (odpowiedź, oznaczenie wiedzy ogólnej, propozycja wniosku). Gdy odpowiedzi nie da się odczytać, serwer traktuje ją jako zwykły tekst bez żadnej akcji. | [server/providers.js](server/providers.js) |
+
+**Czego jeszcze nie ma (uczciwie):** testy w CI sprawdzają te mechanizmy w trybie pokazowym, bez prawdziwego modelu. Nie ma jeszcze automatycznej oceny trafności odpowiedzi prawdziwego modelu. Przed wdrożeniem u klienta przygotowałbym zestaw 30–50 pytań z każdego działu z oczekiwanym źródłem i odpowiedzią i uruchamiał go przy każdej zmianie modelu albo polecenia systemowego. Zgłoszenia „zła odpowiedź” od pracowników (przycisk „Zgłoś”) dopisywałbym do tego zestawu.
+
 ## Testy
 
 | Co | Ile | Jak uruchomić |
 |---|---|---|
-| Testy automatyczne | 50 | `npm test` |
+| Testy automatyczne | 51 | `npm test` |
 | Test dymny wszystkich funkcji na działającym serwerze (także z prawdziwym modelem Claude) | ponad 40 kroków | `npm run smoke`, `BASE_URL=https://compax.tech npm run smoke` |
 | CI: testy, `npm audit`, test dymny | przy każdym wypchnięciu zmian (push) | [GitHub Actions](.github/workflows/ci.yml) |
 | Aktualizacje zależności | co tydzień | Dependabot |
 
-Testy obejmują: logowanie, sesje i blokadę konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), wykrywanie danych chronionych (także numery rozbite na kilka wiadomości i numery kart z sumą kontrolną), brak fałszywych alarmów, limity i budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, szyfrowanie na dysku, narzędzie administratora RODO, zgłoszenia ze zrzutem ekranu (odrzucenie plików udających obraz), uprawnienia ustawiane przez zarząd (także przeniesienie pracownika do innego działu i chmura dla działu, z ochroną przed odebraniem uprawnień samemu sobie) i wyszukiwanie w internecie.
+Testy obejmują: logowanie, sesje i blokadę konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), wykrywanie danych chronionych (także numery rozbite na kilka wiadomości i numery kart z sumą kontrolną), brak fałszywych alarmów, limity i budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, szyfrowanie na dysku, narzędzie administratora RODO, zgłoszenia ze zrzutem ekranu (odrzucenie plików udających obraz), usuwanie zmyślonych numerów źródeł, uprawnienia ustawiane przez zarząd (także przeniesienie pracownika do innego działu i chmura dla działu, z ochroną przed odebraniem uprawnień samemu sobie) i wyszukiwanie w internecie.
 
 ## Bezpieczeństwo
 

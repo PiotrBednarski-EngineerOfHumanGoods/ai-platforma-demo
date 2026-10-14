@@ -30,7 +30,7 @@ Jeden agent buduje, wyspecjalizowani agenci sprawdzają. Każdy dostaje wąskie 
 
 ## Testy i jakość
 
-- **50 testów automatycznych** (`npm test`): logowanie i sesje, blokada konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), klasyfikacja danych chronionych (PESEL, rachunek, dowód, karta, zdrowie, wynagrodzenia, numery rozbite na kilka wiadomości), brama i limity, budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, dokumenty działów, szyfrowanie na dysku, narzędzie administratora, zgłoszenia ze zrzutem ekranu, zmiana działu pracownika i chmury działu z panelu zarządu.
+- **51 testów automatycznych** (`npm test`): logowanie i sesje, blokada konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), klasyfikacja danych chronionych (PESEL, rachunek, dowód, karta, zdrowie, wynagrodzenia, numery rozbite na kilka wiadomości), brama i limity, budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, dokumenty działów, szyfrowanie na dysku, narzędzie administratora, zgłoszenia ze zrzutem ekranu, zmiana działu pracownika i chmury działu z panelu zarządu.
 - **Test dymny** (`npm run smoke`): ponad 40 kroków na działającym serwerze, także z prawdziwym modelem Claude, łącznie z nagłówkami bezpieczeństwa i CSP.
 - **CI na GitHubie**: przy każdej zmianie testy, `npm audit` i test dymny na świeżo uruchomionej aplikacji. **Dependabot** co tydzień.
 - **Wydajność**: animacje strony startowej mierzone klatka po klatce; 60 klatek na sekundę także przy czterokrotnie wolniejszym procesorze.
@@ -75,6 +75,10 @@ Demo pod względem danych (firma i konta są fikcyjne), ale kod, testy i dokumen
 
 **Dlaczego Node.js bez frameworka frontendowego?**
 Jedna zależność produkcyjna (Express), mała powierzchnia ataku, szybki audyt i strona, która ładuje się w ułamku sekundy. Przy większym zespole i rozbudowie przeszedłbym na framework.
+
+### Jak radzisz sobie z halucynacjami?
+
+Model nie dostaje okazji do zmyślania: odpowiada tylko na podstawie fragmentów dokumentów działu i podaje numer źródła. Gdy wyszukiwarka nic nie znajdzie, pytanie w ogóle nie trafia do modelu. Lista źródeł pochodzi z serwera, a numery, których model nie dostał, są usuwane. Wiedza ogólna i internet działają tylko za zgodą zarządu i są wyraźnie oznaczone. Model niczego nie wykonuje sam, bo każdą akcję zatwierdza człowiek. Brakuje jeszcze automatycznej oceny trafności na zestawie pytań; szczegóły w README, sekcja „Jak ograniczam halucynacje”.
 
 ## Czego jeszcze nie ma (uczciwie)
 

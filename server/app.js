@@ -13,6 +13,7 @@ import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store, encryptionOn, blobs } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, hashPassword, rateLimit } from "./security.js";
 import crypto from "crypto";
+import { checkCitations } from "./grounding.js";
 import { validateFeedback, notifyFeedback, FEEDBACK_TYPES } from "./feedback.js";
 import { PROVIDERS, classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor, setDeptOverrides, deptCloudAllowed } from "./policy.js";
 
@@ -212,7 +213,9 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   }
 
   // 5. Odmaskowanie odpowiedzi i ewentualnej akcji
-  const answer = unmask(String(out.answer ?? ""), map);
+  const grounded = checkCitations(unmask(String(out.answer ?? ""), map), hits.length);
+  const answer = grounded.text;
+  if (grounded.removed) store.log({ userId: user.id, dept: user.dept, event: "citations_removed", action: `usunięto zmyślone źródła: ${grounded.removed}` });
   let action = out.action ? JSON.parse(unmask(JSON.stringify(out.action), map)) : null;
   // model (albo tekst wstrzyknięty w dokument) może zaproponować dowolne narzędzie: przepuszczamy tylko znane narzędzia
   // dozwolone dla działu, z argumentami ze schematu narzędzia

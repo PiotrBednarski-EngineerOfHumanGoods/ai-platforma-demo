@@ -1,5 +1,11 @@
 # Zmiany
 
+## 1.2.1 – 2026-10-14
+
+- Ochrona przed zmyślonymi źródłami: numery [n], których model nie dostał, są usuwane z odpowiedzi i zapisywane w dzienniku (test w tests/grounding.test.mjs, razem 51 testów).
+- Opis zabezpieczeń przed halucynacjami w README.
+- Korekta polszczyzny w aplikacji, README i komunikatach błędów.
+
 ## 1.2.0 – 2026-10-14
 
 Uprawnienia zmieniane przez zarząd w panelu, bez wdrożenia.
