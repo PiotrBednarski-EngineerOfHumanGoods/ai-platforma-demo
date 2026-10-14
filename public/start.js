@@ -32,44 +32,24 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
   };
   measure(); addEventListener("resize", measure); document.fonts?.ready.then(measure);
   let done = false;
-  // mapa przesunięć: pierścień, w którym piksele odsuwają się promieniście (R = x, G = y; 128 = bez zmian)
-  const rippleMap = () => {
-    const n = 256, cv = document.createElement("canvas"); cv.width = cv.height = n;
-    const g = cv.getContext("2d"), img = g.createImageData(n, n);
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-      const dx = (x - n / 2) / (n / 2), dy = (y - n / 2) / (n / 2), d = Math.hypot(dx, dy) || 1e-6;
-      const k = Math.exp(-(((d - .86) / .085) ** 2)) * Math.sin((d - .86) * 38); // grzbiet i dolina fali
-      const i = (y * n + x) * 4;
-      img.data[i] = 128 + 127 * (dx / d) * k; img.data[i + 1] = 128 + 127 * (dy / d) * k; img.data[i + 2] = 128; img.data[i + 3] = 255;
-    }
-    g.putImageData(img, 0, 0); return cv.toDataURL();
-  };
   const wave = () => {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
-    const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.12;
-    // delikatny pierścień światła (widoczny ślad fali)
-    [0, 140].forEach((delay, i) => {
-      const w = document.createElement("div"); w.className = "page-wave" + (i ? " soft" : "");
-      w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px"); w.style.animationDelay = delay + "ms";
+    const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.1;
+    // tafla: soczewka + grzbiet fali, potem drugi, słabszy krąg
+    ["lens", "crest", "lens second"].forEach(k => {
+      const w = document.createElement("div"); w.className = "water " + k;
+      w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px");
       document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
     });
-    // zniekształcenie obrazu: filtr SVG na stronie, obraz mapy rośnie od kompasu
-    const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
-    svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.setAttribute("aria-hidden", "true"); svg.classList.add("ripple-defs");
-    svg.innerHTML = `<filter id="compaxRipple" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="${innerWidth}" height="${innerHeight}" color-interpolation-filters="sRGB"><feImage result="map" preserveAspectRatio="none"/><feDisplacementMap in="SourceGraphic" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter>`;
-    document.body.appendChild(svg);
-    const fe = svg.querySelector("feImage"), dm = svg.querySelector("feDisplacementMap");
-    fe.setAttribute("href", rippleMap());
-    const page = document.querySelector(".page-content") || document.body;
-    page.style.filter = "url(#compaxRipple)";
-    const T = 1300, t0 = performance.now();
-    const frame = t => {
-      const p = Math.min(1, (t - t0) / T), e = 1 - Math.pow(1 - p, 2.2), r = 30 + e * R;
-      fe.setAttribute("x", x - r); fe.setAttribute("y", y - r); fe.setAttribute("width", 2 * r); fe.setAttribute("height", 2 * r);
-      dm.setAttribute("scale", (34 * Math.sin(Math.PI * Math.min(1, p * 1.15)) * (1 - p * .55)).toFixed(2));
-      if (p < 1) requestAnimationFrame(frame); else { page.style.filter = ""; svg.remove(); }
-    };
-    requestAnimationFrame(frame);
+    // elementy strony uginają się, gdy grzbiet fali przez nie przechodzi (tylko transformacje: płynnie)
+    const T = 2100, ease = r => 1 - Math.pow(1 - r, 2.6); // ten sam profil co animacja kręgu
+    const at = d => { let lo = 0, hi = 1; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (ease(m) * R * .9 < d) lo = m; else hi = m; } return lo * T; };
+    document.querySelectorAll(".top .brand, .topnav > *, .hero h1, .hero .lead, .hero .cta, .hero .note, .demo, .hero ~ section h2").forEach(el => {
+      const r = el.getBoundingClientRect(); if (r.top > innerHeight) return;
+      const ex = r.left + r.width / 2 - x, ey = r.top + r.height / 2 - y, d = Math.hypot(ex, ey) || 1, k = 7 * Math.max(.35, 1 - d / R);
+      el.animate([{ translate: "0 0", scale: 1 }, { translate: `${(ex / d) * k}px ${(ey / d) * k}px`, scale: 1.012, offset: .35 }, { translate: `${(-ex / d) * k * .35}px ${(-ey / d) * k * .35}px`, scale: .997, offset: .7 }, { translate: "0 0", scale: 1 }],
+        { duration: 760, delay: at(d), easing: "cubic-bezier(.33,0,.25,1)" });
+    });
   };
   const end = withWave => { root.classList.remove("with-intro"); el.remove(); if (withWave) wave(); dispatchEvent(new Event("compax:intro-done")); };
   const finish = mode => {
@@ -80,6 +60,7 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     if (mode !== "go" || !hero || !Element.prototype.animate) return setTimeout(() => end(false), 380);
     // moneta leci w kompas strony: środek do środka, skala tak, żeby jej znak miał rozmiar kompasu
     const wrap = coin.parentElement, w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect();
+    wrap.style.willChange = "transform, opacity"; el.querySelector(".coin").style.willChange = "transform";
     const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2);
     const s = t.width / (w.width * 0.58), D = 1900, opts = { duration: D, easing: "cubic-bezier(.45,.05,.2,1)", fill: "forwards" };
     const heroWrap = document.getElementById("compass"), heroAng = parseFloat(getComputedStyle(heroWrap).getPropertyValue("--ang")) || 0;

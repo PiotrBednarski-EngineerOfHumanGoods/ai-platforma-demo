@@ -245,19 +245,13 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .edge,.edge i{position:absolute;inset:0;border-radius:50%;transform-style:preserve-3d}
 .edge i{background:linear-gradient(90deg,#6f747b,#c3c7cc 30%,#f4f5f6 50%,#a8adb3 70%,#6a6f76)}
 .edge i:nth-child(1){transform:translateZ(calc(var(--t) * -0.5000))}
-.edge i:nth-child(2){transform:translateZ(calc(var(--t) * -0.4231))}
-.edge i:nth-child(3){transform:translateZ(calc(var(--t) * -0.3462))}
-.edge i:nth-child(4){transform:translateZ(calc(var(--t) * -0.2692))}
-.edge i:nth-child(5){transform:translateZ(calc(var(--t) * -0.1923))}
-.edge i:nth-child(6){transform:translateZ(calc(var(--t) * -0.1154))}
-.edge i:nth-child(7){transform:translateZ(calc(var(--t) * -0.0385))}
-.edge i:nth-child(8){transform:translateZ(calc(var(--t) * 0.0385))}
-.edge i:nth-child(9){transform:translateZ(calc(var(--t) * 0.1154))}
-.edge i:nth-child(10){transform:translateZ(calc(var(--t) * 0.1923))}
-.edge i:nth-child(11){transform:translateZ(calc(var(--t) * 0.2692))}
-.edge i:nth-child(12){transform:translateZ(calc(var(--t) * 0.3462))}
-.edge i:nth-child(13){transform:translateZ(calc(var(--t) * 0.4231))}
-.edge i:nth-child(14){transform:translateZ(calc(var(--t) * 0.5000))}
+.edge i:nth-child(2){transform:translateZ(calc(var(--t) * -0.3571))}
+.edge i:nth-child(3){transform:translateZ(calc(var(--t) * -0.2143))}
+.edge i:nth-child(4){transform:translateZ(calc(var(--t) * -0.0714))}
+.edge i:nth-child(5){transform:translateZ(calc(var(--t) * 0.0714))}
+.edge i:nth-child(6){transform:translateZ(calc(var(--t) * 0.2143))}
+.edge i:nth-child(7){transform:translateZ(calc(var(--t) * 0.3571))}
+.edge i:nth-child(8){transform:translateZ(calc(var(--t) * 0.5000))}
 .face{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .face svg{position:relative;width:58%;height:58%;shape-rendering:geometricPrecision}
 .face .needle{transform-origin:12px 12px;transform:rotate(var(--ang,0deg))}
@@ -294,7 +288,8 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .intro.real .intro-cursor{visibility:hidden}
 
 /* wyjście: moneta obraca się, maleje i wlatuje w kompas strony (Web Animations w start.js); tło się rozpływa */
-.intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor,.intro.go .coin-shadow{animation:introFadeOut .25s ease forwards}
+.intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor{animation:introFadeOut .25s ease forwards}
+.intro.go .coin-shadow{animation:introFadeOut .15s ease forwards}
 .intro.go::before{animation:introFadeOut 1s ease .3s forwards}
 .intro.go .coin,.intro.go .coin-wrap{animation:none;opacity:1}
 .intro.go .back::after{animation:introShine .6s ease-in-out .15s}
@@ -320,10 +315,15 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .da-btns .btn{pointer-events:none;cursor:default}
 @media (max-width:900px){.theme-btn{width:44px;height:44px}.topnav .btn{height:44px}}
 
-/* fala po wylądowaniu monety w kompasie: rozchodzi się od niego przez cały ekran */
-.page-wave{position:fixed;left:var(--wx);top:var(--wy);width:0;height:0;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:90;
-  border:1.5px solid color-mix(in srgb,var(--fg1) 28%,transparent);
-  box-shadow:0 0 48px 6px color-mix(in srgb,var(--fg1) 7%,transparent),inset 0 0 48px 6px color-mix(in srgb,var(--fg1) 7%,transparent);
-  animation:pageWave 1.5s cubic-bezier(.22,.6,.3,1) both}
-.page-wave.soft{border-color:color-mix(in srgb,var(--fg1) 12%,transparent);box-shadow:none}
-@keyframes pageWave{0%{width:0;height:0;opacity:1}75%{opacity:.6}100%{width:var(--wd);height:var(--wd);opacity:0}}
+/* fala po wylądowaniu monety: krąg na tafli wody rozchodzi się od kompasu.
+   Soczewka = pierścień z backdrop-filter (rozmycie + załamanie jasności tła), skalowany tylko transformacją (karta graficzna, płynnie). */
+.water{position:fixed;left:var(--wx);top:var(--wy);width:var(--wd);height:var(--wd);margin:calc(var(--wd) / -2) 0 0 calc(var(--wd) / -2);border-radius:50%;pointer-events:none;z-index:90;
+  transform:scale(.02);will-change:transform,opacity}
+.water.lens{-webkit-backdrop-filter:blur(3px) brightness(1.05) saturate(1.15);backdrop-filter:blur(3px) brightness(1.05) saturate(1.15);
+  -webkit-mask:radial-gradient(closest-side,transparent 84%,#000 91%,#000 95%,transparent 100%);mask:radial-gradient(closest-side,transparent 84%,#000 91%,#000 95%,transparent 100%);
+  animation:water 2.1s cubic-bezier(.16,.62,.28,1) both}
+.water.lens.second{-webkit-backdrop-filter:blur(1.6px) brightness(1.03);backdrop-filter:blur(1.6px) brightness(1.03);animation-delay:.32s;animation-duration:2.3s}
+.water.crest{background:radial-gradient(closest-side,transparent 88%,rgba(255,255,255,.55) 93%,rgba(0,0,0,.07) 96.5%,transparent 100%);animation:water 2.1s cubic-bezier(.16,.62,.28,1) both}
+:root[data-theme=dark] .water.crest{background:radial-gradient(closest-side,transparent 88%,rgba(255,255,255,.14) 93%,rgba(0,0,0,.35) 96.5%,transparent 100%)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .water.crest{background:radial-gradient(closest-side,transparent 88%,rgba(255,255,255,.14) 93%,rgba(0,0,0,.35) 96.5%,transparent 100%)}}
+@keyframes water{0%{transform:scale(.02);opacity:0}8%{opacity:1}70%{opacity:.85}100%{transform:scale(1);opacity:0}}
