@@ -12,6 +12,17 @@ Demo do koncepcji „jedna wspólna platforma AI, osobni agenci dla działów”
 
 Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe.
 
+## Dokumentacja dla klienta
+
+| Dokument | Dla kogo |
+|---|---|
+| [Przegląd dla zarządu](docs/01-przeglad-dla-klienta.md) | zarząd: co robi, czego nie robi, jak chroni dane |
+| [Bezpieczeństwo i RODO](docs/02-bezpieczenstwo-i-rodo.md) | IT, inspektor ochrony danych: przepływ, klasyfikacja, gdzie są dane, szyfrowanie, dostęp |
+| [Instrukcja administratora](docs/03-instrukcja-administratora.md) | administrator: konfiguracja, użytkownicy, dokumenty, kopie i odtworzenie, rotacja kluczy |
+| [Koszty](docs/04-koszty.md) | zarząd, finanse: koszt pytania, co go obniża, model w firmie, przykładowy miesiąc |
+| [Plan wdrożenia](docs/05-plan-wdrozenia.md) | zarząd i kierownicy działów: etapy, miary, co przygotowuje klient |
+| [Koncepcja (PDF)](Platforma_AI_dla_firmy_wielodzialowej.pdf) | pełny opis rozwiązania |
+
 ## Uruchomienie (bez klucza API, 1 minuta)
 
 ```bash

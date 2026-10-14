@@ -1,7 +1,7 @@
 {
-  "name": "ai-platforma-demo",
+  "name": "compax",
   "version": "1.0.0",
-  "description": "Demo: wspólna platforma AI dla firmy wielodziałowej (czat z bazą wiedzy, agenci działowi, akcje z zatwierdzeniem, maskowanie PII)",
+  "description": "Compax: asystent AI dla firmy wielodziałowej (baza wiedzy per dział, zamazywanie danych osobowych, akcje z zatwierdzeniem, dziennik i koszty)",
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
@@ -13,5 +13,6 @@
   },
   "engines": {
     "node": ">=20.19"
-  }
+  },
+  "private": true
 }
