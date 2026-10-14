@@ -9,6 +9,7 @@ export function securityHeaders(req, res, next) {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
+    ...(req.path.startsWith("/api") ? { "Cache-Control": "no-store" } : {}),
     "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'"
   });
   next();

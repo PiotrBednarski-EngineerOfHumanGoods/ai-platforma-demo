@@ -35,7 +35,7 @@
     </div>
     <p class="kicker">Kriomar · narzędzie wewnętrzne</p>
     <h1>Asystent, który zna dokumenty firmy i nie wynosi ich na zewnątrz.</h1>
-    <p class="lead">Pytasz o procedurę, cennik albo klienta. Dostajesz odpowiedź z podaniem dokumentu, z którego pochodzi. Widzisz tylko dokumenty swojego działu. Nazwiska i numery są zamazywane, zanim pytanie trafi do modelu. Spotkanie, notatkę czy przypomnienie asystent tylko przygotowuje, Ty zatwierdzasz.</p>
+    <p class="lead">Pytasz o procedurę, cennik albo klienta i dostajesz odpowiedź z nazwą dokumentu, z którego pochodzi. Widzisz tylko dokumenty swojego działu, a nazwiska i numery są zamazywane, zanim pytanie wyjdzie z firmy. Spotkania i notatki asystent tylko przygotowuje, zatwierdzasz je Ty.</p>
     <div class="cta">
       <a class="btn btn-primary btn-lg" href="/app.html">Zaloguj się</a>
       <a class="btn btn-ghost btn-lg" href="#jak">Jak to działa</a>
@@ -46,13 +46,13 @@
   <div class="demo" id="demo" aria-label="Przykład: co widzi pracownik, a co dostaje model">
     <div class="demo-row demo-user">
       <span class="who">Anna, sprzedaż</span>
-      <p class="bubble">Umów spotkanie z Pan Jan Kowalski tel. 600 123 456 we wtorek 10:00</p>
+      <p class="bubble">Umów spotkanie z panem Janem Kowalskim, tel. 600 123 456, we wtorek o 10:00</p>
     </div>
     <div class="demo-sep"><span>to samo zdanie, które wyszło do modelu</span></div>
-    <p class="masked">Umów spotkanie z Pan <span class="redact r1"><i>Jan Kowalski</i><b>osoba 1</b></span> tel. <span class="redact r2"><i>600 123 456</i><b>telefon 1</b></span> we wtorek 10:00</p>
+    <p class="masked">Umów spotkanie z panem <span class="redact r1"><i>Janem Kowalskim</i><b>osoba 1</b></span>, tel. <span class="redact r2"><i>600 123 456</i><b>telefon 1</b></span>, we wtorek o 10:00</p>
     <div class="demo-sum"><span class="dot"></span>zamazane: nazwisko, telefon</div>
     <div class="demo-action">
-      <div class="da-head"><span>Wniosek W-0412</span><span class="status">Czeka na Ciebie</span></div>
+      <div class="da-head"><span>Wniosek W-4F2KQ</span><span class="status">Czeka na Ciebie</span></div>
       <strong>Umów spotkanie</strong>
       <dl><dt>z kim</dt><dd>Jan Kowalski</dd><dt>kiedy</dt><dd>wtorek 10:00</dd></dl>
       <div class="da-btns"><span class="btn btn-decide">Zatwierdź</span><span class="btn btn-secondary">Odrzuć</span></div>
@@ -71,6 +71,40 @@
       <div class="reveal"><h3>Nie wynosi danych</h3><p>Nazwiska, telefony i numery są zamazywane, zanim pytanie trafi do modelu. PESEL czy numer konta w ogóle nie mogą wyjść do chmury.</p></div>
       <div class="reveal"><h3>Rozlicza koszty</h3><p>Zarząd widzi, ile pytań zadał każdy dział, ile poszło do chmury i ile to kosztowało w tym miesiącu.</p></div>
       <div class="reveal"><h3>Działa na telefonie</h3><p>Technik w terenie zada pytanie i zatwierdzi wniosek z telefonu, bez instalowania aplikacji.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="story" id="przebieg" aria-label="Jedno pytanie krok po kroku">
+  <div class="story-track">
+    <div class="story-stick">
+      <div class="wrap story-grid">
+        <div class="story-text">
+          <h2>Jedno pytanie, od wysłania do odpowiedzi</h2>
+          <ol class="story-steps">
+            <li data-s="0">Anna z działu sprzedaży pisze do asystenta.</li>
+            <li data-s="1">Nazwisko i telefon zostają rozpoznane.</li>
+            <li data-s="2">Zanim cokolwiek wyjdzie z firmy, zamieniają się w etykiety.</li>
+            <li data-s="3">Pytanie dostaje poziom i trasę: tu wystarczy model w firmie.</li>
+            <li data-s="4">Asystent przygotowuje wniosek. Anna go zatwierdza.</li>
+          </ol>
+        </div>
+        <div class="story-card" id="storyCard">
+          <div class="sc-row sc-who">Anna Lis, sprzedaż</div>
+          <p class="sc-msg">Umów spotkanie z panem <span class="sc-pii" data-tok="osoba 1">Janem Kowalskim</span>, tel. <span class="sc-pii" data-tok="telefon 1">600 123 456</span>, we wtorek o 10:00</p>
+          <div class="sc-meta">
+            <span class="sc-chip">poziom: wewnętrzne</span>
+            <span class="sc-chip"><i class="dot"></i>model w firmie</span>
+          </div>
+          <div class="sc-action">
+            <div class="da-head"><span>Wniosek W-4F2KQ</span><span class="status">Czeka na Ciebie</span></div>
+            <strong>Umów spotkanie</strong>
+            <dl><dt>z kim</dt><dd>Jan Kowalski</dd><dt>kiedy</dt><dd>wtorek 10:00</dd></dl>
+            <div class="sc-approved">Zatwierdzone · zapisane w Sprawach</div>
+          </div>
+          <div class="sc-bar"><span id="storyBar"></span></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -112,9 +146,9 @@
     <table>
       <thead><tr><th>Poziom</th><th>Co to znaczy</th><th>Dokąd może pójść</th></tr></thead>
       <tbody>
-        <tr class="reveal"><td><span class="lvl">jawne</span></td><td>bez danych osobowych, np. „jaki rabat mogę dać sam?”</td><td><span class="dot"></span>model w firmie albo <span class="dot dot-out"></span>chmura, zależnie od działu</td></tr>
-        <tr class="reveal"><td><span class="lvl">wewnętrzne</span></td><td>są dane osobowe, zamazane etykietami</td><td><span class="dot"></span>model w firmie albo <span class="dot dot-out"></span>chmura, ale dopiero po zamazaniu</td></tr>
-        <tr class="reveal"><td><span class="lvl lvl-r">chronione</span></td><td>PESEL, numer konta, zdrowie, wynagrodzenia, hasła</td><td><span class="dot"></span>tylko model w firmie; gdy go nie ma, pytanie nie wychodzi nigdzie, a administrator dostaje powiadomienie</td></tr>
+        <tr class="reveal"><td data-label="Poziom"><span class="lvl">jawne</span></td><td data-label="Co to znaczy">bez danych osobowych, np. „jaki rabat mogę dać sam?”</td><td data-label="Dokąd może pójść"><span class="dot"></span>model w firmie albo <span class="dot dot-out"></span>chmura, zależnie od działu</td></tr>
+        <tr class="reveal"><td data-label="Poziom"><span class="lvl">wewnętrzne</span></td><td data-label="Co to znaczy">są dane osobowe, zamazane etykietami</td><td data-label="Dokąd może pójść"><span class="dot"></span>model w firmie albo <span class="dot dot-out"></span>chmura, ale dopiero po zamazaniu</td></tr>
+        <tr class="reveal"><td data-label="Poziom"><span class="lvl lvl-r">chronione</span></td><td data-label="Co to znaczy">PESEL, numer konta, zdrowie, wynagrodzenia, hasła</td><td data-label="Dokąd może pójść"><span class="dot"></span>tylko model w firmie; gdy go nie ma, pytanie nie wychodzi nigdzie, a administrator dostaje powiadomienie</td></tr>
       </tbody>
     </table>
   </div>
@@ -125,10 +159,10 @@
     <h2>Co jest pod spodem</h2>
     <div class="grid3">
       <div class="reveal"><h3>Logowanie</h3><p>Hasła przechowywane jako hash, sesja w ciasteczku niedostępnym dla skryptów, blokada konta po pięciu błędach.</p></div>
-      <div class="reveal"><h3>Przeglądarka</h3><p>Żadnych skryptów ani fontów z obcych serwerów, żadnych cookies śledzących. Zabezpieczenie przed podszywaniem się pod żądania i wstrzykiwaniem treści.</p></div>
+      <div class="reveal"><h3>Przeglądarka</h3><p>Żadnych skryptów, fontów ani cookies z obcych serwerów. Ochrona przed CSRF i XSS, ścisła polityka CSP.</p></div>
       <div class="reveal"><h3>Serwer</h3><p>HTTPS, firewall, aplikacja bez uprawnień administratora, klucze do modeli poza kodem, serwer w Unii Europejskiej.</p></div>
       <div class="reveal"><h3>Dziennik</h3><p>Każde pytanie i każda decyzja, bez danych osobowych. Koszt na dział w bieżącym miesiącu.</p></div>
-      <div class="reveal"><h3>Testy</h3><p>19 testów uruchamianych jednym poleceniem: uprawnienia, zamazywanie danych, blokada danych chronionych, wnioski.</p></div>
+      <div class="reveal"><h3>Testy</h3><p>27 testów uruchamianych jednym poleceniem: uprawnienia, zamazywanie danych, blokada danych chronionych, wnioski.</p></div>
       <div class="reveal"><h3>Model do wyboru</h3><p>Tryb pokazowy bez modelu, model stojący w firmie, Claude albo GPT. Zmiana to wpis w konfiguracji.</p></div>
     </div>
     <div class="cta cta-end">

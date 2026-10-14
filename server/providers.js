@@ -1,4 +1,4 @@
-// Brama AI: jeden punkt dostępu do modeli. Zmiana dostawcy = zmiana AI_PROVIDER w .env.
+// Wywołania dostawców modeli. Wybór dostawcy i modelu robi server/policy.js, przepływ jest w server/app.js.
 //   mock      – bez klucza, odpowiedzi z bazy wiedzy (obsługiwane w index.js)
 //   anthropic – Claude przez API (ANTHROPIC_API_KEY, MODEL np. claude-opus-5-5 lub tańszy claude-sonnet-5-5)
 //   openai    – OpenAI przez API (OPENAI_API_KEY, MODEL np. gpt-4o-mini)
@@ -50,6 +50,7 @@ export async function callModel(provider, system, history, userMsg, tools, model
       body: JSON.stringify({ model: model || "llama3.1", stream: false, format: "json", messages: [{ role: "system", content: sys }, ...msgs] })
     });
     const j = await r.json();
+    if (!r.ok) throw new Error(JSON.stringify(j));
     return parse(j.message?.content || "", j.prompt_eval_count != null ? { input: j.prompt_eval_count, output: j.eval_count || 0 } : null);
   }
 

@@ -247,3 +247,41 @@ test("pamięć odpowiedzi: to samo pytanie bez danych osobowych wraca z pamięci
   const piiAgain = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: pii });
   assert.notEqual(piiAgain.json.policy.route, "cache");
 });
+
+test("maskowanie: odmienione imiona, osoba po zwrocie grzecznościowym, telefon z +48 nie jest PESEL-em", () => {
+  const m = s => mask(s, newState()).masked;
+  assert.equal(m("Spotkanie z Janem Kowalskim w piątek"), "Spotkanie z [OSOBA_1] w piątek");
+  assert.equal(m("Dzwoniła Pani Krystyna Nowak"), "Dzwoniła Pani [OSOBA_1]");
+  assert.equal(m("oddzwoń na +48600123456"), "oddzwoń na [TELEFON_1]");
+  assert.equal(classify("oddzwoń na +48600123456", 1).level, "internal");
+});
+
+test("klasyfikacja: wynagrodzenia tylko w kontekście osoby", () => {
+  assert.equal(classify("Ile zarabiamy na serwisie klimatyzacji?", 0).level, "public");
+  assert.equal(classify("wynagrodzenie za usługę montażu", 0).level, "public");
+  assert.equal(classify("Jaka jest pensja Kowalskiego?", 0).level, "restricted");
+});
+
+test("intencje: środa w terminie, pytanie o notatkę i 'przypomnij mi zasady' nie tworzą błędnych wniosków", async () => {
+  const { detectToolMock } = await import("../server/tools.js");
+  assert.equal(detectToolMock("Umów spotkanie z firmą Delta w środę 10:00", { dept: "sprzedaz" }).args.kiedy, "środę 10:00");
+  assert.equal(detectToolMock("Gdzie jest notatka ze spotkania?", { dept: "sprzedaz" }), null);
+  assert.equal(detectToolMock("Przypomnij mi zasady rabatów", { dept: "ksiegowosc" }), null);
+  assert.equal(detectToolMock("Przypomnij Delta Sp. z o.o. o zaległej fakturze", { dept: "ksiegowosc" }).tool, "przypomnienie_platnosc");
+});
+
+test("historia: dane chronione z poprzedniej wiadomości blokują dalszą rozmowę; przy historii nie ma pamięci odpowiedzi", async () => {
+  const anna = await login("anna", PASS.anna);
+  const r = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: { message: "a co dalej?", history: [{ role: "user", content: "Kowalski jest na zwolnieniu lekarskim" }, { role: "assistant", content: "..." }] } });
+  assert.equal(r.json.policy.route, "blocked");
+  await call("/api/chat", { method: "POST", cookie: anna.cookie, body: { message: "Jak długo ważna jest oferta?" } });
+  const followUp = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: { message: "Jak długo ważna jest oferta?", history: [{ role: "user", content: "x" }, { role: "assistant", content: "y" }] } });
+  assert.notEqual(followUp.json.policy.route, "cache");
+});
+
+test("dane chronione w innych formatach: PESEL ze spacją, IBAN z PL, dowód osobisty", () => {
+  for (const s of ["PESEL 850101 12345", "konto PL61109010140000071219812874", "dowód ABC123456"]) {
+    assert.equal(classify(s, 0).level, "restricted", s);
+    assert.notEqual(mask(s, newState()).masked, s, "maskowanie: " + s);
+  }
+});

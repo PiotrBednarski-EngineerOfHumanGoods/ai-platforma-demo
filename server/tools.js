@@ -34,13 +34,15 @@ export function detectToolMock(message, user) {
   const m = message.toLowerCase();
   const can = t => TOOLS.find(x => x.name === t).depts.includes(user.dept);
   if (/\bum[óo]w(?:\s|$|i[ćm]|my)|\bzaplanuj\b|\bzarezerwuj\b/.test(m) && can("umow_spotkanie")) { // "umów", nie "umowę"/"umowy"
-    const kiedy = (m.match(/\b(\d{1,2}[.:]\d{2}|jutro|pojutrze|poniedzia\w+|wtor\w+|środ\w+|czwart\w+|piąt\w+)\b/g) || ["do ustalenia"]).join(" ");
+    const kiedy = (m.match(/(?<![\p{L}\d])(\d{1,2}[.:]\d{2}|jutro|pojutrze|poniedzia\p{L}+|wtor\p{L}+|środ\p{L}+|czwart\p{L}+|piąt\p{L}+)(?![\p{L}])/gu) || ["do ustalenia"]).join(" ");
     return { tool: "umow_spotkanie", args: { z_kim: guessClient(message), kiedy, temat: message.slice(0, 80) } };
   }
-  if ((/\b(wyślij|wyslij|przygotuj|wystaw)\b[\s\S]*(przypomn|płatno|zaleg)|\bprzypomnij\b/.test(m)) && can("przypomnienie_platnosc")) {
+  // polecenie na początku zdania i mowa o płatności: "Przypomnij Delta o zaległej fakturze", nie "przypomnij mi zasady rabatów"
+  if (/^(proszę\s+)?(wyślij|wyslij|przygotuj|wystaw|przypomnij)(?![\p{L}])[\s\S]*(płatno|zaleg|faktur|fv)/u.test(m) && can("przypomnienie_platnosc")) {
     return { tool: "przypomnienie_platnosc", args: { kontrahent: guessClient(message), faktura: (m.match(/fv[\s/-]?\d+[\/\d]*/i) || ["(numer)"])[0], kwota: (m.match(/\d[\d\s]*(?:,\d+)?\s*zł/) || ["(kwota)"])[0] } };
   }
-  if (/\b(zapisz|zanotuj|zapamiętaj)\b|notatk/.test(m) && can("zapisz_sprawe")) {
+  // polecenie na początku zdania, nie "gdzie jest notatka ze spotkania?"
+  if (/^(proszę\s+)?(zapisz|zanotuj|zapamiętaj|dodaj notatk)/u.test(m) && can("zapisz_sprawe")) {
     return { tool: "zapisz_sprawe", args: { klient: guessClient(message), notatka: message, nastepny_krok: "do ustalenia", termin: null } };
   }
   return null;

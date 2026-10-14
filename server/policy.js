@@ -45,16 +45,18 @@ export const appMonthlyBudgetUsd = () => Number(process.env.APP_MONTHLY_BUDGET_U
 
 // Klasyfikacja wiadomości: "public" | "internal" | "restricted"
 const RESTRICTED = [
-  [/\b\d{11}\b/, "PESEL"],
-  [/\b\d{2}(?:[\s-]?\d{4}){6}\b/, "numer konta"],
+  [/(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/, "PESEL"],
+  [/(?<![\dA-Z])(?:PL\s?)?\d{2}(?:[\s-]?\d{4}){6}(?!\d)/, "numer konta"],
+  [/(?<![A-Z])[A-Z]{3}\s?\d{6}(?!\d)/, "dokument tożsamości"],
   [/\b(diagnoz|chorob|zwolnieni\w* lekarsk|\bL4\b|ciąż|niepełnosprawn|leczeni|recept)/iu, "dane o zdrowiu"],
-  [/\b(wynagrodzeni|pensj|lista płac|wypłat[ay]\b|zarabia)/iu, "wynagrodzenia"],
+  // wynagrodzenia tylko w kontekście osoby: "pensja Kowalskiego", "ile zarabia Anna"; nie "ile zarabiamy na serwisie"
+  [/([Ll]ist[aęy] płac|[Pp]ensj\p{L}*|[Ww]ynagrodzeni\p{L}*\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ])|[Zz]arabia\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ]))/u, "wynagrodzenia"],
   [/\b(karta kredytow|\bCVV\b|hasło\s*[:=]|token\s*[:=])/iu, "dane uwierzytelniające"]
 ];
 export function classify(message, piiCount) {
   const reasons = [...new Set(RESTRICTED.filter(([re]) => re.test(message)).map(([, label]) => label))];
   if (reasons.length) return { level: "restricted", reasons };
-  if (piiCount > 0) return { level: "internal", reasons: ["dane osobowe (zamaskowane)"] };
+  if (piiCount > 0) return { level: "internal", reasons: ["dane osobowe (zamazane)"] };
   return { level: "public", reasons: [] };
 }
 
@@ -110,7 +112,8 @@ export const estimateTokens = text => Math.ceil(String(text || "").length / 4);
 export function costOf(provider, model, tokensIn, tokensOut) {
   if (!provider || PROVIDERS[provider]?.kind !== "external") return 0;
   let pricing = {}; try { pricing = JSON.parse(process.env.PRICING_JSON || "{}"); } catch { pricing = {}; }
-  const p = (model && pricing[model]) || pricing[provider]; if (!p) return null;
+  const p = (model && pricing[model]) || pricing[provider] || (appMonthlyBudgetUsd() > 0 ? { in: 4, out: 20 } : null); // brak cennika przy ustawionym budżecie: liczymy ostrożnie
+  if (!p) return null;
   return +((tokensIn * (p.in || 0) + tokensOut * (p.out || 0)) / 1e6).toFixed(5);
 }
 

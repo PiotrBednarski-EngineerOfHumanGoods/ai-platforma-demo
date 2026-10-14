@@ -17,7 +17,7 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe.
 ```bash
 npm install
 npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app.html
-npm test     # 19 testów automatycznych (node --test), bez dodatkowych zależności
+npm test     # 27 testów automatycznych (node --test), bez dodatkowych zależności
 ```
 
 Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
@@ -41,7 +41,7 @@ Skopiuj `.env.example` do `.env` i ustaw `AI_PROVIDER`:
 | Wariant | `.env` | Kiedy |
 |---|---|---|
 | `mock` (domyślny) | brak klucza | pokaz architektury bez kosztów; odpowiedzi = najtrafniejsze fragmenty bazy wiedzy |
-| `anthropic` | `ANTHROPIC_API_KEY`, `MODEL=claude-opus-5-5` | pełne odpowiedzi, narzędzia wybierane przez model |
+| `anthropic` | `ANTHROPIC_API_KEY`; modele dobierane automatycznie (`ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG`), `MODEL` ustawia jeden na sztywno | pełne odpowiedzi, narzędzia wybierane przez model |
 | `openai` | `OPENAI_API_KEY`, `MODEL=gpt-4o-mini` | to samo, inny dostawca – zmiana w jednym miejscu |
 | `ollama` | `OLLAMA_URL=http://localhost:11434`, `MODEL=llama3.1` | model lokalny, dane nie opuszczają serwera |
 
@@ -58,12 +58,13 @@ Zmiana dostawcy nie wymaga zmian w kodzie agentów – to jest sens bramy AI.
 ## Struktura
 
 ```
-server/index.js      – API, przepływ: uprawnienia → retrieval → maskowanie → model → odmaskowanie → log
+server/app.js        – API i przepływ: uprawnienia → wyszukiwanie → maskowanie → klasyfikacja → pamięć → trasa → model → odmaskowanie → walidacja akcji → log
+server/index.js      – uruchomienie serwera
 server/providers.js  – brama AI (mock / anthropic / openai / ollama)
 server/knowledge.js  – baza wiedzy: cięcie na fragmenty + wyszukiwanie (BM25-podobne, bez zależności)
 server/pii.js        – maskowanie / odmaskowanie danych osobowych
 server/tools.js      – narzędzia agenta i ich wykonanie po zatwierdzeniu
-server/store.js      – pamięć spraw, kolejka akcji, logi (JSON w data/)
+server/store.js      – sprawy, logi, liczniki chmury, pamięć odpowiedzi (JSON w data/, zapis atomowy); kolejka wniosków w pamięci procesu
 server/users.js      – użytkownicy demo i działy
 server/security.js   – nagłówki HTTP, sesje z wygasaniem, limit prób logowania
 server/policy.js     – klasyfikacja wrażliwości, trasowanie (lokalny / zewnętrzny / blokada), alert

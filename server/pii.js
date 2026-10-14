@@ -3,15 +3,22 @@
 // W produkcji: Microsoft Presidio + model NER dla języka polskiego.
 
 const IMIONA = "Jan Anna Piotr Katarzyna Krzysztof Małgorzata Andrzej Agnieszka Tomasz Barbara Paweł Ewa Michał Magdalena Marcin Elżbieta Marek Joanna Grzegorz Aleksandra Jakub Monika Łukasz Zofia Adam Marta Mateusz Natalia Dawid Karolina Rafał Justyna Robert Dorota Jacek Beata Maciej Iwona Kamil Marzena Wojciech Renata Bartosz Weronika Damian Julia Artur Patrycja Sebastian Edyta Szymon Sylwia Przemysław Paulina Dariusz Alicja Konrad Emilia Mariusz Kinga Zbigniew Olga Daniel Izabela Filip Wiktoria Adrian Oliwia Stanisław Hanna Jerzy Maria Józef Teresa".split(" ");
+// rdzeń imienia do odmiany: Anna -> Ann (Anną, Annę), Zofia -> Zofi (Zofią), Jan -> Jan (Janem)
+const stem = n => n.endsWith("a") ? n.slice(0, -1) : n;
 const NAZW = "[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]{2,}(?:[- ][A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]{2,})?";
 const RULES = [
   ["EMAIL",   /[\w.+-]+@[\w-]+\.[\w.-]+/g],
-  ["KONTO",   /\b\d{2}(?:[\s-]?\d{4}){6}\b/g],
-  ["PESEL",   /\b\d{11}\b/g],
+  ["KONTO",   /(?<![\dA-Z])(?:PL\s?)?\d{2}(?:[\s-]?\d{4}){6}(?!\d)/g],
+  ["DOWOD",   /(?<![A-Z])[A-Z]{3}\s?\d{6}(?!\d)/g],
+  ["TELEFON", /\+48[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}\b/g], // przed PESEL: +48 i 9 cyfr to 11 cyfr
+  ["PESEL",   /(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/g],
   ["NIP",     /\b\d{3}[- ]\d{3}[- ]\d{2}[- ]\d{2}\b|\bNIP[:\s]*\d{10}\b/gi],
   ["TELEFON", /(?:\+48[\s-]?)?\b\d{3}[\s-]\d{3}[\s-]\d{3}\b|\b\d{9}\b/g],
-  // bez tytułu grzecznościowego w dopasowaniu: "Pan Jan Kowalski" i "Jan Kowalski" to ta sama osoba = ten sam token
-  ["OSOBA",   new RegExp(`\\b(?:${IMIONA.join("|")})\\s+${NAZW}`, "g")]
+  // imię z listy, także odmienione ("z Janem Kowalskim", "z Zofią Dąbrowską"), i nazwisko z wielkiej litery;
+  // bez tytułu w dopasowaniu: "Pan Jan Kowalski" i "Jan Kowalski" to ta sama osoba = ten sam token
+  ["OSOBA",   new RegExp(`(?<![\\p{L}])(?:${IMIONA.map(stem).join("|")})(?:a|ą|ę|y|i|ie|em|om|owi|u)?\\s+${NAZW}`, "gu")],
+  // osoba spoza listy imion, ale po zwrocie grzecznościowym: "Pani Krystyna Nowak", "panem Nowakiem"
+  ["OSOBA",   new RegExp(`(?<=(?<![\\p{L}])(?:[Pp]an|[Pp]ani|[Pp]ana|[Pp]anu|[Pp]anem|[Pp]anią|p\\.)\\s)${NAZW}`, "gu")]
 ];
 
 export function newState() { return { map: {}, counters: {} }; }

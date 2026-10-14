@@ -14,10 +14,10 @@ const shortId = id => "W-" + String(id).slice(-5).toUpperCase();
 const isPhone = () => matchMedia("(max-width:900px)").matches;
 
 const EXAMPLES = {
-  sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Jaki jest termin płatności dla faktur? (nie mój dział)"],
+  sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Kiedy wysyłamy wezwanie do zapłaty? (pytanie z księgowości)"],
   obsluga: ["Klient bez umowy zgłasza awarię – w jakim czasie przyjedziemy?", "Jakie mamy statusy zlecenia?", "Ile mamy czasu na odpowiedź na reklamację?", "Zapisz: Jan Kowalski tel. 600 123 456 zgłasza awarię chłodni w Sopocie"],
-  biuro: ["Jak zarezerwować salę?", "Kiedy składa się zamówienia biurowe?", "Umów spotkanie z Pani Marta Zielińska jutro 12:00", "Jak rozliczyć delegację?"],
-  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz: PESEL 90010112345 klienta do umowy (dane chronione)", "Jaki rabat może dać handlowiec? (nie mój dział)"],
+  biuro: ["Jak zarezerwować salę?", "Kiedy składa się zamówienia biurowe?", "Umów spotkanie z panią Martą Zielińską jutro o 12:00", "Jak rozliczyć delegację?"],
+  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz: PESEL 90010112345 klienta do umowy (dane chronione)", "Jaki rabat może dać handlowiec? (pytanie ze sprzedaży)"],
   zarzad: ["Jakie mamy cele na 2026?", "Co zawiera raport tygodniowy?", "Jaki rabat może dać handlowiec?", "Kiedy wysyłamy wezwanie do zapłaty?"]
 };
 
@@ -64,7 +64,7 @@ $$(".tab,.bn-item").forEach(b => b.onclick = () => showTab(b.dataset.t));
 function addMsg(role, text, sources, action) {
   const d = document.createElement("div"); d.className = "msg " + (role === "me" ? "msg-user" : "msg-ai");
   const srcHtml = sources?.length ? `<div class="sources"><span class="sources-label">Źródła</span>${sources.map(x => `<span class="src" title="${esc(x.snippet)}">${ICON.docx}${esc(x.file)}</span>`).join("")}</div>` : "";
-  const reqHtml = action ? `<a class="req-link" href="#akcje" data-req="${esc(action.id)}"><span class="req-id">${shortId(action.id)}</span><span class="req-name">${esc(TITLES[action.tool] || action.tool)}</span><span class="req-state is-pending">Oczekuje</span></a>` : "";
+  const reqHtml = action ? `<a class="req-link" href="#akcje" data-req="${esc(action.id)}"><span class="req-id">${esc(shortId(action.id))}</span><span class="req-name">${esc(TITLES[action.tool] || action.tool)}</span><span class="req-state is-pending">Czeka na Ciebie</span></a>` : "";
   d.innerHTML = role === "me"
     ? `<div class="msg-col"><div class="msg-meta"><span>${hhmm()}</span></div><div class="bubble"></div></div>`
     : `<span class="bot-av">${ICON.mark}</span><div class="msg-col"><div class="msg-meta"><b>Compax</b><span>${hhmm()}</span></div><div class="bubble"></div>${srcHtml}${reqHtml}</div>`;
@@ -77,14 +77,17 @@ function setReqState(id, state, label) { $$(`[data-req="${id}"] .req-state`).for
 async function send() {
   const t = $("#inp").value.trim(); if (!t) return;
   $("#inp").value = ""; $("#inp").style.height = ""; addMsg("me", t); $("#send").disabled = true;
+  const typing = document.createElement("div"); typing.className = "msg msg-ai typing"; typing.setAttribute("aria-label", "Asystent pisze");
+  typing.innerHTML = `<span class="bot-av">${ICON.mark}</span><div class="msg-col"><div class="dots"><i></i><i></i><i></i></div></div>`;
+  $("#chat").appendChild(typing); $("#chat").scrollTop = 1e9;
   try {
-    const r = await api("/chat", { method: "POST", body: JSON.stringify({ message: t, history, provider: $("#prov").value }) });
+    const r = await api("/chat", { method: "POST", body: JSON.stringify({ message: t, history, provider: $("#prov").value }) }).finally(() => typing.remove());
     if (r.error) throw new Error(r.error);
     addMsg("ai", r.answer, r.sources, r.action);
-    history.push({ role: "user", content: t }, { role: "assistant", content: r.answer });
+    if (r.policy?.route !== "blocked") history.push({ role: "user", content: t }, { role: "assistant", content: r.answer }); // zatrzymane pytanie nie wraca w kontekście
     renderMasked(r);
     if (r.action) await refreshActions();
-  } catch (e) { addMsg("ai", "Nie udało się wysłać wiadomości: " + e.message); }
+  } catch (e) { addMsg("ai", "Nie udało się połączyć z asystentem. Spróbuj jeszcze raz za chwilę."); }
   $("#send").disabled = false;
 }
 $("#composer").onsubmit = e => { e.preventDefault(); send(); };
@@ -104,9 +107,9 @@ async function refreshActions() {
     return;
   }
   $("#actions").innerHTML = pendingList.map(a => `<article class="action" data-id="${esc(a.id)}">
-    <div class="req-head"><span class="req-id">Wniosek ${shortId(a.id)}</span><span class="req-status">Oczekuje</span></div>
+    <div class="req-head"><span class="req-id">Wniosek ${esc(shortId(a.id))}</span><span class="req-status">Czeka na Ciebie</span></div>
     <h3 class="action-title">${esc(TITLES[a.tool] || a.tool)}</h3>
-    <p class="req-meta">Zaproponował Compax · ${hhmm(a.at)} · <code>${esc(a.tool)}</code></p>
+    <p class="req-meta">Zaproponował Compax · ${hhmm(a.at)}</p>
     <table class="args"><tbody>${Object.entries(a.args).filter(([, v]) => v != null && v !== "").map(([k, v]) => `<tr><th scope="row">${esc(ARG_NAMES[k] || k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>
     <div class="action-btns"><button class="btn btn-decide" data-a="${esc(a.id)}">Zatwierdź</button><button class="btn btn-secondary" data-r="${esc(a.id)}">Odrzuć</button></div>
   </article>`).join("");
@@ -120,7 +123,7 @@ async function refreshActions() {
   $$("[data-r]").forEach(b => b.onclick = async () => {
     await api(`/actions/${b.dataset.r}/reject`, { method: "POST" });
     setReqState(b.dataset.r, "", "Odrzucono");
-    addMsg("ai", "Odrzucone, nic nie zrobiłem.");
+    addMsg("ai", "Odrzucono. Nic nie zostało wysłane ani zapisane.");
     await refreshActions();
   });
 }
@@ -138,7 +141,7 @@ const TIER = { cheap: "tani model", strong: "mocny model" };
   const LEVEL = { public: "jawne", internal: "wewnętrzne", restricted: "chronione" };
   const [dotCls, routeLabel] = ROUTE[p.route] || ["", p.route || ""];
   const provLabel = p.route === "mock" ? "" : (meta.providers.find(x => x.id === p.provider) || {}).label;
-  const usageTxt = u && p.route !== "mock" && p.route !== "cache" ? `<b>Tokeny:</b><span>~${u.tokens_in} wejście, ~${u.tokens_out} wyjście${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
+  const usageTxt = user?.dept === "zarzad" && u && p.route !== "mock" && p.route !== "cache" ? `<b>Tokeny:</b><span>~${u.tokens_in} wejście, ~${u.tokens_out} wyjście${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
   const routeHtml = `<div class="mask-sum"><b>Poziom pytania:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}</div>
     <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${p.model && p.route !== "cache" ? `<div class="mask-sum"><b>Model:</b><span>${esc(p.model)}${p.tier ? " · " + TIER[p.tier] : ""}</span></div>` : ""}${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
   if (p.route === "blocked") {

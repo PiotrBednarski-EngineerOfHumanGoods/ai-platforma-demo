@@ -52,3 +52,27 @@
   label();
   btns.forEach(b => b.onclick = () => { const next = current() === "dark" ? "light" : "dark"; root.dataset.theme = next; try { localStorage.setItem(KEY, next); } catch {} label(); });
 })();
+
+/* ---------- jedno pytanie krok po kroku: etap z postępu przewijania ---------- */
+(() => {
+  const track = document.querySelector(".story-track"), card = document.getElementById("storyCard"), bar = document.getElementById("storyBar");
+  if (!track || !card) return;
+  const items = [...document.querySelectorAll(".story-steps li")];
+  const set = (s, p) => {
+    card.className = "story-card s" + s + (p > 0.92 ? " done" : "");
+    items.forEach((li, i) => li.classList.toggle("on", i <= s));
+    if (bar) bar.style.width = Math.round(p * 100) + "%";
+  };
+  const static_ = () => matchMedia("(max-width:900px), (prefers-reduced-motion: reduce)").matches;
+  let raf = 0;
+  const update = () => {
+    raf = 0;
+    if (static_()) return set(4, 1);
+    const r = track.getBoundingClientRect(), total = r.height - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / total));
+    set(Math.min(4, Math.floor(p * 5)), p);
+  };
+  addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(update); }, { passive: true });
+  addEventListener("resize", update);
+  update();
+})();

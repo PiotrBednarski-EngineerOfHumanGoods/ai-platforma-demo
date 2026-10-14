@@ -35,10 +35,10 @@ Nie masz → użyj darmowej nazwy `IP-z-myślnikami.sslip.io`, np. dla 203.0.113
 
 ## 3. Wgranie aplikacji z laptopa
 
-W Git Bash, w folderze `ai-platforma-demo` (bez `node_modules`, bez lokalnych danych):
+W Git Bash, w folderze `ai-platforma-demo`. Wysyłane są tylko pliki zatwierdzone w gicie, więc lokalny `.env` ani dane nie trafią na serwer:
 
 ```bash
-tar --exclude=node_modules --exclude=data --exclude='*.zip' -czf - . | ssh root@IP "mkdir -p /opt/ai-demo && tar -xzf - -C /opt/ai-demo"
+git archive --format=tar.gz HEAD | ssh root@IP "mkdir -p /opt/ai-demo && tar -xzf - -C /opt/ai-demo"
 ```
 
 ## 4. Przygotowanie serwera (raz) i start
