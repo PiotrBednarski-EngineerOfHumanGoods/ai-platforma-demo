@@ -53,11 +53,10 @@ Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentó
 |---|---|---|
 | Claude Code | główny agent: kod, testy, wdrożenia, prezentacja | cała aplikacja i infrastruktura |
 | 3 recenzentów kodu | bezpieczeństwo, jakość, UX | ponad 20 poprawek z testami |
-| 3 redaktorów | polszczyzna w prezentacji, aplikacji i dokumentach | spójna terminologia, bez kalk z angielskiego |
 | specjalista UX mobilnego | iPhone SE, iPhone 14, Pixel 7, jasny i ciemny | 22 poprawki na telefonie |
 | pentester | przegląd pod kątem ataków | brak luk krytycznych i wysokich, 5 poprawek |
 
-Skille i narzędzia: skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
+Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległe agenty, sprawdzanie przed oddaniem), skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
 
 ### Gdzie trzymam klucze AI?
 
