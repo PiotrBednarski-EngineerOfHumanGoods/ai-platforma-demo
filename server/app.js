@@ -13,7 +13,7 @@ import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store, encryptionOn } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, hashPassword, rateLimit } from "./security.js";
 import crypto from "crypto";
-import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor } from "./policy.js";
+import { PROVIDERS, classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -42,6 +42,8 @@ function reloadKnowledge() {
 reloadKnowledge();
 console.log(`Szyfrowanie danych na dysku: ${encryptionOn() ? "włączone (AES-256-GCM)" : "wyłączone (brak DATA_KEY)"}`);
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+const BUDGET_RESERVE_USD = Number(process.env.BUDGET_RESERVE_USD || 0.02); // górna granica kosztu jednego pytania
+let inflightUsd = 0;
 const cacheKey = (dept, provider, message) => crypto.createHash("sha1").update(`${dept}|${provider}|${message.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim()}|${KB_VERSION}`).digest("hex");
 console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.file)).size} plików`);
 
@@ -141,9 +143,10 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const piiInMessage = (masked.match(/\[[A-Z]+_\d+\]/g) || []).length;
 
   // 3. Klasyfikacja i trasa: poziom wiadomości + polityka działu + wybór pracownika + limit chmury
-  const policy = classify([message, ...history.filter(h => h.role === "user").map(h => String(h.content ?? ""))].join("\n"), piiInMessage);
+  // kolejność chronologiczna: numer rozbity na kilka wiadomości skleja się we właściwym porządku
+  const policy = classify([...history.filter(h => h.role === "user").map(h => String(h.content ?? "")), message].join("\n"), piiInMessage);
 
-  let trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() });
+  let trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() + inflightUsd });
   const tierName = tier(message, hits);
   const model = modelFor(trip.provider, tierName);
   // Notatka o zamazaniu tylko wtedy, gdy coś faktycznie zamazano (w pytaniu, historii albo fragmentach)
@@ -184,13 +187,15 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   if (trip.provider === "mock") {
     out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
   } else {
+    const reserve = trip.kind === "external" ? BUDGET_RESERVE_USD : 0; // rezerwacja na czas pytania: równoległe pytania nie przekroczą budżetu
+    inflightUsd += reserve;
     try {
       out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS, model);
     } catch (e) { // błąd dostawcy: czytelny komunikat dla pracownika, szczegół tylko w logu serwera
       console.error("model error:", trip.provider, e.message);
       store.log({ userId: user.id, dept: user.dept, provider: trip.provider, event: "provider_error", policy: policyOut, ms: Date.now() - t0 });
-      return res.status(502).json({ error: `Model „${trip.provider}” nie odpowiada. Spróbuj ponownie za chwilę albo wybierz innego dostawcę.` });
-    }
+      return res.status(502).json({ error: `Model ${(PROVIDERS[trip.provider]?.label || trip.provider).replace(/\s*\(.*\)$/, "")} nie odpowiada. Spróbuj ponownie za chwilę albo wybierz inny model.` });
+    } finally { inflightUsd -= reserve; }
   }
 
   // 5. Odmaskowanie odpowiedzi i ewentualnej akcji

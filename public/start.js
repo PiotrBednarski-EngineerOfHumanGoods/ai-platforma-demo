@@ -32,14 +32,23 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
   };
   measure(); addEventListener("resize", measure); document.fonts?.ready.then(measure);
   let done = false;
+  const end = () => { root.classList.remove("with-intro"); el.remove(); dispatchEvent(new Event("compax:intro-done")); };
   const finish = mode => {
     if (done) return; done = true;
     try { sessionStorage.setItem("compax-intro", "1"); } catch {}
-    measure(); el.classList.add(mode);
-    setTimeout(() => {
-      root.classList.remove("with-intro"); el.remove();
-      dispatchEvent(new Event("compax:intro-done"));
-    }, mode === "go" ? 1650 : 380);
+    el.classList.add(mode);
+    const hero = document.querySelector("#compass svg");
+    if (mode !== "go" || !hero || !Element.prototype.animate) return setTimeout(end, 380);
+    // moneta leci w kompas strony: środek do środka, skala tak, żeby jej znak miał rozmiar kompasu
+    const wrap = coin.parentElement, w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect();
+    const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2);
+    const s = t.width / (w.width * 0.58), D = 1150, ease = "cubic-bezier(.62,0,.2,1)", opts = { duration: D, easing: ease, fill: "forwards" };
+    needle.style.setProperty("--ang", "0deg"); // ląduje wskazując północ, jak kompas strony
+    wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: `translate(0,-4%) scale(1.06)`, offset: .22 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], opts);
+    el.querySelector(".coin").animate([{ transform: "rotateY(0deg)" }, { transform: "rotateX(14deg) rotateY(190deg)", offset: .45 }, { transform: "rotateY(360deg)" }], opts);
+    const fade = { duration: D, easing: "linear", fill: "forwards" };
+    [el.querySelector(".rim"), ...el.querySelectorAll(".edge i")].forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .55 }, { opacity: 0 }], fade));
+    setTimeout(end, D + 40);
   };
   coin.onclick = () => finish("go");
   cta.onclick = () => finish("go");

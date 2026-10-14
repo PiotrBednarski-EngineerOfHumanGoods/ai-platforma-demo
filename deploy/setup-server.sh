@@ -34,7 +34,7 @@ ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
 cat > /etc/caddy/Caddyfile <<CADDY
 ${DOMAIN} {
   encode gzip
-  header Strict-Transport-Security "max-age=31536000"
+  header Strict-Transport-Security "max-age=31536000; includeSubDomains"
   reverse_proxy 127.0.0.1:3000
 }
 CADDY

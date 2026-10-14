@@ -6,9 +6,13 @@ const IMIONA = "Jan Anna Piotr Katarzyna Krzysztof Małgorzata Andrzej Agnieszka
 // rdzeń imienia do odmiany: Anna -> Ann (Anną, Annę), Zofia -> Zofi (Zofią), Jan -> Jan (Janem)
 const stem = n => n.endsWith("a") ? n.slice(0, -1) : n;
 const NAZW = "[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]{2,}(?:[- ][A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]{2,})?";
+// Suma kontrolna Luhna: odróżnia numer karty płatniczej od przypadkowego ciągu cyfr
+export const luhn = s => { const d = s.replace(/\D/g, ""); if (d.length < 13 || d.length > 19) return false;
+  let sum = 0; for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } sum += n; } return sum % 10 === 0; };
 const RULES = [
   ["EMAIL",   /[\w.+-]+@[\w-]+\.[\w.-]+/g],
   ["KONTO",   /(?<![\dA-Z])(?:PL\s?)?\d{2}(?:[\s-]?\d{4}){6}(?!\d)/g],
+  ["KARTA",   /(?<!\d)\d(?:[ -]?\d){12,18}(?!\d)/g, luhn], // po KONTO (nie tnie IBAN-u), przed PESEL; tylko ciągi z poprawną sumą Luhna
   ["DOWOD",   /(?<![A-Z])[A-Z]{3}\s?\d{6}(?!\d)/g],
   ["TELEFON", /\+48[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}\b/g], // przed PESEL: +48 i 9 cyfr to 11 cyfr
   ["PESEL",   /(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/g],
@@ -27,8 +31,9 @@ export function newState() { return { map: {}, counters: {} }; }
 // żeby ta sama osoba miała ten sam token w całym kontekście.
 export function mask(text, state = newState()) {
   let out = text;
-  for (const [kind, re] of RULES) {
+  for (const [kind, re, valid] of RULES) {
     out = out.replace(re, (m) => {
+      if (valid && !valid(m)) return m;
       const existing = Object.entries(state.map).find(([, v]) => v === m);
       if (existing) return existing[0];
       state.counters[kind] = (state.counters[kind] || 0) + 1;

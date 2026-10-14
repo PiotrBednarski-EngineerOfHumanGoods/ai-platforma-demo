@@ -44,6 +44,9 @@ export const cloudMonthlyLimit = () => Number(process.env.CLOUD_MONTHLY_LIMIT ||
 export const appMonthlyBudgetUsd = () => Number(process.env.APP_MONTHLY_BUDGET_USD || 0);
 
 // Klasyfikacja wiadomości: "public" | "internal" | "restricted"
+import { luhn } from "./pii.js";
+// PESEL z poprawną cyfrą kontrolną: do sprawdzania numerów sklejonych z kilku wiadomości (bez fałszywych alarmów)
+const peselOk = d => { const w = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]; const s = w.reduce((a, x, i) => a + x * +d[i], 0); return (10 - s % 10) % 10 === +d[10]; };
 const RESTRICTED = [
   [/(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/, "PESEL"],
   [/(?<![\dA-Z])(?:PL\s?)?\d{2}(?:[\s-]?\d{4}){6}(?!\d)/, "numer konta"],
@@ -51,11 +54,20 @@ const RESTRICTED = [
   [/\b(diagnoz|chorob|zwolnieni\w* lekarsk|\bL4\b|ciąż|niepełnosprawn|leczeni|recept)/iu, "dane o zdrowiu"],
   // wynagrodzenia tylko w kontekście osoby: "pensja Kowalskiego", "ile zarabia Anna"; nie "ile zarabiamy na serwisie"
   [/([Ll]ist[aęy] płac|[Pp]ensj\p{L}*|[Ww]ynagrodzeni\p{L}*\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ])|[Zz]arabia\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ]))/u, "wynagrodzenia"],
-  [/\b(karta kredytow|\bCVV\b|hasło\s*[:=]|token\s*[:=])/iu, "dane uwierzytelniające"]
+  [/\b(karta kredytow|\bCVV\b|hasło\s*[:=]|token\s*[:=])/iu, "dane uwierzytelniające"],
+  [s => (s.match(/(?<!\d)\d(?:[ -]?\d){12,18}(?!\d)/g) || []).some(luhn), "numer karty"]
 ];
 export function classify(message, piiCount) {
-  const reasons = [...new Set(RESTRICTED.filter(([re]) => re.test(message)).map(([, label]) => label))];
-  if (reasons.length) return { level: "restricted", reasons };
+  const hit = (r, s) => typeof r === "function" ? r(s) : r.test(s);
+  const reasons = new Set(RESTRICTED.filter(([r]) => hit(r, message)).map(([, label]) => label));
+  // numer rozbity na kilka wiadomości lub grup cyfr („8501” / „0112” / „345”): sklejamy cyfry i sprawdzamy sumy kontrolne
+  const joined = message.replace(/(\d)[\s\-\/.]+(?=\d)/g, "$1");
+  if ((joined.match(/(?<!\d)\d{11}(?!\d)/g) || []).some(peselOk)) reasons.add("PESEL");
+  if (/(?<![\dA-Z])(?:PL)?\d{26}(?!\d)/.test(joined)) reasons.add("numer konta");
+  if ((joined.match(/(?<!\d)\d{13,19}(?!\d)/g) || []).some(luhn)) reasons.add("numer karty");
+  return reasons.size ? { level: "restricted", reasons: [...reasons] } : classifyRest(piiCount);
+}
+function classifyRest(piiCount) {
   if (piiCount > 0) return { level: "internal", reasons: ["dane osobowe (zamaskowane)"] };
   return { level: "public", reasons: [] };
 }
