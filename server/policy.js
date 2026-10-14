@@ -25,8 +25,8 @@ export function availableProviders() {
 // Polityka per dział: które rodzaje dostawców wolno. Administrator nadpisuje przez DEPT_POLICY_JSON w .env,
 // np. {"ksiegowosc":["mock","ollama"],"*":["mock","ollama","anthropic"]}
 const DEFAULT_DEPT_POLICY = {
-  ksiegowosc: ["mock", "ollama"],           // faktury, kwoty, NIP-y: tylko serwer firmy
-  zarzad:     ["mock", "ollama"],           // dane strategiczne: tylko serwer firmy
+  ksiegowosc: ["mock", "ollama"],           // faktury, kwoty, NIP-y: tylko model w firmie
+  zarzad:     ["mock", "ollama"],           // dane strategiczne: tylko model w firmie
   "*":        ["mock", "ollama", "anthropic", "openai"]
 };
 function deptPolicy() {
