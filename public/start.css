@@ -17,7 +17,7 @@
   --decide:#BC4B09; --decide-fg:#8A3707; --decide-bg:#FFF8F2; --decide-stroke:#F0C4A6;
   --redact:#1E2427; --ok-fg:#0E700E; --ok-bg:#F1FAF1;
   --r-sm:2px; --r-md:4px; --r-lg:8px;
-  --mx:50vw; --my:30vh; --light:rgba(15,108,189,.14); --light-blend:multiply; --glass:rgba(255,255,255,.86);
+  --glass:rgba(255,255,255,.86);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;background:var(--bg1)}
@@ -49,7 +49,6 @@ h3{font-size:16px;line-height:22px}
 
 /* sekcja otwierająca: tekst + karta demo; światło za kursorem */
 .hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;max-width:1120px;margin:0 auto;padding:72px 24px 64px;isolation:isolate}
-body::before{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;background:radial-gradient(640px 520px at var(--mx) var(--my),var(--light),transparent 70%);mix-blend-mode:var(--light-blend)}
 .kicker{margin:0 0 14px;color:var(--brand-pressed);font-weight:600;font-size:14px}
 h1{font-size:44px;line-height:1.12;max-width:18ch}
 .lead{margin:20px 0 28px;font-size:17px;line-height:1.6;color:var(--fg2);max-width:52ch}
@@ -141,7 +140,6 @@ h1{font-size:44px;line-height:1.12;max-width:18ch}
   .reveal,.step{opacity:1;transform:none;animation:none;transition:none}
   .demo{transform:none!important;transition:none}
   .redact b,.redact i,.demo-sum,.demo-action{transition:none}
-  body::before{display:none}
 }
 
 /* ---------- przełącznik motywu i tryb ciemny ---------- */

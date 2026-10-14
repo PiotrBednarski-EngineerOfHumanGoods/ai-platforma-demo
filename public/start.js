@@ -12,18 +12,14 @@
   const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -12% 0px", threshold: 0.2 });
   document.querySelectorAll(".reveal, .step").forEach(el => io.observe(el));
 
-  // 3. Kursor: światło w tle i lekkie pochylenie karty demo. Tylko dla urządzeń z myszą.
+  // 3. Kursor: lekkie pochylenie karty demo w sekcji otwierającej. Tylko dla urządzeń z myszą.
   if (!matchMedia("(hover: hover)").matches) return;
   let raf = 0, px = 0, py = 0;
-  let cx = 0, cy = 0;
   window.addEventListener("pointermove", e => {
-    cx = e.clientX; cy = e.clientY;
     const r = hero.getBoundingClientRect();
     px = (e.clientX - r.left) / r.width; py = (e.clientY - r.top) / r.height;
     if (!raf) raf = requestAnimationFrame(() => {
       raf = 0;
-      document.documentElement.style.setProperty("--mx", cx + "px");
-      document.documentElement.style.setProperty("--my", cy + "px");
       const inHero = px >= 0 && px <= 1 && py >= 0 && py <= 1;
       demo.style.setProperty("--rx", inHero ? ((px - 0.5) * 6).toFixed(2) + "deg" : "0deg");
       demo.style.setProperty("--ry", inHero ? ((0.5 - py) * 6).toFixed(2) + "deg" : "0deg");
