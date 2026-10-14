@@ -20,32 +20,39 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
 (() => {
   const root = document.documentElement, el = document.getElementById("intro");
   if (!el || !root.classList.contains("with-intro")) return;
-  const coin = document.getElementById("introCoin"), needle = el.querySelector(".front .needle");
-  const center = () => { const r = coin.getBoundingClientRect(); el.style.setProperty("--cx", r.left + r.width / 2 + "px"); el.style.setProperty("--cy", r.top + r.height / 2 + "px"); };
-  center(); addEventListener("resize", center);
+  const coin = document.getElementById("introCoin"), cta = el.querySelector(".intro-cta"), needle = el.querySelector(".front .needle");
+  // środek monety (okno odsłaniające) i środek przycisku (cel kursora), liczone bez animacji wejścia
+  const measure = () => {
+    const r = coin.parentElement.getBoundingClientRect();
+    el.style.setProperty("--cx", r.left + r.width / 2 + "px");
+    el.style.setProperty("--cy", r.top + r.height / 2 + "px");
+    const b = cta.getBoundingClientRect();
+    el.style.setProperty("--bx", b.left + b.width / 2 + "px");
+    el.style.setProperty("--by", b.top + b.height / 2 - 12 + "px"); // przycisk wjeżdża 12px od dołu
+  };
+  measure(); addEventListener("resize", measure); document.fonts?.ready.then(measure);
   let done = false;
   const finish = mode => {
     if (done) return; done = true;
     try { sessionStorage.setItem("compax-intro", "1"); } catch {}
-    center(); el.classList.add(mode);
+    measure(); el.classList.add(mode);
     setTimeout(() => {
       root.classList.remove("with-intro"); el.remove();
       dispatchEvent(new Event("compax:intro-done"));
-      document.querySelector(".hero h1")?.focus?.();
-    }, mode === "go" ? 1800 : 380);
+    }, mode === "go" ? 2450 : 380);
   };
   coin.onclick = () => finish("go");
-  el.querySelector(".intro-cta").onclick = () => finish("go");
+  cta.onclick = () => finish("go");
   el.querySelector(".intro-skip").onclick = () => finish("skip");
   addEventListener("keydown", e => {
     if (done) return;
     if (e.key === "Escape") finish("skip");
     else if ((e.key === "Enter" || e.key === " ") && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); finish("go"); }
   });
-  // igła monety podąża za prawdziwym kursorem (jak na stronie startowej)
   if (matchMedia("(hover: hover)").matches) {
-    const aim = smoothNeedle(needle);
+    const aim = smoothNeedle(needle), t0 = performance.now();
     el.addEventListener("pointermove", e => {
+      if (performance.now() - t0 > 6000) el.classList.add("real"); // pokazowy kursor znika, gdy użytkownik sam działa
       const r = coin.getBoundingClientRect();
       aim(Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI + 45);
     });

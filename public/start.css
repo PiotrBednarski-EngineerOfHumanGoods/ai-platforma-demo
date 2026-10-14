@@ -181,7 +181,7 @@ h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
 }
 
 /* ---------- jedno pytanie krok po kroku: przyklejona karta, etapy w rytmie przewijania ---------- */
-.story-track{height:190vh;position:relative}
+.story-track{height:250vh;position:relative}
 .story-stick{position:sticky;top:64px;height:calc(100vh - 64px);display:flex;align-items:center}
 .story-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;width:100%}
 .story-steps{list-style:none;margin:28px 0 0;padding:0;counter-reset:st}
@@ -219,53 +219,104 @@ h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
   .sc-pii::after,.sc-meta,.sc-action,.sc-approved{transition:none}
 }
 
-/* ---------- intro: „Zgubiłeś się?”, kursor, kompas jak moneta, okno odsłania stronę ----------
-   Pokazywane raz na sesję (theme-init.js ustawia html.with-intro), pomijane przy „ogranicz ruch”. */
+/* ---------- intro: „Zgubiłeś się?”, moneta z kompasem, kursor pokazuje „Kliknij tutaj”, moneta się obraca i odsłania stronę ----------
+   Raz na sesję (theme-init.js ustawia html.with-intro), pomijane przy „ogranicz ruch”. Bez obrazków: CSS 3D + gradienty. */
 @property --hole{syntax:"<length>";inherits:false;initial-value:0px}
 .intro{display:none}
 html.with-intro body{overflow:hidden}
-html.with-intro .intro{display:grid;place-items:center;position:fixed;inset:0;z-index:100;background:var(--bg1);color:var(--fg1);--cx:50vw;--cy:50vh}
-.intro-stage{display:flex;flex-direction:column;align-items:center;gap:40px;padding:24px;text-align:center}
-.intro-q{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,68px);line-height:1.12;letter-spacing:-.02em}
-.intro-q span{display:block;opacity:0;translate:0 14px;animation:introRise .7s cubic-bezier(.2,.8,.2,1) forwards}
-.intro-q .l1{animation-delay:.55s}
-.intro-q .l2{color:var(--fg3);animation-delay:1.15s}
-.intro-coin{position:relative;width:224px;height:224px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;perspective:900px;opacity:0;scale:.86;animation:introCoinIn .8s cubic-bezier(.2,.8,.2,1) .1s forwards}
-.intro-coin:focus-visible{outline:2px solid var(--fg1);outline-offset:8px}
-.coin{position:absolute;inset:0;transform-style:preserve-3d}
-.face{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.face svg{width:72%;height:72%}
-.face.front{background:var(--bg1);color:var(--fg1);box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 48px -24px rgba(0,0,0,.35)}
-.face.front .ring{stroke:var(--stroke2);stroke-width:.6}
-.face.back{background:var(--brand);color:var(--brand-fg);transform:rotateY(180deg)}
-.face svg{shape-rendering:geometricPrecision}
+html.with-intro .intro{display:block;position:fixed;inset:0;z-index:100;overflow:hidden;color:var(--fg1);
+  background:radial-gradient(120% 90% at 50% 45%,var(--bg1) 0,var(--bg1) 45%,var(--bg3) 100%);
+  --size:min(65vmin,calc(100svh - 300px),86vw);--t:calc(var(--size) * .075);--cx:50vw;--cy:55vh;--bx:50vw;--by:85vh}
+
+/* pytanie: najpierw samo na środku, potem odsuwa się do góry */
+.intro-q{position:absolute;left:0;right:0;top:50%;translate:0 -50%;margin:0;padding:0 24px;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(36px,6.4vw,80px);line-height:1.08;letter-spacing:-.025em;
+  transform-origin:50% 0;animation:introQUp .95s cubic-bezier(.65,0,.2,1) 2.15s forwards}
+.intro-q span{display:block;opacity:0;translate:0 18px;filter:blur(6px);animation:introRise .8s cubic-bezier(.2,.8,.2,1) forwards}
+.intro-q .l1{animation-delay:.3s}
+.intro-q .l2{color:var(--fg3);animation-delay:1s}
+
+.intro-main{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(18px,3.2vh,34px);padding-top:clamp(92px,15vh,170px)}
+.coin-wrap{position:relative;width:var(--size);height:var(--size);opacity:0;animation:introToss 1.5s cubic-bezier(.2,.8,.25,1) 2.35s forwards}
+.coin-shadow{position:absolute;left:12%;right:12%;bottom:-7%;height:12%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.34),rgba(0,0,0,0));filter:blur(6px);opacity:0;scale:.3 1;animation:introShadowIn 1.5s cubic-bezier(.2,.8,.25,1) 2.35s forwards}
+.intro-coin{position:absolute;inset:0;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;perspective:calc(var(--size) * 3.2)}
+.intro-coin:focus-visible{outline:2px solid var(--fg1);outline-offset:10px}
+.coin{position:absolute;inset:0;transform-style:preserve-3d;animation:introSpinIn 1.5s cubic-bezier(.15,.75,.25,1) 2.35s both}
+.edge,.edge i{position:absolute;inset:0;border-radius:50%;transform-style:preserve-3d}
+.edge i{background:linear-gradient(90deg,#6f747b,#c3c7cc 30%,#f4f5f6 50%,#a8adb3 70%,#6a6f76)}
+.edge i:nth-child(1){transform:translateZ(calc(var(--t) * -0.5000))}
+.edge i:nth-child(2){transform:translateZ(calc(var(--t) * -0.4231))}
+.edge i:nth-child(3){transform:translateZ(calc(var(--t) * -0.3462))}
+.edge i:nth-child(4){transform:translateZ(calc(var(--t) * -0.2692))}
+.edge i:nth-child(5){transform:translateZ(calc(var(--t) * -0.1923))}
+.edge i:nth-child(6){transform:translateZ(calc(var(--t) * -0.1154))}
+.edge i:nth-child(7){transform:translateZ(calc(var(--t) * -0.0385))}
+.edge i:nth-child(8){transform:translateZ(calc(var(--t) * 0.0385))}
+.edge i:nth-child(9){transform:translateZ(calc(var(--t) * 0.1154))}
+.edge i:nth-child(10){transform:translateZ(calc(var(--t) * 0.1923))}
+.edge i:nth-child(11){transform:translateZ(calc(var(--t) * 0.2692))}
+.edge i:nth-child(12){transform:translateZ(calc(var(--t) * 0.3462))}
+.edge i:nth-child(13){transform:translateZ(calc(var(--t) * 0.4231))}
+.edge i:nth-child(14){transform:translateZ(calc(var(--t) * 0.5000))}
+.face{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face svg{width:58%;height:58%;shape-rendering:geometricPrecision}
 .face .needle{transform-origin:12px 12px;transform:rotate(var(--ang,0deg))}
-.intro .front .needle{animation:introFind 1.5s cubic-bezier(.2,.7,.15,1) 2.9s both}
-.ripple{position:absolute;inset:0;border-radius:50%;border:2px solid var(--fg1);opacity:0;pointer-events:none;animation:introRipple .9s ease-out 2.85s}
-.intro-cta{font:600 17px/1 var(--font);height:54px;padding:0 32px;border-radius:999px;border:1px solid var(--brand);background:var(--brand);color:var(--brand-fg);cursor:pointer;opacity:0;translate:0 10px;animation:introRise .55s cubic-bezier(.2,.8,.2,1) 3.15s forwards}
+/* awers: biała emalia w srebrnym rancie */
+.face.front{transform:translateZ(calc(var(--t) / 2));color:var(--fg1);
+  background:radial-gradient(circle,var(--bg1) 0 74%,rgba(0,0,0,.3) 74.4%,transparent 75.4%),
+    conic-gradient(from 200deg,#eceef0,#7b8189 12%,#d5d8dc 25%,#6f757d 38%,#f1f2f4 52%,#868c94 66%,#cfd2d6 80%,#757b83 90%,#eceef0);
+  box-shadow:inset 0 0 0 calc(var(--size) * .006) rgba(255,255,255,.7),inset 0 calc(var(--size) * .02) calc(var(--size) * .04) rgba(0,0,0,.12)}
+.face.front::before{content:"";position:absolute;inset:12.6%;border-radius:50%;box-shadow:inset 0 calc(var(--size) * .012) calc(var(--size) * .03) rgba(0,0,0,.14)}
+/* rewers: srebro, delikatne szlify i wytłoczony znak */
+.face.back{transform:rotateY(180deg) translateZ(calc(var(--t) / 2));color:#8a9098;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.95),rgba(255,255,255,0) 42%),
+    repeating-radial-gradient(circle,rgba(255,255,255,.10) 0 1px,rgba(0,0,0,0) 1px 4px),
+    conic-gradient(from 20deg,#c7cbd0,#f2f3f5 10%,#a7acb3 22%,#e6e8eb 36%,#979da5 50%,#eff1f3 64%,#b1b6bc 78%,#dfe2e5 90%,#c7cbd0);
+  box-shadow:inset 0 0 0 calc(var(--size) * .032) #cfd3d7,inset 0 0 0 calc(var(--size) * .04) #8b9198,inset 0 0 calc(var(--size) * .08) rgba(0,0,0,.25)}
+.face.back svg{filter:drop-shadow(0 1.5px 0 rgba(255,255,255,.9)) drop-shadow(0 -1px 0 rgba(0,0,0,.35))}
+/* refleks światła przesuwający się po monecie */
+.face::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,rgba(255,255,255,0) 38%,rgba(255,255,255,.65) 50%,rgba(255,255,255,0) 62%);translate:-110% 0;pointer-events:none}
+.face.front::after{animation:introShine 1.1s ease-in-out 3.55s}
+.intro .front .needle{animation:introFind 1.6s cubic-bezier(.2,.7,.15,1) 3.6s both}
+
+.intro-cta{position:relative;font:600 17px/1 var(--font);height:54px;padding:0 34px;border-radius:999px;border:1px solid var(--brand);background:var(--brand);color:var(--brand-fg);cursor:pointer;
+  box-shadow:0 10px 30px -12px rgba(0,0,0,.5);opacity:0;translate:0 12px;animation:introRise .55s cubic-bezier(.2,.8,.2,1) 3.35s forwards,introCtaTap 1.6s ease-in-out 4.75s infinite}
 .intro-cta:hover{background:var(--brand-hover)}
+.intro-cta::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid var(--fg1);opacity:0;pointer-events:none;animation:introCtaRing 1.6s ease-out 4.75s infinite}
 .intro-cta .cta-tap{display:none}
 @media (hover:none){.intro-cta .cta-click{display:none}.intro-cta .cta-tap{display:inline}}
-.intro-skip{position:absolute;top:20px;right:24px;font:500 14px var(--font);color:var(--fg3);background:none;border:0;padding:8px 10px;border-radius:var(--r-md);cursor:pointer;opacity:0;animation:introFade .4s ease .4s forwards}
+.intro-skip{position:absolute;top:18px;right:22px;z-index:2;font:500 14px var(--font);color:var(--fg3);background:none;border:0;padding:8px 10px;border-radius:var(--r-md);cursor:pointer;opacity:0;animation:introFade .4s ease .4s forwards}
 .intro-skip:hover{color:var(--fg1);background:var(--bg3)}
-.intro-cursor{position:absolute;left:calc(var(--cx) + 22px);top:calc(var(--cy) + 22px);pointer-events:none;opacity:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));
-  animation:introCursor 1.15s cubic-bezier(.55,0,.15,1) 1.65s forwards,introPress .28s ease-in-out 2.82s,introFadeOut .35s ease 3.6s forwards}
 
-/* wyjście: moneta obraca się, reszta gaśnie, okno rośnie od środka monety */
-.intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor{animation:introFadeOut .25s ease forwards}
-.intro.go .coin{animation:introFlip 1s cubic-bezier(.45,0,.2,1) forwards}
-.intro.go .intro-coin{animation:none;opacity:1;scale:1}
-.intro.go{-webkit-mask:radial-gradient(circle at var(--cx) var(--cy),transparent var(--hole),#000 calc(var(--hole) + 1px));mask:radial-gradient(circle at var(--cx) var(--cy),transparent var(--hole),#000 calc(var(--hole) + 1px));animation:introOpen 1.05s cubic-bezier(.7,0,.2,1) .7s forwards}
+/* kursor „pokazuje”: podlatuje do przycisku i stuka w niego */
+.intro-cursor{position:absolute;left:calc(var(--bx) + 18px);top:calc(var(--by) - 2px);z-index:3;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,.28));transform-origin:5px 3px;
+  animation:introCursor 1.15s cubic-bezier(.55,0,.15,1) 3.65s forwards,introTap 1.6s ease-in-out 4.75s infinite}
+.intro.real .intro-cursor{visibility:hidden}
+
+/* wyjście: moneta wzlatuje, obraca się (srebrny rewers), okno rośnie od jej środka */
+.intro.go .intro-q,.intro.go .intro-cta,.intro.go .intro-skip,.intro.go .intro-cursor{animation:introFadeOut .3s ease forwards}
+.intro.go .coin-wrap{opacity:1;animation:introLift 1.5s cubic-bezier(.3,0,.2,1) forwards}
+.intro.go .coin{animation:introFlip 1.5s cubic-bezier(.3,0,.2,1) forwards}
+.intro.go .coin-shadow{opacity:1;scale:1;animation:introShadowFlip 1.5s cubic-bezier(.3,0,.2,1) forwards}
+.intro.go .face::after{animation:introShine .75s ease-in-out 2}
+.intro.go{-webkit-mask:radial-gradient(circle at var(--cx) var(--cy),transparent var(--hole),#000 calc(var(--hole) + 1px));mask:radial-gradient(circle at var(--cx) var(--cy),transparent var(--hole),#000 calc(var(--hole) + 1px));
+  animation:introOpen 1.15s cubic-bezier(.7,0,.2,1) 1.2s forwards}
 .intro.skip{animation:introFadeOut .35s ease forwards}
 
-@keyframes introRise{to{opacity:1;translate:0 0}}
+@keyframes introRise{to{opacity:1;translate:0 0;filter:blur(0)}}
 @keyframes introFade{to{opacity:1}}
 @keyframes introFadeOut{to{opacity:0}}
-@keyframes introCoinIn{to{opacity:1;scale:1}}
-@keyframes introCursor{0%{opacity:0;translate:34vw 30vh}12%{opacity:1}100%{opacity:1;translate:0 0}}
-@keyframes introPress{50%{scale:.8}}
-@keyframes introRipple{0%{opacity:.5;scale:1}100%{opacity:0;scale:1.7}}
+@keyframes introQUp{to{top:clamp(18px,4vh,44px);translate:0 0;scale:.62}}
+@keyframes introToss{0%{opacity:0;translate:0 45vh;scale:.35}18%{opacity:1}78%{translate:0 -3%;scale:1.02}100%{opacity:1;translate:0 0;scale:1}}
+@keyframes introSpinIn{0%{transform:rotateX(38deg) rotateY(-1080deg)}100%{transform:rotateX(0) rotateY(0)}}
+@keyframes introShadowIn{0%{opacity:0;scale:.3 1}78%{opacity:.7;scale:.85 1}100%{opacity:1;scale:1 1}}
+@keyframes introShine{0%{translate:-110% 0}100%{translate:110% 0}}
 @keyframes introFind{0%{rotate:0deg}55%{rotate:-470deg}78%{rotate:-345deg}100%{rotate:-360deg}}
-@keyframes introFlip{0%{transform:rotateY(0)}55%{transform:rotateY(250deg) scale(1.12)}100%{transform:rotateY(540deg) scale(1.04)}}
+@keyframes introCursor{0%{opacity:0;translate:32vw 22vh}12%{opacity:1}100%{opacity:1;translate:0 0}}
+@keyframes introTap{0%,40%,100%{scale:1;translate:0 0}14%{scale:.78;translate:-2px 2px}24%{scale:1}}
+@keyframes introCtaTap{0%,40%,100%{scale:1}14%{scale:.95;background:var(--brand-hover)}}
+@keyframes introCtaRing{0%,10%{opacity:0;scale:1}16%{opacity:.55}55%,100%{opacity:0;scale:1.35 1.6}}
+@keyframes introLift{0%{translate:0 0;scale:1}45%{translate:0 -7%;scale:1.08}100%{translate:0 -2%;scale:1.18}}
+@keyframes introFlip{0%{transform:rotateX(0) rotateY(0)}50%{transform:rotateX(14deg) rotateY(560deg)}100%{transform:rotateX(0) rotateY(900deg)}}
+@keyframes introShadowFlip{0%{scale:1 1;opacity:1}45%{scale:.6 1;opacity:.45}100%{scale:.9 1;opacity:.7}}
 @keyframes introOpen{to{--hole:150vmax}}
-@media (max-width:600px){.intro-coin{width:160px;height:160px}.intro-stage{gap:32px}}
+@media (max-width:600px){html.with-intro .intro{--size:min(78vw,calc(100svh - 290px))}.intro-q{font-size:clamp(32px,9vw,44px)}}
