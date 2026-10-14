@@ -94,6 +94,15 @@ Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), pote
 
 Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
 
+## Klucze do modeli: dwie opcje
+
+| Opcja | Jak działa | Kiedy |
+|---|---|---|
+| Klucz API w zmiennej środowiskowej | klucz w `.env` na serwerze, prawa `600`, dostęp tylko dla procesu aplikacji; limit wydatków ustawiony w konsoli Anthropic jako drugi bezpiecznik | to demo: zwykły serwer VPS (Hetzner) nie wystawia tożsamości chmurowej |
+| Federacja tożsamości (Workload Identity Federation) | serwer nie przechowuje żadnego klucza; tożsamość nadana przez chmurę (konto usługi GCP, rola AWS, tożsamość Azure, GitHub Actions) wymienia się na token Anthropic ważny kilka minut i odnawiany automatycznie | wdrożenie u klienta w jego chmurze i CI: nie ma statycznego klucza do wycieku ani do ręcznej rotacji |
+
+W obu wariantach klucz lub token nigdy nie trafia do przeglądarki ani do repozytorium.
+
 ## Co jest uproszczone (i jak wygląda w produkcji)
 
 | W demo | W produkcji |
