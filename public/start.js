@@ -38,7 +38,7 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
     const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.1;
     // tafla: soczewka + grzbiet fali, potem drugi, słabszy krąg
-    ["w1"].forEach(k => {
+    ["w1", "w2"].forEach(k => {
       const w = document.createElement("div"); w.className = "water " + k;
       w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px");
       w.style.setProperty("--s0", ((c.width / 2) / (R * .58)).toFixed(4)); // wewnętrzna krawędź kręgu startuje na krawędzi kompasu
