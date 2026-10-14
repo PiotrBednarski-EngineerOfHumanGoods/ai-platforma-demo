@@ -515,7 +515,7 @@ Poprawki wdrożone na compax.tech, każda z testem (razem 64 testy; test uruchom
 |---|---|---|
 | P0-1 dokumenty i historia bez klasyfikacji | **poprawione**: fragmenty z danymi chronionymi (zdrowie przy osobie, PESEL, pensje) i z działów bez chmury nie wychodzą; klasyfikowana cała historia | `server/app.js` (krok 3c), `tests/gateway.test.mjs` |
 | P0-2 zgłoszenia do Resend | **poprawione**: bez zrzutu ekranu, bez treści z danymi chronionymi | `server/feedback.js`, `tests/feedback.test.mjs` |
-| P0-3 publiczne hasło zarządu | **poprawione**: osobne hasło z `.env` (`PASSWORD_HASH_PREZES`), usunięte z ekranu logowania i slajdu | `server/users.js`, `public/app.html` |
+| P0-3 publiczne hasło zarządu | **świadomie zostawione na czas rekrutacji**, żeby rekruter mógł sprawdzić panel zarządu; mechanizm osobnego hasła jest gotowy (`PASSWORD_HASH_PREZES` w `.env`) i wystarczy go włączyć | `server/users.js` |
 | P0-4 bezwzględne twierdzenia w prezentacji | **poprawione** (wersja 33 prezentacji) | slajdy 7, 8, 9, 12, 13, 14, 15, 21 |
 | P1-1, B1, B6 obejścia filtra | **poprawione** (normalizacja NFKC, znaki niewidoczne, O→0, numer rozbity tekstem); zapis słowny pozostaje ryzykiem resztkowym | `server/policy.js`, `tests/pii.test.mjs` |
 | P1-2 fałszywe alarmy | **poprawione** (PESEL z sumą kontrolną albo słowem „PESEL”, „diagnoza usterki”) | `server/policy.js` |
