@@ -140,7 +140,12 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   let trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() });
   const tierName = tier(message, hits);
   const model = modelFor(trip.provider, tierName);
-  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, model, tier: trip.provider === "mock" ? null : tierName, note: trip.reason };
+  // Notatka o zamazaniu tylko wtedy, gdy coś faktycznie zamazano (w pytaniu, historii albo fragmentach)
+  const maskedCount = Object.keys(map || {}).length;
+  const note = trip.kind === "external" && !trip.blocked
+    ? (maskedCount ? `zamazano przed wysyłką: ${maskedCount}` : "w pytaniu nie było danych osobowych")
+    : trip.reason;
+  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, model, tier: trip.provider === "mock" ? null : tierName, note };
   if (trip.blocked) {
     const ts = new Date().toISOString();
     store.log({ userId: user.id, dept: user.dept, provider: null, event: "blocked", policy: policyOut, pii_found: piiInMessage, ms: Date.now() - t0 });
