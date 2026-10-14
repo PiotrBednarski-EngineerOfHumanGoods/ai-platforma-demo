@@ -28,7 +28,11 @@ console.log(`Compax smoke test: ${BASE} (model: ${PROVIDER})\n`);
 
 // 1. Strony i nagłówki bezpieczeństwa
 const anon = client();
-for (const p of ["/", "/app", "/prywatnosc"]) check(`strona ${p} odpowiada 200`, (await anon.call("GET", p, null, {})).status === 200);
+for (const p of ["/", "/app", "/prywatnosc"]) {
+  const r = await anon.call("GET", p, null, {});
+  check(`strona ${p} odpowiada 200`, r.status === 200);
+  check(`strona ${p} bez stylów i skryptów wpisanych w HTML (zgodnie z CSP)`, !/<style|\sstyle="|<script>(?!<\/script>)|\son[a-z]+="/i.test(r.text));
+}
 check("stary adres /app.html przekierowuje na /app", (await anon.call("GET", "/app.html", null, {})).status === 301);
 const h = (await anon.call("GET", "/app", null, {})).headers;
 check("CSP bez unsafe-inline w skryptach", /script-src 'self'/.test(h.get("content-security-policy") || "") && !/script-src[^;]*unsafe-inline/.test(h.get("content-security-policy") || ""));

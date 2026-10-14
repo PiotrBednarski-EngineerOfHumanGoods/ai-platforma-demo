@@ -65,7 +65,9 @@ Odtworzenie wymaga tego samego `DATA_KEY`, z którym kopia powstała. Kopie wart
 ## Rotacja kluczy
 
 - **Klucz API:** utwórz nowy w konsoli dostawcy, podmień w `.env`, restart, usuń stary w konsoli.
-- **`DATA_KEY`:** zmiana wymaga przeszyfrowania danych. Zatrzymaj aplikację, wykonaj kopię, odszyfruj pliki starym kluczem i zapisz nowym (skrypt do przygotowania przed produkcją), dopiero wtedy podmień klucz.
+- **`DATA_KEY`:** zatrzymaj aplikację (`pm2 stop ai-demo`), wykonaj kopię (`deploy/backup.sh`), uruchom `NEW_DATA_KEY=$(openssl rand -hex 32) npm run admin -- nowy-klucz` (najpierw odczytuje wszystko starym kluczem, po zapisie sprawdza odczyt nowym), wpisz nowy klucz do `.env` jako `DATA_KEY` i uruchom aplikację.
+- **Wnioski osób (RODO):** `npm run admin -- szukaj | eksport | usun "fraza"`, przy zatrzymanej aplikacji. Szczegóły w [06-rodo-rejestr-i-ocena-ryzyka.md](06-rodo-rejestr-i-ocena-ryzyka.md).
+- **Zły klucz przy starcie:** aplikacja nie nadpisze danych. Nieczytelny plik zostaje odłożony jako `data/<nazwa>.json.nieczytelny-<czas>`; po ustawieniu właściwego klucza przywróć go pod pierwotną nazwą.
 
 ## Aktualizacja aplikacji
 
@@ -83,5 +85,5 @@ Wysyłane są tylko pliki z gita, więc `.env` i dane na serwerze zostają nietk
 |---|---|
 | strona nie odpowiada | `sudo -u ai pm2 status`, `journalctl -u caddy -n 50` |
 | „Model nie odpowiada” | klucz w `.env`, środki i limit w konsoli dostawcy, `pm2 logs` (wpis `model error`) |
-| pytania idą do trybu pokazowego zamiast chmury | budżet `APP_MONTHLY_BUDGET_USD` wyczerpany (panel zarządu) albo dział bez chmury w polityce |
-| „nieczytelny” plik w logu przy starcie | zły lub brakujący `DATA_KEY`; przywróć właściwy klucz, nie usuwaj danych |
+| pytania trafiają do trybu pokazowego zamiast do chmury | budżet `APP_MONTHLY_BUDGET_USD` wyczerpany (panel zarządu) albo dział bez chmury w polityce |
+| komunikat o nieczytelnym pliku w logu przy starcie | zły lub brakujący `DATA_KEY`; przywróć właściwy klucz, nie usuwaj danych |

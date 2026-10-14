@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Testy jednostkowe i integracyjne
+        run: npm test
+      - name: Znane podatności w zależnościach
+        run: npm audit --omit=dev --audit-level=high
+      - name: Test dymny na uruchomionej aplikacji (tryb pokazowy, bez kosztów)
+        run: |
+          export DATA_DIR="$(mktemp -d)" DATA_KEY="$(openssl rand -hex 32)" PORT=3000 AI_PROVIDER=mock
+          node server/index.js > server.log 2>&1 &
+          for i in $(seq 1 20); do curl -fs http://localhost:3000/ > /dev/null && break; sleep 0.5; done
+          BASE_URL=http://localhost:3000 npm run smoke || (cat server.log; exit 1)

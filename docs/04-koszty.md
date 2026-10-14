@@ -1,8 +1,8 @@
 # Koszty
 
-## Dlaczego „AI zjada tokeny” i dlaczego tu nie
+## Skąd biorą się wysokie koszty AI i jak ich tu unikamy
 
-Koszt rośnie, gdy do modelu wysyła się całe dokumenty, całą historię i długie instrukcje, a agent kręci się w pętli. Tu do modelu idą najwyżej cztery fragmenty dokumentów, sześć ostatnich wiadomości i prośba o krótką odpowiedź. Jedno pytanie to zwykle 250 do 900 tokenów wejścia i 50 do 250 wyjścia.
+Koszt rośnie, gdy do modelu wysyła się całe dokumenty, całą historię i długie instrukcje, a agent wielokrotnie wywołuje model w pętli. Tu do modelu idą najwyżej cztery fragmenty dokumentów, sześć ostatnich wiadomości i prośba o krótką odpowiedź. Jedno pytanie to zwykle 250 do 900 tokenów wejścia i 50 do 250 wyjścia.
 
 ## Koszt pytania (ceny API Anthropic, USD za milion tokenów)
 
@@ -14,7 +14,7 @@ Koszt rośnie, gdy do modelu wysyła się całe dokumenty, całą historię i d�
 | model w firmie | dane chronione, księgowość, zarząd | 0 za token | 0 | 0 |
 | pamięć odpowiedzi | powtarzające się pytania | 0 | 0 | 0 |
 
-Pomiar z wersji pokazowej: proste pytanie na Haiku 0,00013 USD, analiza na Sonnecie 0,0035 USD, przygotowanie wniosku 0,004 USD. Ceny sprawdzić w aktualnym cenniku dostawcy przed ofertą.
+Pomiar z wersji pokazowej: proste pytanie na Haiku 0,00013 USD, analiza na Sonnecie 0,0035 USD, przygotowanie wniosku 0,004 USD. Ceny należy zweryfikować w aktualnym cenniku dostawcy przed podpisaniem umowy.
 
 ## Co obniża koszt (wbudowane)
 
@@ -30,13 +30,13 @@ Pomiar z wersji pokazowej: proste pytanie na Haiku 0,00013 USD, analiza na Sonne
 
 | Wariant | Koszt | Uwagi |
 |---|---|---|
-| komputer z kartą graficzną 24 GB (np. Bielik 11B przez Ollamę) | ok. 8–15 tys. zł jednorazowo + prąd | dane nie opuszczają firmy, wystarczy do pytań o procedury |
+| komputer z kartą graficzną z 24 GB pamięci (np. Bielik 11B przez Ollamę) | ok. 8–15 tys. zł jednorazowo + prąd | dane nie opuszczają firmy, wystarczy do pytań o procedury |
 | serwer z GPU w chmurze w UE | od kilkuset zł miesięcznie | gdy firma nie chce sprzętu u siebie |
 | serwer bez GPU, mały model | kilkadziesiąt zł miesięcznie | wolny (kilkanaście sekund na odpowiedź), do pokazów i małego ruchu |
 
 ## Przykładowy miesiąc
 
-Firma 40 osób, 25 pytań na osobę miesięcznie (1000 pytań), 70% prostych, 20% analiz, 10% powtórzeń z pamięci, księgowość i zarząd lokalnie:
+Firma licząca 40 osób, 25 pytań na osobę miesięcznie (1000 pytań), 70% prostych, 20% analiz, 10% powtórzeń z pamięci, księgowość i zarząd lokalnie:
 
 - chmura: ok. 0,07 USD (Haiku) + ok. 0,80 USD (Sonnet) ≈ **1 USD miesięcznie**,
 - serwer aplikacji (VPS w UE): ok. 8–15 EUR miesięcznie,

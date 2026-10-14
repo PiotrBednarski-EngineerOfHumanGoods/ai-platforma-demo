@@ -1,12 +1,14 @@
 {
   "name": "compax",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Compax: asystent AI dla firmy wielodziałowej (baza wiedzy per dział, zamazywanie danych osobowych, akcje z zatwierdzeniem, dziennik i koszty)",
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
     "dev": "node --watch --env-file-if-exists=.env server/index.js",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "smoke": "node tests/smoke.mjs",
+    "admin": "node --env-file-if-exists=.env scripts/admin.mjs"
   },
   "dependencies": {
     "express": "^4.21.0"

@@ -31,7 +31,7 @@ Po utworzeniu zapisz **IP serwera**.
 ## 2. Adres (domena)
 
 Masz domenę → dodaj rekord **A** `demo.twojadomena.pl → IP serwera` i poczekaj kilka minut.
-Nie masz → użyj darmowej nazwy `IP-z-myślnikami.sslip.io`, np. dla 203.0.113.10: `203-0-113-10.sslip.io`. Działa od razu, bez konfiguracji. (Let's Encrypt limituje certyfikaty na całą domenę sslip.io, więc przy pechu certyfikat przyjdzie z zapasowego ZeroSSL, Caddy robi to sam.)
+Nie masz → użyj darmowej nazwy `IP-z-myślnikami.sslip.io`, np. dla 203.0.113.10: `203-0-113-10.sslip.io`. Działa od razu, bez konfiguracji. (Let's Encrypt ogranicza liczbę certyfikatów dla całej domeny sslip.io, dlatego w razie potrzeby Caddy automatycznie pobierze certyfikat z zapasowego ZeroSSL.)
 
 ## 3. Wgranie aplikacji z laptopa
 
@@ -48,13 +48,13 @@ ssh root@IP "bash /opt/ai-demo/deploy/setup-server.sh DOMENA"
 ssh root@IP "bash /opt/ai-demo/deploy/start-app.sh"
 ```
 
-Po minucie: `https://DOMENA` pokazuje ekran logowania. Pierwsze wejście może potrwać kilka sekund (Caddy pobiera certyfikat).
+Po minucie: `https://DOMENA` pokazuje ekran startowy, a `https://DOMENA/app` ekran logowania. Pierwsze wejście może potrwać kilka sekund (Caddy pobiera certyfikat).
 
 ## 5. Aktualizacja po zmianach w kodzie
 
 Powtórz krok 3, potem `ssh root@IP "bash /opt/ai-demo/deploy/start-app.sh"` (pm2 przeładuje proces bez przerwy).
 
-## 6. Prawdziwy model zamiast mocka (opcjonalnie)
+## 6. Prawdziwy model zamiast trybu pokazowego (opcjonalnie)
 
 1. W konsoli Anthropic ustaw **limit wydatków** (np. 10 USD / mies.).
 2. `ssh root@IP nano /opt/ai-demo/.env` → ustaw `AI_PROVIDER=anthropic` i `ANTHROPIC_API_KEY=...`.
@@ -67,12 +67,12 @@ Klucz leży tylko w `.env` z prawami `600` na serwerze. Nie trafia do kodu ani d
 | Zabezpieczone | Nadal uproszczenie demo |
 |---|---|
 | HTTPS z HSTS (Caddy), aplikacja niewidoczna poza Caddy | hasła z hashem scrypt, lista kont w kodzie (produkcja: SSO Microsoft/Google) |
-| SSH tylko kluczem, root bez hasła, automatyczne aktualizacje bezpieczeństwa | dane spraw i logi w plikach JSON (produkcja: Postgres z szyfrowaniem) |
-| firewall: tylko 22, 80, 443; proces bez roota, bez shella | brak kopii zapasowych |
-| losowe tokeny sesji, wygasają po 8 h, wylogowanie unieważnia token | brak retencji czasowej logów |
+| SSH tylko kluczem, root bez hasła, automatyczne aktualizacje bezpieczeństwa | dane spraw i logi w zaszyfrowanych plikach JSON (produkcja: PostgreSQL z szyfrowaniem, klucz w KMS) |
+| firewall: tylko 22, 80, 443; proces bez roota, bez shella | kopie zapasowe na tym samym serwerze (produkcja: kopie poza serwerem) |
+| losowe tokeny sesji, wygasają po 8 h, wylogowanie unieważnia token | retencja logów liczona wpisami (ostatnie 500), nie czasem |
 | limit 10 prób hasła / 15 min / IP; limit 30 pytań / min / IP | limity w pamięci procesu (produkcja: Redis) |
 | walidacja wejścia: typ i długość wiadomości oraz historii | maskowanie regułami (produkcja: Presidio + NER) |
 | nagłówki: CSP, nosniff, no-frame, no-referrer; treść użytkownika escapowana w UI | jeden serwer, bez monitoringu i alertów |
-| PII maskowane w pytaniu, fragmentach i historii; klucz API tylko w .env (600) | |
+| dane osobowe maskowane w pytaniu, fragmentach i historii; klucz API tylko w .env (600) | |
 
 Przydatne: `ssh root@IP "sudo -u ai pm2 logs ai-demo --lines 50"` (logi aplikacji), `ssh root@IP "journalctl -u caddy -n 50"` (logi Caddy).

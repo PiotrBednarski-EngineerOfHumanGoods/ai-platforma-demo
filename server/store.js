@@ -25,10 +25,20 @@ function decrypt(raw) {
   const d = crypto.createDecipheriv("aes-256-gcm", k, buf.subarray(0, 12)); d.setAuthTag(buf.subarray(12, 28));
   return Buffer.concat([d.update(buf.subarray(28)), d.final()]).toString("utf8");
 }
+const preserved = new Set();
 const read = n => {
   if (!fs.existsSync(f(n))) return [];
   try { return JSON.parse(decrypt(fs.readFileSync(f(n), "utf8"))); }
-  catch (e) { console.error(`data/${n}.json nieczytelny (${e.message}), zaczynam od pustego`); return []; }
+  catch (e) {
+    // nie nadpisujemy nieczytelnego pliku (np. zły DATA_KEY): odkładamy go obok, żeby dało się go odzyskać właściwym kluczem
+    if (!preserved.has(n)) {
+      preserved.add(n);
+      const keep = `${f(n)}.nieczytelny-${Date.now()}`;
+      try { fs.copyFileSync(f(n), keep, fs.constants.COPYFILE_EXCL); } catch {}
+      console.error(`data/${n}.json nieczytelny (${e.message}); kopia: ${path.basename(keep)}, zaczynam od pustego`);
+    }
+    return [];
+  }
 };
 // zapis atomowy: najpierw plik tymczasowy, potem rename, żeby awaria w trakcie nie zostawiła połowy pliku
 const write = (n, v) => { const tmp = f(n) + ".tmp"; fs.writeFileSync(tmp, encrypt(JSON.stringify(v)), { mode: 0o600 }); fs.renameSync(tmp, f(n)); };

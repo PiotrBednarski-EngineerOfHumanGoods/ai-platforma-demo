@@ -1,5 +1,7 @@
 # Compax – asystent AI dla firmy z kilkoma działami
 
+[![CI](https://github.com/PiotrBednarski-EngineerOfHumanGoods/ai-platforma-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/PiotrBednarski-EngineerOfHumanGoods/ai-platforma-demo/actions/workflows/ci.yml)
+
 **Demo na żywo:** https://compax.tech (ekran startowy) · logowanie: https://compax.tech/app, konta demo pod formularzem.
 
 Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale działy różnią się danymi i uprawnieniami – jak to zrobić?* Jedna wspólna platforma, a na niej osobna konfiguracja dla każdego działu: własne dokumenty, narzędzia i polityka modeli. Wszyscy logują się do tego samego asystenta, ale dostęp do danych zależy od działu.
@@ -10,13 +12,22 @@ Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale dzia
 - **maskowanie danych osobowych** przed wysłaniem do modelu (panel „Co dostał model”),
 - **akcje z zatwierdzeniem** – agent przygotowuje spotkanie, notatkę, przypomnienie; wykonuje po kliknięciu „Zatwierdź”,
 - **pamięć spraw** zamiast CRM – lekki rejestr klientów i następnych kroków,
-- **logi** – co poszło do modelu, ile danych zamaskowano, jakie źródła, jaka akcja (zakładka dla zarządu).
-
-- **brama danych** – klasyfikacja jawne / wewnętrzne / chronione; dane chronione tylko do modelu w firmie, reszta do chmury po zamazaniu,
+- **dziennik** – co trafiło do modelu, ile danych zamaskowano, jakie źródła, jaka akcja (zakładka dla zarządu),
+- **brama danych** – klasyfikacja jawne / wewnętrzne / chronione; dane chronione tylko do modelu w firmie, reszta do chmury po maskowaniu,
 - **koszty pod kontrolą** – tani model do prostych pytań, mocny do analiz, pamięć odpowiedzi, budżet miesięczny i limity na dział,
 - **dokumenty od pracowników** – dodawane w aplikacji do bazy działu; dane na dysku szyfrowane, codzienne kopie.
 
 Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na żywo działa prawdziwy model Claude z budżetem 3 USD miesięcznie; księgowość i zarząd celowo nie korzystają z chmury.
+
+## Gotowe do oddania klientowi
+
+| Obszar | Co jest zrobione | Gdzie |
+|---|---|---|
+| RODO | rejestr czynności przetwarzania, środki z art. 32, kwalifikacja DPIA, procedura naruszenia, obsługa praw osób narzędziem administratora | [06](docs/06-rodo-rejestr-i-ocena-ryzyka.md), `npm run admin` |
+| Bezpieczeństwo | model zagrożeń z testem do każdego zabezpieczenia, polityka zgłaszania podatności, nagłówki i CSP sprawdzane automatycznie | [07](docs/07-model-zagrozen.md), [SECURITY.md](SECURITY.md) |
+| Dane | szyfrowanie AES-256-GCM na dysku, maskowanie przed modelem, dziennik bez danych osobowych, codzienne kopie, bezpieczna zmiana klucza | [02](docs/02-bezpieczenstwo-i-rodo.md) |
+| Jakość | testy jednostkowe i integracyjne, test dymny wszystkich funkcji na działającym serwerze, CI na każdą zmianę, `npm audit`, Dependabot | `npm test`, `npm run smoke`, [CI](.github/workflows/ci.yml) |
+| Utrzymanie | instrukcja administratora, skrypty wdrożenia i kopii, plan wdrożenia z miarami, koszty z prawdziwych pomiarów | [03](docs/03-instrukcja-administratora.md), [04](docs/04-koszty.md), [05](docs/05-plan-wdrozenia.md), [deploy](deploy/README.md) |
 
 ## Dokumentacja dla klienta
 
@@ -27,6 +38,9 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na 
 | [Instrukcja administratora](docs/03-instrukcja-administratora.md) | administrator: konfiguracja, użytkownicy, dokumenty, kopie i odtworzenie, rotacja kluczy |
 | [Koszty](docs/04-koszty.md) | zarząd, finanse: koszt pytania, co go obniża, model w firmie, przykładowy miesiąc |
 | [Plan wdrożenia](docs/05-plan-wdrozenia.md) | zarząd i kierownicy działów: etapy, miary, co przygotowuje klient |
+| [RODO: rejestr i ocena ryzyka](docs/06-rodo-rejestr-i-ocena-ryzyka.md) | inspektor ochrony danych, prawnik: rejestr czynności, środki techniczne, prawa osób, naruszenia, AI Act |
+| [Model zagrożeń](docs/07-model-zagrozen.md) | IT, bezpieczeństwo: ataki, zabezpieczenia, testy, ryzyka do zamknięcia |
+| [Polityka bezpieczeństwa](SECURITY.md) | wszyscy: jak zgłosić podatność |
 | [Koncepcja (PDF)](Platforma_AI_dla_firmy_wielodzialowej.pdf) | pełny opis rozwiązania |
 
 ## Uruchomienie (bez klucza API, 1 minuta)
@@ -34,7 +48,9 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na 
 ```bash
 npm install
 npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app
-npm test     # 31 testów automatycznych (node --test), bez dodatkowych zależności
+npm test     # testy automatyczne (node --test), bez dodatkowych zależności
+npm run smoke                              # test dymny wszystkich funkcji na http://localhost:3000
+BASE_URL=https://compax.tech npm run smoke  # to samo na serwerze produkcyjnym
 ```
 
 Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
@@ -43,7 +59,7 @@ Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
 
 | Login | Osoba | Dział | Co sprawdzić |
 |---|---|---|---|
-| `a.lis` | Anna Lis | sprzedaż | pytanie o rabat (Claude, ze źródłem), spotkanie z zamazanym nazwiskiem i zatwierdzeniem |
+| `a.lis` | Anna Lis | sprzedaż | pytanie o rabat (Claude, ze źródłem), spotkanie z zamaskowanym nazwiskiem i zatwierdzeniem |
 | `m.wojcik` | Marek Wójcik | obsługa klienta | czas reakcji na awarię, reklamacje |
 | `e.nowak` | Ewa Nowak | biuro | rezerwacja sali, delegacje |
 | `t.kaczmarek` | Tomasz Kaczmarek | księgowość | windykacja; nic nie wychodzi do chmury, PESEL zatrzymany |
@@ -62,7 +78,7 @@ Skopiuj `.env.example` do `.env` i ustaw `AI_PROVIDER`:
 | `openai` | `OPENAI_API_KEY`, `MODEL=gpt-4o-mini` | to samo, inny dostawca – zmiana w jednym miejscu |
 | `ollama` | `OLLAMA_URL=http://localhost:11434`, `OLLAMA_MODEL=llama3.1` (np. Bielik) | model w firmie, dane nie opuszczają serwera; obsługuje dane chronione |
 
-Zmiana dostawcy nie wymaga zmian w kodzie agentów – to jest sens bramy AI.
+Zmiana dostawcy nie wymaga zmian w kodzie agentów – na tym polega rola bramy AI.
 
 ## Co pokazać na prezentacji (5 minut)
 
@@ -105,7 +121,7 @@ sequenceDiagram
     P->>C: Pytanie (dział i rola z sesji)
     C->>D: Szukaj tylko w dziale i wspólnych
     D-->>C: Pasujące fragmenty
-    Note over C: Zamazuje dane osobowe, ocenia poziom
+    Note over C: Maskuje dane osobowe, ocenia poziom
     alt dane chronione (PESEL, konto, zdrowie)
         C-->>P: Nie wysłano, nic nie wychodzi z firmy
     else jawne lub wewnętrzne
@@ -129,15 +145,15 @@ Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), pote
 | Trasa | chronione: wyłącznie model lokalny, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
 | Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model lokalny albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |
 | Dobór modelu | proste pytanie i prośba o akcję idą do taniego modelu, analiza (porównaj, podsumuj, raport, długie pytanie) do mocnego; pytanie bez trafień w dokumentach nie idzie do modelu w ogóle; pracownik wybiera dostawcę, poziom dobiera brama | `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG` |
-| Pamięć odpowiedzi | pytanie bez danych osobowych i bez akcji, na które już odpowiedziano z tych samych dokumentów, wraca z pamięci za 0; klucz zawiera dział i wersję dokumentów, ważność 7 dni | automatycznie |
-| Koszty | tokeny z odpowiedzi dostawcy i koszt z cennika w logu każdego zapytania; zarząd widzi sumy per dział i budżet w bieżącym miesiącu | `PRICING_JSON`, `APP_MONTHLY_BUDGET_USD` |
+| Pamięć odpowiedzi | pytanie bez danych osobowych i bez akcji, na które już odpowiedziano z tych samych dokumentów, jest zwracane z pamięci bez kosztu; klucz zawiera dział i wersję dokumentów, ważność 7 dni | automatycznie |
+| Koszty | tokeny z odpowiedzi dostawcy i koszt z cennika w logu każdego zapytania; zarząd widzi sumy w podziale na działy i budżet w bieżącym miesiącu | `PRICING_JSON`, `APP_MONTHLY_BUDGET_USD` |
 | Alert | zatrzymana wiadomość = wpis `blocked` bez treści i powiadomienie administratora | `ALERT_WEBHOOK_URL` |
 
 Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
 
 ## Dokumenty i dane
 
-- **Dodawanie dokumentów.** Pracownik dodaje plik .md lub .txt w zakładce „Moja baza wiedzy” do bazy swojego działu, zarząd do dowolnego działu i do wspólnych. Dokument działa w wyszukiwaniu od razu i tylko dla działu, do którego trafił. Usunąć go może autor albo zarząd. Każde dodanie i usunięcie jest w dzienniku. Czat nie zapisuje się jako wiedza: dokument to świadoma czynność.
+- **Dodawanie dokumentów.** Pracownik dodaje plik .md lub .txt w zakładce „Moja baza wiedzy” do bazy swojego działu, zarząd do dowolnego działu i do wspólnych. Dokument jest od razu dostępny w wyszukiwaniu i tylko dla działu, do którego trafił. Usunąć go może autor albo zarząd. Każde dodanie i usunięcie jest w dzienniku. Rozmowy na czacie nie trafiają do bazy wiedzy; dodanie dokumentu jest świadomą decyzją pracownika.
 - **Szyfrowanie na dysku.** Gdy ustawiony jest `DATA_KEY`, wszystkie pliki w `data/` (sprawy, dziennik, liczniki, pamięć odpowiedzi, wgrane dokumenty) są zapisywane jako AES-256-GCM z losowym wektorem i znacznikiem integralności. Zapis atomowy, prawa 600.
 - **Kopie zapasowe.** `deploy/backup.sh --install` dodaje codzienną kopię zaszyfrowanych danych, przechowywaną 14 dni. Klucz nie jest częścią kopii.
 
@@ -146,7 +162,7 @@ Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona 
 | Opcja | Jak działa | Kiedy |
 |---|---|---|
 | Klucz API w zmiennej środowiskowej | klucz w `.env` na serwerze, prawa `600`, dostęp tylko dla procesu aplikacji; limit wydatków ustawiony w konsoli Anthropic jako drugi bezpiecznik | to demo: zwykły serwer VPS (Hetzner) nie wystawia tożsamości chmurowej |
-| Federacja tożsamości (Workload Identity Federation) | serwer nie przechowuje żadnego klucza; tożsamość nadana przez chmurę (konto usługi GCP, rola AWS, tożsamość Azure, GitHub Actions) wymienia się na token Anthropic ważny kilka minut i odnawiany automatycznie | wdrożenie u klienta w jego chmurze i CI: nie ma statycznego klucza do wycieku ani do ręcznej rotacji |
+| Federacja tożsamości (Workload Identity Federation) | serwer nie przechowuje żadnego klucza; tożsamość nadana przez chmurę (konto usługi GCP, rola AWS, tożsamość Azure, GitHub Actions) jest wymieniana na token Anthropic ważny kilka minut i odnawiany automatycznie | wdrożenie u klienta w jego chmurze i CI: nie ma statycznego klucza do wycieku ani do ręcznej rotacji |
 
 W obu wariantach klucz lub token nigdy nie trafia do przeglądarki ani do repozytorium.
 
@@ -155,12 +171,12 @@ W obu wariantach klucz lub token nigdy nie trafia do przeglądarki ani do repozy
 | W demo | W produkcji |
 |---|---|
 | hasła z hashem scrypt, sesja w ciasteczku HttpOnly, blokada konta, lista użytkowników w kodzie | SSO Microsoft Entra / Google Workspace, role z katalogu firmy, sesje w Redis |
-| wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia per dokument |
-| maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla polskiego, polityka per dział w konfiguracji |
+| wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia do poszczególnych dokumentów |
+| maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla polskiego, polityka dla każdego działu w konfiguracji |
 | akcje zapisują do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |
 | dane w plikach JSON zaszyfrowanych AES-256-GCM, klucz w `.env`, codzienna kopia na tym samym serwerze | PostgreSQL z szyfrowaniem, klucz w KMS, kopie poza serwerem (np. Hetzner Backup, S3 z wersjonowaniem) |
 | dokumenty .md/.txt dodawane w aplikacji do bazy działu | import PDF/DOCX, synchronizacja z SharePointem / Dyskiem Google, zatwierdzanie dokumentów przez kierownika |
-| logi w JSON | baza z retencją, alerty błędów (Telegram/Teams), panel kosztów per dział |
+| logi w JSON | baza z retencją, alerty błędów (Telegram/Teams), panel kosztów dla każdego działu |
 | jeden proces Node | serwer w UE, HTTPS, sekrety w sejfie, kopie zapasowe |
 
 ## Wdrożenie na VPS

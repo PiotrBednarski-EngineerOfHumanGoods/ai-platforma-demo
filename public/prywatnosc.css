@@ -1,0 +1,13 @@
+:root{--bg2:#FAFAFA;--fg1:#09090B;--fg2:#3F3F46;--fg3:#71717A;--stroke2:#E4E4E7;--brand:#18181B}
+@media (prefers-color-scheme:dark){:root{--bg2:#121214;--fg1:#FAFAFA;--fg2:#D4D4D8;--fg3:#A1A1AA;--stroke2:#2A2A2E;--brand:#FAFAFA}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg2);color:var(--fg1);font:15px/1.6 "Red Hat Text","Segoe UI",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:48px 20px 64px}
+h1{font-family:"Red Hat Display","Segoe UI",system-ui,sans-serif;font-size:26px;line-height:32px;margin:0 0 6px}
+h2{font-family:"Red Hat Display","Segoe UI",system-ui,sans-serif;font-size:17px;margin:32px 0 8px}
+p,li{color:var(--fg2)} .meta{color:var(--fg3);font-size:13px;margin:0 0 24px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 8px 8px 0;border-top:1px solid var(--stroke2)}
+th{width:34%;font-weight:600;color:var(--fg1)}
+a{color:var(--brand)}
+.back{display:inline-block;margin-top:32px}
