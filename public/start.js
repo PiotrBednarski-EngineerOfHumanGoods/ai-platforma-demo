@@ -106,7 +106,7 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
   if (matchMedia("(hover: hover)").matches) {
     const aim = smoothNeedle(needle), t0 = performance.now();
     el.addEventListener("pointermove", e => {
-      if (performance.now() - t0 > 6000) el.classList.add("real"); // pokazowy kursor znika, gdy użytkownik sam działa
+      if (performance.now() - t0 > 6800) el.classList.add("real"); // pokazowy kursor znika, gdy użytkownik sam działa
       const r = coin.getBoundingClientRect();
       aim(Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI + 45);
     });
