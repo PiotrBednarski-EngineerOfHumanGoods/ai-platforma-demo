@@ -1,0 +1,312 @@
+/* Postać z monetą nad stopką strony startowej („Znalazłeś już?”). Kliknięcie zabiera monetę, drugie oddaje. */
+.foot{position:relative}
+.znalazles{
+  --t: 10s;                   /* długość całego cyklu */
+  --size: .5;                 /* skala postaci */
+  --skin:#f1d3bf; --skin-sh:#ddb79f;
+  --blazer:#2a2a31; --blazer-hi:#383842;
+  --gold:#c8952a; --gold-hi:#f0cf6e;
+  position:absolute; right:0; bottom:calc(100% - 20px * var(--size)); z-index:50;
+  display:flex; align-items:flex-start; gap:4px;
+  pointer-events:none; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.znalazles .zn-bubble{
+  margin-top:calc(420px * var(--size) * .12);
+  background:#fff; color:#141418; font-weight:600; font-size:14px; white-space:nowrap; letter-spacing:.1px;
+  padding:9px 15px; border-radius:999px; position:relative;
+  box-shadow:0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.10);
+  animation:zn-bubble var(--t) infinite;
+}
+.znalazles .zn-bubble::after{content:"";position:absolute;right:-4px;top:50%;width:10px;height:10px;margin-top:-5px;
+  background:#fff;transform:rotate(45deg);border-radius:2px}
+.znalazles .slot{width:calc(200px * var(--size));height:calc(420px * var(--size));position:relative;
+  pointer-events:auto;cursor:pointer;overflow-x:clip;overflow-y:visible}
+.znalazles .stage{position:absolute;left:0;top:0;width:200px;height:420px;transform-origin:0 0;transform:scale(var(--size))}
+.znalazles .lean{position:absolute;inset:0;transform:rotate(5deg);transform-origin:91px 400px}
+.znalazles .figure{position:absolute;inset:0;transform-origin:50% 96%;animation:zn-squash var(--t) infinite}
+.znalazles svg{width:100%;height:100%;overflow:visible;display:block}
+
+.znalazles .s{stroke:#0e0e12;stroke-width:1.2;stroke-linejoin:round;stroke-linecap:round}
+.znalazles .skin.s,.znalazles .skin-sh.s{stroke:#c9a38a}
+.znalazles .skin{fill:var(--skin)} .znalazles .skin-sh{fill:var(--skin-sh)}
+.znalazles .blazer{fill:var(--blazer)} .znalazles .lapel{fill:var(--blazer-hi)}
+.znalazles .tee{fill:#111114} .znalazles .pants{fill:#1b1b21} .znalazles .boot{fill:#0b0b0d} .znalazles .beanie{fill:#16161a}
+/* Cartier CT0440: złote aviatory bez oprawek */
+.znalazles .lens{fill:rgba(255,236,200,.18);stroke:var(--gold);stroke-width:2.6}
+.znalazles .gold{stroke:var(--gold);stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.znalazles .stud{fill:var(--gold-hi);stroke:var(--gold);stroke-width:.8}
+.znalazles .glint{stroke:#fff;stroke-width:2;stroke-linecap:round;opacity:0;animation:zn-glint var(--t) infinite}
+.znalazles .eyes{animation:zn-look var(--t) infinite}
+.znalazles .angry-only{opacity:0}
+
+/* ręka rzucająca, z łokciem */
+.znalazles .upper{transform-box:view-box;transform-origin:62px 130px;animation:zn-upper var(--t) infinite}
+.znalazles .fore {transform-box:view-box;transform-origin:56px 182px;animation:zn-fore  var(--t) infinite}
+.znalazles .held{transform-box:fill-box;transform-origin:center;animation:zn-held var(--t) infinite}
+
+/* moneta w locie: przód = logo, tył = srebro */
+.znalazles .zn-coin{position:absolute;width:32px;height:32px;margin:-16px 0 0 -16px;left:28.25%;top:55.48%}
+.znalazles .zn-coin-y{width:100%;height:100%;perspective:260px;opacity:0;animation:zn-toss var(--t) infinite}
+.znalazles .zn-coin-flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:zn-flip var(--t) infinite linear}
+.zn-c-layer{position:absolute;inset:0;border-radius:50%}
+.zn-c-edge{background:repeating-conic-gradient(#8d9198 0 4deg,#c9ccd1 4deg 8deg)}
+.zn-c-edge.e1{transform:translateZ(-1px)} .zn-c-edge.e3{transform:translateZ(1px)}
+.zn-c-front{transform:translateZ(2px);backface-visibility:hidden;overflow:hidden;
+  background:#fff var(--coin-logo, none) center/86% no-repeat;box-shadow:inset 0 0 0 2.5px #9a9fa6}
+.zn-c-back{transform:rotateX(180deg) translateZ(2px);backface-visibility:hidden;
+  background:radial-gradient(circle at 35% 30%,#ffffff,#d7dade 38%,#9a9fa6 78%,#7d828a);
+  box-shadow:inset 0 0 0 2px #6f747b, inset 0 0 0 4px #e9ebee, inset 0 0 0 5px #9a9fa6}
+.zn-c-back::after{content:"";position:absolute;inset:30%;border-radius:50%;
+  box-shadow:inset 0 0 0 1.5px rgba(80,84,90,.45), 0 0 0 1px rgba(255,255,255,.7)}
+.zn-no-logo .zn-c-front::before{content:"LOGO";position:absolute;inset:0;display:grid;place-items:center;
+  font:800 9px/1 system-ui,sans-serif;color:#9a9fa6}
+.znalazles .held-text{display:none} .znalazles.zn-no-logo .held-text{display:block}
+
+/* zabrana moneta: leci za kursorem */
+.zn-stolen{position:fixed;left:0;top:0;width:34px;height:34px;margin:6px 0 0 10px;z-index:10000;
+  pointer-events:none;display:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.25))}
+.zn-stolen.on{display:block}
+.zn-stolen .zn-c-front{transform:none;animation:zn-wobble .9s ease-in-out infinite}
+
+/* ---------- wkurzony (moneta zabrana) ---------- */
+.znalazles.taken .upper{animation:zn-fist-u .32s ease-in-out infinite alternate}
+.znalazles.taken .fore{animation:zn-fist-f .32s ease-in-out infinite alternate}
+.znalazles.taken .held,.znalazles.taken .zn-coin-y{animation:none;opacity:0}
+.znalazles.taken .figure{animation:zn-stomp .32s ease-in-out infinite alternate}
+.znalazles.taken .eyes,.znalazles.taken .glint{animation:none}
+.znalazles.taken .angry-only{opacity:1}
+.znalazles.taken .calm-only{opacity:0}
+.znalazles.taken .anger{animation:zn-pulse .5s ease-in-out infinite alternate}
+.znalazles.taken .zn-bubble{animation:zn-shout .32s ease-in-out infinite alternate;color:#b3261e}
+.znalazles.taken .slot{cursor:grab}
+
+/* ---- oś czasu (10 s) ----
+   0.6–1.8 wyciąga monetę z kieszonki na piersi · 1.95–7.95 cztery podrzuty
+   7.95–8.35 pokazuje · 8.35–9.55 chowa z powrotem do kieszonki · reszta: odpoczynek */
+@keyframes zn-upper{
+  0.000%{transform:rotate(0deg)}
+  6.000%{transform:rotate(0deg)}
+  10.000%{transform:rotate(-18deg)}
+  13.000%{transform:rotate(-18deg)}
+  18.000%{transform:rotate(0deg)}
+  19.500%{transform:rotate(0deg)}
+  21.500%{transform:rotate(4deg)}
+  23.500%{transform:rotate(0deg)}
+  25.000%{transform:rotate(-6deg)}
+  27.500%{transform:rotate(0deg)}
+  32.000%{transform:rotate(0deg)}
+  33.000%{transform:rotate(3deg)}
+  34.500%{transform:rotate(0deg)}
+  36.500%{transform:rotate(4deg)}
+  38.500%{transform:rotate(0deg)}
+  40.000%{transform:rotate(-6deg)}
+  42.500%{transform:rotate(0deg)}
+  47.000%{transform:rotate(0deg)}
+  48.000%{transform:rotate(3deg)}
+  49.500%{transform:rotate(0deg)}
+  51.500%{transform:rotate(4deg)}
+  53.500%{transform:rotate(0deg)}
+  55.000%{transform:rotate(-6deg)}
+  57.500%{transform:rotate(0deg)}
+  62.000%{transform:rotate(0deg)}
+  63.000%{transform:rotate(3deg)}
+  64.500%{transform:rotate(0deg)}
+  66.500%{transform:rotate(4deg)}
+  68.500%{transform:rotate(0deg)}
+  70.000%{transform:rotate(-6deg)}
+  72.500%{transform:rotate(0deg)}
+  77.000%{transform:rotate(0deg)}
+  78.000%{transform:rotate(3deg)}
+  79.500%{transform:rotate(0deg)}
+  83.500%{transform:rotate(0deg)}
+  88.000%{transform:rotate(-18deg)}
+  91.000%{transform:rotate(-18deg)}
+  95.500%{transform:rotate(0deg)}
+  100.000%{transform:rotate(0deg)}
+}
+@keyframes zn-fore{
+  0.000%{transform:rotate(0deg)}
+  6.000%{transform:rotate(0deg)}
+  10.000%{transform:rotate(-100deg)}
+  13.000%{transform:rotate(-100deg)}
+  18.000%{transform:rotate(0deg)}
+  19.500%{transform:rotate(0deg)}
+  21.500%{transform:rotate(10deg)}
+  23.500%{transform:rotate(0deg)}
+  25.000%{transform:rotate(-28deg)}
+  27.500%{transform:rotate(0deg)}
+  32.000%{transform:rotate(0deg)}
+  33.000%{transform:rotate(9deg)}
+  34.500%{transform:rotate(0deg)}
+  36.500%{transform:rotate(10deg)}
+  38.500%{transform:rotate(0deg)}
+  40.000%{transform:rotate(-28deg)}
+  42.500%{transform:rotate(0deg)}
+  47.000%{transform:rotate(0deg)}
+  48.000%{transform:rotate(9deg)}
+  49.500%{transform:rotate(0deg)}
+  51.500%{transform:rotate(10deg)}
+  53.500%{transform:rotate(0deg)}
+  55.000%{transform:rotate(-28deg)}
+  57.500%{transform:rotate(0deg)}
+  62.000%{transform:rotate(0deg)}
+  63.000%{transform:rotate(9deg)}
+  64.500%{transform:rotate(0deg)}
+  66.500%{transform:rotate(10deg)}
+  68.500%{transform:rotate(0deg)}
+  70.000%{transform:rotate(-28deg)}
+  72.500%{transform:rotate(0deg)}
+  77.000%{transform:rotate(0deg)}
+  78.000%{transform:rotate(9deg)}
+  79.500%{transform:rotate(0deg)}
+  83.500%{transform:rotate(0deg)}
+  88.000%{transform:rotate(-100deg)}
+  91.000%{transform:rotate(-100deg)}
+  95.500%{transform:rotate(0deg)}
+  100.000%{transform:rotate(0deg)}
+}
+
+@keyframes zn-held{
+  0.000%{opacity:0;transform:scale(.2)}
+  10.300%{opacity:0;transform:scale(.2)}
+  13.000%{opacity:1;transform:scale(1)}
+  23.460%{opacity:1;transform:scale(1)}
+  23.500%{opacity:0;transform:scale(1)}
+  31.960%{opacity:0;transform:scale(1)}
+  32.000%{opacity:1;transform:scale(1)}
+  38.460%{opacity:1;transform:scale(1)}
+  38.500%{opacity:0;transform:scale(1)}
+  46.960%{opacity:0;transform:scale(1)}
+  47.000%{opacity:1;transform:scale(1)}
+  53.460%{opacity:1;transform:scale(1)}
+  53.500%{opacity:0;transform:scale(1)}
+  61.960%{opacity:0;transform:scale(1)}
+  62.000%{opacity:1;transform:scale(1)}
+  68.460%{opacity:1;transform:scale(1)}
+  68.500%{opacity:0;transform:scale(1)}
+  76.960%{opacity:0;transform:scale(1)}
+  77.000%{opacity:1;transform:scale(1)}
+  88.300%{opacity:1;transform:scale(1)}
+  90.800%{opacity:0;transform:scale(.2)}
+  100.000%{opacity:0;transform:scale(.2)}
+}
+@keyframes zn-toss{
+  0.000%{opacity:0;transform:translateY(0)}
+  23.460%{opacity:0;transform:translateY(0)}
+  23.500%{opacity:1;transform:translateY(0);animation-timing-function:cubic-bezier(.15,.65,.35,1)}
+  27.700%{opacity:1;transform:translateY(-190px);animation-timing-function:cubic-bezier(.65,0,.85,.35)}
+  31.960%{opacity:1;transform:translateY(0)}
+  32.000%{opacity:0;transform:translateY(0)}
+  38.460%{opacity:0;transform:translateY(0)}
+  38.500%{opacity:1;transform:translateY(0);animation-timing-function:cubic-bezier(.15,.65,.35,1)}
+  42.700%{opacity:1;transform:translateY(-190px);animation-timing-function:cubic-bezier(.65,0,.85,.35)}
+  46.960%{opacity:1;transform:translateY(0)}
+  47.000%{opacity:0;transform:translateY(0)}
+  53.460%{opacity:0;transform:translateY(0)}
+  53.500%{opacity:1;transform:translateY(0);animation-timing-function:cubic-bezier(.15,.65,.35,1)}
+  57.700%{opacity:1;transform:translateY(-190px);animation-timing-function:cubic-bezier(.65,0,.85,.35)}
+  61.960%{opacity:1;transform:translateY(0)}
+  62.000%{opacity:0;transform:translateY(0)}
+  68.460%{opacity:0;transform:translateY(0)}
+  68.500%{opacity:1;transform:translateY(0);animation-timing-function:cubic-bezier(.15,.65,.35,1)}
+  72.700%{opacity:1;transform:translateY(-190px);animation-timing-function:cubic-bezier(.65,0,.85,.35)}
+  76.960%{opacity:1;transform:translateY(0)}
+  77.000%{opacity:0;transform:translateY(0)}
+  100.000%{opacity:0;transform:translateY(0)}
+}
+@keyframes zn-flip{
+  0.000%{transform:rotateX(0deg)}
+  23.500%{transform:rotateX(0deg)}
+  31.960%{transform:rotateX(1080deg)}
+  38.500%{transform:rotateX(1080deg)}
+  46.960%{transform:rotateX(2160deg)}
+  53.500%{transform:rotateX(2160deg)}
+  61.960%{transform:rotateX(3240deg)}
+  68.500%{transform:rotateX(3240deg)}
+  76.960%{transform:rotateX(4320deg)}
+  100.000%{transform:rotateX(4320deg)}
+}
+@keyframes zn-squash{
+  0.000%{transform:scaleY(1)}
+  21.500%{transform:scaleY(.986)}
+  23.500%{transform:scaleY(1.01)}
+  25.500%{transform:scaleY(1)}
+  33.000%{transform:scaleY(.99)}
+  34.500%{transform:scaleY(1)}
+  36.500%{transform:scaleY(.986)}
+  38.500%{transform:scaleY(1.01)}
+  40.500%{transform:scaleY(1)}
+  48.000%{transform:scaleY(.99)}
+  49.500%{transform:scaleY(1)}
+  51.500%{transform:scaleY(.986)}
+  53.500%{transform:scaleY(1.01)}
+  55.500%{transform:scaleY(1)}
+  63.000%{transform:scaleY(.99)}
+  64.500%{transform:scaleY(1)}
+  66.500%{transform:scaleY(.986)}
+  68.500%{transform:scaleY(1.01)}
+  70.500%{transform:scaleY(1)}
+  78.000%{transform:scaleY(.99)}
+  79.500%{transform:scaleY(1)}
+  100.000%{transform:scaleY(1)}
+}
+@keyframes zn-look{
+  0.000%{transform:translate(0,0)}
+  8.000%{transform:translate(1.5px,1.5px)}
+  13.000%{transform:translate(1.5px,1.5px)}
+  18.000%{transform:translate(0,0)}
+  22.500%{transform:translate(0,0)}
+  25.500%{transform:translate(0,-2.5px)}
+  30.500%{transform:translate(0,-2.5px)}
+  33.500%{transform:translate(0,0)}
+  37.500%{transform:translate(0,0)}
+  40.500%{transform:translate(0,-2.5px)}
+  45.500%{transform:translate(0,-2.5px)}
+  48.500%{transform:translate(0,0)}
+  52.500%{transform:translate(0,0)}
+  55.500%{transform:translate(0,-2.5px)}
+  60.500%{transform:translate(0,-2.5px)}
+  63.500%{transform:translate(0,0)}
+  67.500%{transform:translate(0,0)}
+  70.500%{transform:translate(0,-2.5px)}
+  75.500%{transform:translate(0,-2.5px)}
+  78.500%{transform:translate(0,0)}
+  86.000%{transform:translate(1.5px,1.5px)}
+  91.000%{transform:translate(1.5px,1.5px)}
+  95.500%{transform:translate(0,0)}
+  100.000%{transform:translate(0,0)}
+}
+@keyframes zn-glint{
+  0.000%{opacity:0}
+  26.500%{opacity:0}
+  27.700%{opacity:.95}
+  28.900%{opacity:0}
+  41.500%{opacity:0}
+  42.700%{opacity:.95}
+  43.900%{opacity:0}
+  56.500%{opacity:0}
+  57.700%{opacity:.95}
+  58.900%{opacity:0}
+  71.500%{opacity:0}
+  72.700%{opacity:.95}
+  73.900%{opacity:0}
+  100.000%{opacity:0}
+}
+@keyframes zn-bubble{
+  0.000%{transform:translateY(0) scale(1)}
+  79.500%{transform:translateY(0) scale(1)}
+  81.500%{transform:translateY(-3px) scale(1.05)}
+  84.500%{transform:translateY(0) scale(1)}
+  100.000%{transform:translateY(0) scale(1)}
+}
+@keyframes zn-fist-u{from{transform:rotate(44deg)}to{transform:rotate(36deg)}}
+@keyframes zn-fist-f{from{transform:rotate(138deg)}to{transform:rotate(150deg)}}
+@keyframes zn-stomp{from{transform:translateY(0) scaleY(1)}to{transform:translateY(2px) scaleY(.985)}}
+@keyframes zn-pulse{from{transform:scale(.85)}to{transform:scale(1.1)}}
+@keyframes zn-shout{from{transform:translateX(0) rotate(0)}to{transform:translateX(-2px) rotate(-2deg)}}
+@keyframes zn-wobble{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+@media (prefers-reduced-motion: reduce){.znalazles *,.zn-stolen{animation:none!important}}
+@media (max-width:480px){.znalazles{--size:.4}.znalazles .zn-bubble{font-size:13px;padding:7px 11px}}
+
+.znalazles .anger{transform-box:fill-box;transform-origin:center}
+@media (max-width:600px){.foot{margin-top:180px}} /* telefon: miejsce nad stopką, żeby postać nie zasłaniała przycisków */
