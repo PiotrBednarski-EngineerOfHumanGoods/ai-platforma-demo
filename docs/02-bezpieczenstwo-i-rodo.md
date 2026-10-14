@@ -32,7 +32,7 @@ Klasyfikacja obejmuje całą rozmowę, nie tylko ostatnią wiadomość. Zatrzyma
 | Dane | Plik | Kto widzi | Retencja | Postać |
 |---|---|---|---|---|
 | zatwierdzone sprawy | `data/cases.json` | dział i zarząd | bez limitu | zaszyfrowane, z prawdziwymi danymi (to pamięć firmy) |
-| dziennik pytań i decyzji | `data/logs.json` | zarząd | ostatnie 500 wpisów | zaszyfrowane, treść pytań tylko po maskowaniu |
+| dziennik pytań i decyzji | `data/logs.json` | zarząd | ostatnie 5000 wpisów (`LOG_LIMIT`) | zaszyfrowane; domyślnie bez treści pytań, z `LOG_PROMPTS=1` pytania po maskowaniu |
 | dokumenty dodane w aplikacji | `data/docs.json` | dział, do którego trafiły | do usunięcia | zaszyfrowane |
 | pamięć odpowiedzi | `data/cache.json` | ten sam dział | 7 dni | zaszyfrowane, tylko pytania bez danych osobowych |
 | liczniki kosztów | `data/usage.json` | zarząd | bieżący i poprzedni miesiąc | zaszyfrowane |

@@ -20,7 +20,17 @@ test("zgłoszenie: e-mail przez Resend do opiekuna, treść HTML escapowana", as
   assert.equal(req.url, "https://api.resend.com/emails");
   assert.equal(req.headers.Authorization, "Bearer re_test");
   assert.deepEqual(req.body.to, ["dev@example.com"]);
-  assert.match(req.body.subject, /^\[Compax\] Problem: /);
+  assert.match(req.body.subject, /^\[Compax\] Problem Z-ABC123$/);
+  assert.equal(req.body.attachments, undefined, "zrzut ekranu nie wychodzi poza firmę");
   assert.ok(req.body.html.includes("&lt;b&gt;przycisk&lt;/b&gt;") && !req.body.html.includes("<b>przycisk"));
+  delete process.env.RESEND_API_KEY; delete process.env.FEEDBACK_TO;
+});
+
+test("zgłoszenie z danymi chronionymi: e-mail bez treści, zrzut tylko w panelu", async () => {
+  process.env.RESEND_API_KEY = "re_test"; process.env.FEEDBACK_TO = "dev@example.com";
+  let body;
+  await notifyFeedback({ ...item, text: "Klient ma PESEL 44051401458, proszę poprawić" }, { hasScreenshot: true, fetchImpl: async (url, opts) => { body = JSON.parse(opts.body); return { ok: true }; } });
+  assert.ok(!JSON.stringify(body).includes("44051401458"), "PESEL nie trafia do e-maila");
+  assert.ok(body.text.includes("w panelu zarządu"));
   delete process.env.RESEND_API_KEY; delete process.env.FEEDBACK_TO;
 });

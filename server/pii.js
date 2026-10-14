@@ -17,12 +17,20 @@ const RULES = [
   ["TELEFON", /\+48[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}\b/g], // przed PESEL: +48 i 9 cyfr to 11 cyfr
   ["PESEL",   /(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/g],
   ["NIP",     /\b\d{3}[- ]\d{3}[- ]\d{2}[- ]\d{2}\b|\bNIP[:\s]*\d{10}\b/gi],
-  ["TELEFON", /(?:\+48[\s-]?)?\b\d{3}[\s-]\d{3}[\s-]\d{3}\b|\b\d{9}\b/g],
+  ["NIP",     /\bNIP[:\s]*\d{3}[- ]?\d{2}[- ]?\d{2}[- ]?\d{3}\b/gi],
+  ["TELEFON", /(?:\+48[\s-]?)?\b\d{3}[\s.-]\d{3}[\s.-]\d{3}\b|\b\d{9}\b/g],
+  // stacjonarne i inne grupowania 9 cyfr: „22 123 45 67”, „600 12 34 56”, „58 123 45 67”
+  ["TELEFON", /(?<![\d+])(?:\d{2}[\s-]\d{3}[\s-]\d{2}[\s-]\d{2}|\d{3}[\s-]\d{2}[\s-]\d{2}[\s-]\d{2}|\d{2}[\s-]\d{2}[\s-]\d{2}[\s-]\d{3})(?![\d])/g],
+  // adres: ulica z numerem („ul. Długa 5/3”, „al. Jana Pawła II 12 m. 4”) i kod pocztowy z miejscowością („00-950 Warszawa”)
+  ["ADRES",   /(?<![\p{L}])(?:ul\.|ulica|ulicy|al\.|aleja|alei|os\.|osiedle|pl\.)\s*\p{Lu}[\p{L}.-]*(?:\s+[\p{Lu}IVX][\p{L}.-]*){0,3}\s+\d+[A-Za-z]?(?:\s*\/\s*\d+|\s*m\.\s*\d+)?/gu],
+  ["ADRES",   /(?<!\d)\d{2}-\d{3}\s+\p{Lu}\p{Ll}+(?:[\s-]\p{Lu}\p{Ll}+)?/gu],
   // imię z listy, także odmienione ("z Janem Kowalskim", "z Zofią Dąbrowską"), i nazwisko z wielkiej litery;
   // bez tytułu w dopasowaniu: "Pan Jan Kowalski" i "Jan Kowalski" to ta sama osoba = ten sam token
   ["OSOBA",   new RegExp(`(?<![\\p{L}])(?:${IMIONA.map(stem).join("|")})(?:a|ą|ę|y|i|ie|em|om|owi|u)?\\s+${NAZW}`, "gu")],
   // osoba spoza listy imion, ale po zwrocie grzecznościowym: "Pani Krystyna Nowak", "panem Nowakiem"
-  ["OSOBA",   new RegExp(`(?<=(?<![\\p{L}])(?:[Pp]an|[Pp]ani|[Pp]ana|[Pp]anu|[Pp]anem|[Pp]anią|p\\.)\\s)${NAZW}`, "gu")]
+  ["OSOBA",   new RegExp(`(?<=(?<![\\p{L}])(?:[Pp]an|[Pp]ani|[Pp]ana|[Pp]anu|[Pp]anem|[Pp]anią|p\\.)\\s)${NAZW}`, "gu")],
+  // nazwisko po typowej końcówce, także bez imienia z listy i odmienione: „Kowalskiego”, „Krystyna Wiśniewska”, „Jankowiczem”
+  ["OSOBA",   /(?<![\p{L}])(?!(?:Bank|Urząd|Urzędu|Sąd|Sądu|Szpital|Uniwersytet|Instytut|Związek|Teatr|Port|Dworzec|Rynek|Plac|Park|Most|Język|Kodeks|Polska|Polski|Morski|Morska)(?![\p{L}]))(?:\p{Lu}\p{Ll}{2,}\s+)?(?!(?:Polski|Polska|Polskie|Gdański|Gdańska|Morski|Morska|Śląski|Śląska|Warszawski|Warszawska|Krakowski|Krakowska|Pomorski|Pomorska)(?![\p{L}]))\p{Lu}\p{Ll}+(?:(?:sk|ck|dzk)(?:i|a|iego|iej|iemu|im|ą|ich)|(?:ow|ew)?icz(?:a|owi|em|u)?)(?![\p{L}])/gu]
 ];
 
 export function newState() { return { map: {}, counters: {} }; }

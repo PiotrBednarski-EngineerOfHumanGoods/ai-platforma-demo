@@ -10,9 +10,12 @@ if [ ! -f .env ]; then
 AI_PROVIDER=mock
 PORT=3000
 HOST=127.0.0.1
+DATA_KEY=$(openssl rand -hex 32)
+APP_MONTHLY_BUDGET_USD=3
 # ANTHROPIC_API_KEY=sk-ant-...   # ustaw limit wydatków w konsoli Anthropic zanim włączysz
-# MODEL=claude-sonnet-4-5
+# ALERT_WEBHOOK_URL=https://...  # powiadomienie o zatrzymanych danych chronionych (Teams, Slack, n8n)
 ENV
+  echo "Wygenerowano DATA_KEY: przepisz go do menedżera haseł (bez niego kopie są nieczytelne)." 
   chmod 600 .env
 fi
 

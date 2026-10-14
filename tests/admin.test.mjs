@@ -32,9 +32,18 @@ test("admin: usun bez --tak to tylko podgląd; z --tak usuwa wyłącznie sprawy 
   assert.equal(left[0].klient, "Bałtyk Market");
 });
 
+test("admin: szukaj dopasowuje całe słowo („Nowak” nie trafia w „Nowakowska”)", () => {
+  store.addCase({ dept: "biuro", klient: "Ewa Nowakowska", notatka: "zamówienie", when: new Date().toISOString() });
+  assert.match(admin(["szukaj", "Nowak"]).stdout, /sprawy:\s+0/);
+  assert.match(admin(["szukaj", "Nowakowska"]).stdout, /sprawy:\s+1/);
+});
+
 test("admin: nowy-klucz przeszyfrowuje dane; stary klucz przestaje działać, nowy czyta wszystko", () => {
+  store.setRole("anna", { dept: "ksiegowosc", role: "księgowy" }); store.setDeptCloud("obsluga", false); store.setFlags("marek", { web: true });
   const r = admin(["nowy-klucz"], { NEW_DATA_KEY: KEY2 });
   assert.equal(r.status, 0, r.stderr);
+  const check = spawnSync(process.execPath, ["--input-type=module", "-e", `const { store } = await import("./server/store.js"); console.log(JSON.stringify([store.roles(), store.deptCloud(), store.flags()]));`], { env: { ...process.env, DATA_DIR: DIR, DATA_KEY: KEY2 }, encoding: "utf8" });
+  assert.deepEqual(JSON.parse(check.stdout), [{ anna: { dept: "ksiegowosc", role: "księgowy" } }, { obsluga: false }, { marek: { web: true } }], "ustawienia panelu zarządu przetrwały zmianę klucza");
   assert.notEqual(admin(["szukaj", "Bałtyk"], { DATA_KEY: KEY1 }).status, 0, "stary klucz nie odszyfruje danych");
   const ok = admin(["szukaj", "Bałtyk"], { DATA_KEY: KEY2 });
   assert.equal(ok.status, 0, ok.stderr);

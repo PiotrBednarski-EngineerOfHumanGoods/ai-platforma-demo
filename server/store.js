@@ -12,6 +12,11 @@ fs.mkdirSync(DIR, { recursive: true });
 const f = n => path.join(DIR, n + ".json");
 const key = () => { const k = process.env.DATA_KEY; return k && /^[0-9a-f]{64}$/i.test(k) ? Buffer.from(k, "hex") : null; };
 const MAGIC = "ENC1:";
+// Dziennik: limit wpisów (najstarsze wypadają). 5000 wystarcza na kilka tygodni pracy firmy 30-osobowej; docelowo baza z retencją czasową.
+const LOG_LIMIT = Number(process.env.LOG_LIMIT || 5000);
+// Fail-fast: klucz podany w złym formacie albo wersja produkcyjna bez klucza = nie startujemy (zamiast cicho zapisywać jawny tekst)
+if (process.env.DATA_KEY && !/^[0-9a-f]{64}$/i.test(process.env.DATA_KEY)) throw new Error("DATA_KEY ma zły format: potrzebne 64 znaki szesnastkowe (openssl rand -hex 32)");
+if (process.env.NODE_ENV === "production" && !process.env.DATA_KEY && process.env.ALLOW_PLAINTEXT !== "1") throw new Error("Brak DATA_KEY w wersji produkcyjnej: dane nie byłyby szyfrowane. Ustaw DATA_KEY albo ALLOW_PLAINTEXT=1");
 function encrypt(text) {
   const k = key(); if (!k) return text;
   const iv = crypto.randomBytes(12), c = crypto.createCipheriv("aes-256-gcm", k, iv);
@@ -55,11 +60,12 @@ const month = () => new Date().toISOString().slice(0, 7);
 
 let pending = [];
 export const store = {
-  log(entry) { const l = read("logs"); l.push({ ts: new Date().toISOString(), ...entry }); write("logs", l.slice(-500)); },
+  log(entry) { const l = read("logs"); l.push({ ts: new Date().toISOString(), ...entry }); write("logs", l.slice(-LOG_LIMIT)); },
   logs() { return read("logs").slice().reverse().slice(0, 100); },
   // Zużycie w bieżącym miesiącu (do limitów chmury i panelu kosztów zarządu)
-  // Liczniki chmury w osobnym pliku, bo log jest obcinany do 500 wpisów i nie nadaje się do limitów miesięcznych
-  recordCloud(dept, cost) { const m = month(); const u = read("usage").filter(x => x.month >= m); let e = u.find(x => x.month === m && x.dept === dept); if (!e) u.push(e = { month: m, dept, calls: 0, cost: 0 }); e.calls++; e.cost += cost || 0; write("usage", u); },
+  // Liczniki chmury w osobnym pliku, bo log jest obcinany (LOG_LIMIT) i nie nadaje się do limitów miesięcznych
+  recordCloud(dept, cost) { const m = month(); const u = read("usage"); // historia kosztów z poprzednich miesięcy zostaje dla zarządu
+     let e = u.find(x => x.month === m && x.dept === dept); if (!e) u.push(e = { month: m, dept, calls: 0, cost: 0 }); e.calls++; e.cost += cost || 0; write("usage", u); },
   spentThisMonthUsd() { const m = month(); return read("usage").filter(x => x.month === m).reduce((s, x) => s + x.cost, 0); },
   // Pamięć podręczna odpowiedzi (pytania bez danych osobowych i bez akcji); klucz zawiera dział i wersję bazy wiedzy
   cacheGet(key) { const e = read("cache").find(x => x.key === key && x.exp > Date.now()); return e ? e.value : null; },
@@ -79,7 +85,8 @@ export const store = {
   },
   addPending(a) { const p = { ...a, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, status: "pending", at: new Date().toISOString() }; pending.push(p); return p; },
   pendingFor(user) { return pending.filter(p => p.userId === user.id); },
-  takePending(id, user) { const i = pending.findIndex(p => p.id === id && p.userId === user.id); if (i < 0) return null; return pending.splice(i, 1)[0]; },
+  // po przeniesieniu do innego działu stary wniosek nie zapisze się w cudzym dziale
+  takePending(id, user) { const i = pending.findIndex(p => p.id === id && p.userId === user.id && p.dept === user.dept); if (i < 0) return null; return pending.splice(i, 1)[0]; },
   // Dokumenty wgrane przez pracowników (baza wiedzy działu), zaszyfrowane jak reszta danych
   docs() { return read("docs"); },
   // uprawnienia ustawiane przez zarząd dla pojedynczych pracowników: { userId: { general, web } }
@@ -87,6 +94,7 @@ export const store = {
   setFlags(userId, patch) { const f = this.flags(); f[userId] = { ...(f[userId] || {}), ...patch }; write("flags", f); return f[userId]; },
   // dział i rola pracownika ustawione przez zarząd (nadpisują users.js) oraz chmura per dział (nadpisuje politykę domyślną)
   roles() { const r = read("roles"); return Array.isArray(r) ? {} : r; },
+  clearRole(userId) { const r = this.roles(); delete r[userId]; write("roles", r); },
   setRole(userId, patch) { const r = this.roles(); r[userId] = { ...(r[userId] || {}), ...patch }; write("roles", r); return r[userId]; },
   deptCloud() { const d = read("deptcloud"); return Array.isArray(d) ? {} : d; },
   setDeptCloud(dept, cloud) { const d = this.deptCloud(); d[dept] = cloud; write("deptcloud", d); return d; },

@@ -426,3 +426,4 @@ a.src.web{color:var(--fg2);text-decoration:underline;text-underline-offset:2px;w
 .sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--fg2)}
 .sw input{width:18px;height:18px;accent-color:var(--brand)}
 .sw input:disabled + span{color:var(--fg4)}
+@media (max-width:900px){#chat{padding-bottom:120px}#actions,#masked{padding-bottom:80px}} /* telefon: ostatnia wiadomość i karta wniosku nie chowają się pod polem wpisywania ani pod „Zgłoś” */

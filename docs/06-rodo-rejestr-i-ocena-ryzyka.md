@@ -17,7 +17,7 @@ Role: **administratorem** danych jest klient (Kriomar sp. z o.o.). **Podmiotem p
 | Odbiorcy | pracownicy działu, do którego należy sprawa; zarząd. Dostawca modelu AI otrzymuje wyłącznie tekst po maskowaniu |
 | Podmioty podprzetwarzające | Hetzner Online GmbH (serwer, centrum danych w UE); Anthropic (API modelu Claude: tylko tekst po maskowaniu, dane nie są używane do trenowania modeli) |
 | Przekazanie poza EOG | tylko do dostawcy modelu, tylko tekst po maskowaniu; na podstawie standardowych klauzul umownych z umowy powierzenia (DPA) dostawcy. Działy z danymi chronionymi (księgowość, zarząd) domyślnie nie korzystają z chmury |
-| Okres przechowywania | dziennik: ostatnie 500 wpisów; pamięć odpowiedzi: 7 dni; sprawy: do usunięcia przez administratora; sesja: 8 godzin; kopie zapasowe: 14 dni; rozmowa: tylko w przeglądarce, do odświeżenia strony |
+| Okres przechowywania | dziennik: ostatnie 5000 wpisów, domyślnie bez treści pytań; pamięć odpowiedzi: 7 dni; sprawy: do usunięcia przez administratora; sesja: 8 godzin; kopie zapasowe: 14 dni; rozmowa: tylko w przeglądarce, do odświeżenia strony |
 | Środki bezpieczeństwa | patrz niżej i [07-model-zagrozen.md](07-model-zagrozen.md) |
 
 ## Środki techniczne i organizacyjne (art. 32)
@@ -69,3 +69,14 @@ Wniosek: spełnione jest jedno kryterium z listy (nowe technologie), więc pełn
 ## AI Act
 
 Compax jest systemem ogólnego zastosowania wewnątrz firmy, nie systemem wysokiego ryzyka z załącznika III: nie ocenia pracowników, nie decyduje o zatrudnieniu ani o kredycie. Obowiązki, które spełniamy: przejrzystość (użytkownik wie, że rozmawia z AI, i widzi, co trafiło do modelu) oraz kompetencje w zakresie AI (art. 4), czyli krótkie szkolenie przy wdrożeniu (plan w [05-plan-wdrozenia.md](05-plan-wdrozenia.md)).
+
+## Uzupełnienia po audycie (docs/AUDYT-COMPAX.md)
+
+- **Zakres tego dokumentu.** Opis przedstawia środki techniczne wspierające zgodność z RODO. Ocena zgodności wymaga analizy umów z dostawcami (umowa powierzenia, transfer poza EOG: SCC/DPF, ocena transferu), DPIA i decyzji inspektora ochrony danych klienta.
+- **Pseudonimizacja, nie anonimizacja.** Etykiety typu „osoba 1” są odwracalne (mapa zostaje na serwerze), a kontekst może pozwolić ustalić tożsamość. Tekst wysyłany do dostawcy modelu nadal zawiera dane osobowe w rozumieniu art. 4 pkt 1.
+- **Odbiorcy i podmioty przetwarzające.** Poza dostawcą modelu (Anthropic): Resend (powiadomienia o zgłoszeniach, USA; bez treści z danymi chronionymi i bez zrzutów ekranu), opcjonalnie OpenAI, wyszukiwanie w internecie u dostawcy modelu, webhooki alertów i zgłoszeń (Teams, Slack, n8n) – każdy wymaga wpisu w rejestrze i umowy.
+- **Kwalifikacja danych.** PESEL (art. 87) i wynagrodzenia nie są danymi szczególnych kategorii z art. 9; system chroni je tak samo jak dane o zdrowiu, ale podstawa prawna jest inna.
+- **DPIA.** Zalecana: nowe technologie, monitorowanie pracy (dziennik pytań, jeśli włączony `LOG_PROMPTS`), możliwe dane o zdrowiu w dokumentach. Decyzję podejmuje IOD klienta.
+- **Prawnie uzasadniony interes (art. 6 ust. 1 lit. f)** wymaga udokumentowanego testu równowagi (LIA) przed wdrożeniem.
+- **Ryzyko resztkowe.** Wykrywanie danych działa na regułach: typowe zapisy są łapane, celowe obejście (np. zapis słowny) jest możliwe. Uzupełnieniem są zasady korzystania, szkolenie i docelowo model rozpoznawania danych osobowych dla języka polskiego.
+

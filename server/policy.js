@@ -55,24 +55,43 @@ export const appMonthlyBudgetUsd = () => Number(process.env.APP_MONTHLY_BUDGET_U
 import { luhn } from "./pii.js";
 // PESEL z poprawną cyfrą kontrolną: do sprawdzania numerów sklejonych z kilku wiadomości (bez fałszywych alarmów)
 const peselOk = d => { const w = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]; const s = w.reduce((a, x, i) => a + x * +d[i], 0); return (10 - s % 10) % 10 === +d[10]; };
+// Normalizacja przed regułami: cyfry pełnej szerokości i inne warianty Unicode -> ASCII (NFKC), znaki niewidoczne usunięte,
+// litera O/o i l/I wewnątrz ciągów cyfr -> 0/1 („44O514O1458”). Zapisu słownego („osiem pięć…”) reguły nie wyłapią: to ryzyko resztkowe.
+export function normalizeForRules(text) {
+  let t = String(text).normalize("NFKC").replace(/\p{Cf}/gu, "");
+  for (let i = 0; i < 2; i++) t = t.replace(/(?<=\d)[Oo](?=[\dOo])|(?<=[\dOo])[Oo](?=\d)/g, "0").replace(/(?<=\d)[lI](?=\d)/g, "1");
+  return t;
+}
+const HAS_PESEL_WORD = /pesel/i;
 const RESTRICTED = [
-  [/(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/, "PESEL"],
+  // PESEL: 11 cyfr z poprawną sumą kontrolną albo ze słowem „PESEL” obok; inaczej np. numer zamówienia nie jest blokowany
+  [s => (s.match(/(?<![\d+])\d{6}[\s-]?\d{5}(?!\d)/g) || []).some(m => peselOk(m.replace(/\D/g, "")) || HAS_PESEL_WORD.test(s)), "PESEL"],
   [/(?<![\dA-Z])(?:PL\s?)?\d{2}(?:[\s-]?\d{4}){6}(?!\d)/, "numer konta"],
   [/(?<![A-Z])[A-Z]{3}\s?\d{6}(?!\d)/, "dokument tożsamości"],
-  [/\b(diagnoz|chorob|zwolnieni\w* lekarsk|\bL4\b|ciąż|niepełnosprawn|leczeni|recept)/iu, "dane o zdrowiu"],
-  // wynagrodzenia tylko w kontekście osoby: "pensja Kowalskiego", "ile zarabia Anna"; nie "ile zarabiamy na serwisie"
-  [/([Ll]ist[aęy] płac|[Pp]ensj\p{L}*|[Ww]ynagrodzeni\p{L}*\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ])|[Zz]arabia\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ]))/u, "wynagrodzenia"],
-  [/\b(karta kredytow|\bCVV\b|hasło\s*[:=]|token\s*[:=])/iu, "dane uwierzytelniające"],
+  [/dow[oó]d\p{L}*\s*(?:osobist\p{L}*\s*)?(?:nr|numer)?\s*:?\s*[A-Za-z]{3}\s?\d{6}(?!\d)/iu, "dokument tożsamości"],
+  // zdrowie: także zwykłym językiem („choruje”, „w szpitalu”); „diagnoza usterki” czy „diagnostyka agregatu” to nie dane o zdrowiu
+  [/(diagnoz\p{L}*(?=[\s.,;:!?]|$)(?!\s+(?:usterk|awari|urządz|agregat|sprzęt|techn|system|instalac|pojazd|samochod|maszyn|sieci|serwer))|chorob|chor(?:uje|ował\p{L}*|a\s+na|y\s+na)\b|szpital|depresj|cukrzyc|nowotw|onkolog|psychiatr|zwolnieni\w* lekarsk|\bL4\b|ciąż|niepełnosprawn|leczeni|recept)/iu, "dane o zdrowiu"],
+  // wynagrodzenia tylko w kontekście osoby: "pensja Kowalskiego", "ile zarabia Anna", "ile zarabia nasz handlowiec"; nie "ile zarabiamy na serwisie"
+  [/([Ll]ist[aęy] płac|[Pp]ensj\p{L}*|[Ww]ynagrodzeni\p{L}*\s+(pracownik|[A-ZĄĆĘŁŃÓŚŹŻ])|[Zz]arabia\s+(pracownik|kolega|koleżanka|pan|pani|nasz\p{L}*|kierownik|handlowiec|księgow\p{L}*|[A-ZĄĆĘŁŃÓŚŹŻ]))/u, "wynagrodzenia"],
+  [/\b(karta kredytow|\bCVV\b|hasło\s*[:=]|hasło\s+(?:do\s+\p{L}+\s+)?(?:to|jest)\s+\S+|password\s*[:=]|token\s*[:=])/iu, "dane uwierzytelniające"],
   [s => (s.match(/(?<!\d)\d(?:[ -]?\d){12,18}(?!\d)/g) || []).some(luhn), "numer karty"]
 ];
 export function classify(message, piiCount) {
+  const text = normalizeForRules(message);
   const hit = (r, s) => typeof r === "function" ? r(s) : r.test(s);
-  const reasons = new Set(RESTRICTED.filter(([r]) => hit(r, message)).map(([, label]) => label));
+  const reasons = new Set(RESTRICTED.filter(([r]) => hit(r, text)).map(([, label]) => label));
   // numer rozbity na kilka wiadomości lub grup cyfr („8501” / „0112” / „345”): sklejamy cyfry i sprawdzamy sumy kontrolne
-  const joined = message.replace(/(\d)[\s\-\/.]+(?=\d)/g, "$1");
+  const joined = text.replace(/(\d)[\s\-\/.]+(?=\d)/g, "$1");
   if ((joined.match(/(?<!\d)\d{11}(?!\d)/g) || []).some(peselOk)) reasons.add("PESEL");
   if (/(?<![\dA-Z])(?:PL)?\d{26}(?!\d)/.test(joined)) reasons.add("numer konta");
   if ((joined.match(/(?<!\d)\d{13,19}(?!\d)/g) || []).some(luhn)) reasons.add("numer karty");
+  // części numeru przedzielone tekstem („pierwsza część: 440514”, „druga: 01458”): sąsiednie ciągi cyfr sklejone dają PESEL z sumą kontrolną
+  const runs = joined.match(/\d+/g) || [];
+  for (let i = 0; i + 1 < runs.length; i++) for (let j = i + 1; j < Math.min(runs.length, i + 4); j++) {
+    const d = runs.slice(i, j + 1).join("");
+    if (d.length === 11 && peselOk(d)) reasons.add("PESEL");
+    if (d.length > 11) break;
+  }
   return reasons.size ? { level: "restricted", reasons: [...reasons] } : classifyRest(piiCount);
 }
 function classifyRest(piiCount) {
@@ -119,7 +138,7 @@ export function tier(message, hits) {
 }
 // Nazwa modelu dla dostawcy i poziomu. Konfiguracja: ANTHROPIC_MODEL_CHEAP / ANTHROPIC_MODEL_STRONG (analogicznie OPENAI_),
 // OLLAMA_MODEL dla modelu w firmie; MODEL ustawia jeden model na sztywno dla wszystkich poziomów.
-const DEFAULT_MODELS = { anthropic: { cheap: "claude-haiku-5-5", strong: "claude-opus-5-5" }, openai: { cheap: "gpt-4o-mini", strong: "gpt-4o" } };
+const DEFAULT_MODELS = { anthropic: { cheap: "claude-haiku-5-5", strong: "claude-sonnet-5-5" }, openai: { cheap: "gpt-4o-mini", strong: "gpt-4o" } };
 export function modelFor(provider, tierName) {
   if (!provider || provider === "mock") return null;
   if (provider === "ollama") return process.env.OLLAMA_MODEL || process.env.MODEL || "llama3.1";

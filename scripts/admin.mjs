@@ -12,7 +12,8 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const DIR = process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
-const FILES = ["cases", "logs", "docs", "cache", "usage", "feedback"];
+// wszystkie pliki danych (także uprawnienia i ustawienia z panelu zarządu): stała lista pomijała nowe pliki
+const dataFiles = () => fs.existsSync(DIR) ? fs.readdirSync(DIR).filter(n => n.endsWith(".json")).map(n => n.slice(0, -5)) : [];
 const MAGIC = "ENC1:";
 const asKey = k => (k && /^[0-9a-f]{64}$/i.test(k) ? Buffer.from(k, "hex") : null);
 
@@ -36,7 +37,9 @@ const save = (n, v, key) => { const tmp = file(n) + ".tmp"; fs.writeFileSync(tmp
 const [cmd, phrase, ...rest] = process.argv.slice(2);
 const key = asKey(process.env.DATA_KEY);
 const norm = s => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const has = (entry, q) => norm(JSON.stringify(entry)).includes(norm(q));
+// całe słowo: „Nowak” nie trafia w „Nowakowska”
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const has = (entry, q) => new RegExp(`(?<![a-z0-9])${esc(norm(q))}(?![a-z0-9])`).test(norm(JSON.stringify(entry)));
 const fail = msg => { console.error(msg); process.exit(1); };
 
 if (!cmd || cmd === "pomoc") {
@@ -53,20 +56,21 @@ if (["szukaj", "eksport", "usun"].includes(cmd)) {
     console.log(`Fraza „${phrase}”:`);
     console.log(`  sprawy:    ${found.cases.length}`); found.cases.forEach(c => console.log(`    - ${c.when?.slice(0, 10)} ${c.dept}: ${c.klient} | ${c.notatka}`));
     console.log(`  dokumenty: ${found.docs.length}`); found.docs.forEach(d => console.log(`    - ${d.dept}/${d.file} (dodał: ${d.by})`));
-    console.log(`  dziennik:  ${found.logs.length} (dziennik zapisuje pytania po maskowaniu, więc zwykle 0)`);
-    console.log(`  zgłoszenia: ${found.feedback.length}`);
+    console.log(`  dziennik:  ${found.logs.length}`); found.logs.forEach(l => console.log(`    - ${l.ts?.slice(0, 16)} ${l.dept}: ${l.event || "pytanie"}`));
+    console.log(`  zgłoszenia: ${found.feedback.length}`); found.feedback.forEach(f => console.log(`    - ${f.id} ${f.ts?.slice(0, 10)}: ${String(f.text).slice(0, 60)}`));
     console.log("Pamięć odpowiedzi (cache) zawiera tylko pytania bez danych osobowych i wygasa po 7 dniach. Kopie zapasowe wygasają po 14 dniach.");
   } else if (cmd === "eksport") {
     const out = rest[0] || `eksport-${Date.now()}.json`;
-    fs.writeFileSync(out, JSON.stringify({ fraza: phrase, data: new Date().toISOString(), sprawy: found.cases, dokumenty: found.docs.map(d => ({ dzial: d.dept, plik: d.file, dodano: d.at })) }, null, 2), { mode: 0o600 });
-    console.log(`Zapisano ${found.cases.length} spraw i ${found.docs.length} dokumentów do ${out} (plik jawny: przekaż bezpiecznym kanałem i usuń).`);
+    fs.writeFileSync(out, JSON.stringify({ fraza: phrase, data: new Date().toISOString(), sprawy: found.cases, dziennik: found.logs, zgloszenia: found.feedback.map(({ screenshot, ...f }) => f), dokumenty: found.docs.map(d => ({ dzial: d.dept, plik: d.file, dodano: d.at })) }, null, 2), { mode: 0o600 });
+    console.log(`Zapisano ${found.cases.length} spraw, ${found.logs.length} wpisów dziennika, ${found.feedback.length} zgłoszeń i ${found.docs.length} dokumentów do ${out} (plik jawny: przekaż bezpiecznym kanałem i usuń).`);
   } else {
     const yes = rest.includes("--tak");
-    console.log(`${yes ? "Usuwam" : "Do usunięcia (podgląd, dodaj --tak, aby usunąć)"}: ${found.cases.length} spraw, ${found.logs.length} wpisów dziennika.`);
+    console.log(`${yes ? "Usuwam" : "Do usunięcia (podgląd, dodaj --tak, aby usunąć)"}: ${found.cases.length} spraw, ${found.logs.length} wpisów dziennika, ${found.feedback.length} zgłoszeń (ze zrzutami), wpisy pamięci odpowiedzi z tą frazą.`);
+    console.log("Kopie zapasowe wygasają po 14 dniach. Dane wysłane wcześniej do dostawcy modelu (po maskowaniu) usuwa się zgodnie z jego umową.");
     if (found.docs.length) console.log(`Uwaga: fraza występuje też w ${found.docs.length} dokumentach działu; dokumenty usuwa się w aplikacji, po decyzji właściciela procedury.`);
     if (yes) {
       for (const f of found.feedback) if (f.screenshot) { try { fs.unlinkSync(path.join(DIR, "blobs", f.screenshot.file)); } catch {} } // zrzuty ekranu usuwanych zgłoszeń
-      for (const n of ["cases", "logs", "feedback"]) { const all = load(n, key); if (all) save(n, all.filter(e => !has(e, phrase)), key); }
+      for (const n of ["cases", "logs", "feedback", "cache"]) { const all = load(n, key); if (all) save(n, all.filter(e => !has(e, phrase)), key); }
       console.log("Gotowe. Uruchom aplikację ponownie (pm2 start ai-demo).");
     }
   }
@@ -74,7 +78,7 @@ if (["szukaj", "eksport", "usun"].includes(cmd)) {
   const next = asKey(process.env.NEW_DATA_KEY);
   if (!next) fail("Ustaw NEW_DATA_KEY (64 znaki hex), np.: NEW_DATA_KEY=$(openssl rand -hex 32)");
   const plain = {};
-  for (const n of FILES) { const v = load(n, key); if (v !== null) plain[n] = v; } // najpierw odczyt wszystkiego starym kluczem: błąd przerywa przed zmianami
+  for (const n of dataFiles()) { const v = load(n, key); if (v !== null) plain[n] = v; } // najpierw odczyt wszystkiego starym kluczem: błąd przerywa przed zmianami
   for (const [n, v] of Object.entries(plain)) save(n, v, next);
   for (const [n, v] of Object.entries(plain)) if (JSON.stringify(load(n, next)) !== JSON.stringify(v)) fail(`Weryfikacja ${n}.json nie powiodła się. Przywróć kopię zapasową.`);
   // zrzuty ekranu ze zgłoszeń (data/blobs): ten sam schemat, odczyt starym kluczem, zapis nowym, weryfikacja

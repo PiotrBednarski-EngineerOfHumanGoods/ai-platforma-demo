@@ -1,5 +1,7 @@
 // W produkcji: SSO Microsoft Entra / Google Workspace. Tu: użytkownicy demo z hasłem.
-// login = identyfikator firmowy do formularza; passwordHash = scrypt z solą (server/security.js); hasła kont demo poza repozytorium.
+// login = identyfikator firmowy do formularza; passwordHash = scrypt z solą (server/security.js).
+// Hasła kont pokazowych są jawne na ekranie logowania. Na publicznym serwerze hasło każdego konta można podmienić
+// zmienną PASSWORD_HASH_<ID> w .env (np. PASSWORD_HASH_PREZES), żeby konto zarządu nie było dostępne dla każdego.
 export const DEPTS = {
   wspolne: "Dokumenty wspólne",
   sprzedaz: "Sprzedaż",
@@ -19,3 +21,4 @@ export const users = [
   { id: "tomasz", login: "t.kaczmarek", name: "Tomasz Kaczmarek",dept: "ksiegowosc", role: "księgowy",              passwordHash: "scrypt$e9ec54d5e487556efb13644b319e1e9a$73bc5332f82222f2ba5c5e5e97f6d21d698af7f2c067ee8c6d6f82866ea4df56" },
   { id: "prezes", login: "j.zielinski", name: "Jan Zieliński",   dept: "zarzad",     role: "prezes", passwordHash: "scrypt$91bbf552943a564004ad38a6086b30b7$e2776aee7999fffcd99cee3a6bbb53e34e0172226b8e5de39667f67eeb212c64" }
 ];
+for (const u of users) { const h = process.env[`PASSWORD_HASH_${u.id.toUpperCase()}`]; if (h && /^scrypt\$[0-9a-f]+\$[0-9a-f]+$/.test(h)) u.passwordHash = h; }

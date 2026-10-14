@@ -133,7 +133,8 @@ test("dziennik nie zawiera danych osobowych z pytań", async () => {
   const dump = JSON.stringify(logs);
   assert.ok(!dump.includes("600 123 456"), "numer telefonu nie może trafić do logu");
   assert.ok(!dump.includes("Jan Kowalski"), "nazwisko nie może trafić do logu");
-  assert.ok(dump.includes("[OSOBA_1]"));
+  assert.ok(dump.includes('"OSOBA"'), "dziennik zapisuje rodzaj zamaskowanych danych");
+  assert.ok(!dump.includes("prompt_masked"), "bez LOG_PROMPTS=1 dziennik nie zapisuje treści pytań");
 });
 
 test("dziennik: zatwierdzenie wniosku zapisuje tylko rodzaj akcji, bez danych osobowych z wniosku", async () => {

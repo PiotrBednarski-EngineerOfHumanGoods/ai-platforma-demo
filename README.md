@@ -20,7 +20,7 @@ Zamiast osobnego AI dla każdego działu jest **jeden asystent i jeden punkt dos
 Cztery zasady, na których opiera się całość:
 
 1. **Uprawnienia przed wyszukiwaniem.** Asystent szuka tylko w dokumentach działu pracownika i we wspólnych. Model nigdy nie dostaje dokumentu, którego pracownik nie mógłby otworzyć sam.
-2. **Dane osobowe nie wychodzą jawnie.** Nazwiska, telefony i e-maile są zamieniane na etykiety („osoba 1”) przed wysłaniem do modelu. PESEL, numer konta, numer karty, dane z dowodu, dane o zdrowiu i wynagrodzenia nie wychodzą z firmy wcale.
+2. **Dane osobowe nie wychodzą jawnie.** Rozpoznane nazwiska, telefony, e-maile i adresy są zamieniane na etykiety („osoba 1”) przed wysłaniem do modelu (to pseudonimizacja, nie anonimizacja). Pytania z rozpoznanymi danymi chronionymi (PESEL, numer konta, karta, dowód, zdrowie, wynagrodzenia, hasła) nie trafiają do chmury; fragmenty dokumentów z takimi danymi też nie. Wykrywanie działa na regułach: typowe zapisy łapie, celowe obejście jest możliwe (szczegóły i ryzyko resztkowe: [docs/AUDYT-COMPAX.md](docs/AUDYT-COMPAX.md)).
 3. **Człowiek decyduje.** Asystent tylko przygotowuje spotkanie, notatkę albo przypomnienie. Nic się nie dzieje bez „Zatwierdź”.
 4. **Zarząd widzi wszystko, co trzeba.** Kto pytał, dokąd trafiło pytanie, jakim modelem, ile kosztowało. Bez treści danych osobowych.
 
@@ -99,11 +99,27 @@ Model językowy potrafi napisać coś pewnym tonem, choć nie ma tego w żadnym 
 
 **Czego jeszcze nie ma (uczciwie):** testy w CI sprawdzają te mechanizmy w trybie pokazowym, bez prawdziwego modelu. Nie ma jeszcze automatycznej oceny trafności odpowiedzi prawdziwego modelu. Przed wdrożeniem u klienta przygotowałbym zestaw 30–50 pytań z każdego działu z oczekiwanym źródłem i odpowiedzią i uruchamiał go przy każdej zmianie modelu albo polecenia systemowego. Zgłoszenia „zła odpowiedź” od pracowników (przycisk „Zgłoś”) dopisywałbym do tego zestawu.
 
+## Audyt i poprawki (wersja 1.3.0)
+
+Przed oddaniem projekt przeszedł krytyczny audyt: architektura, bezpieczeństwo i RODO, AI, zgodność prezentacji z kodem, polszczyzna i ścieżki użytkownika w przeglądarce. Raport z dowodami, ocenami i listą poprawek: [docs/AUDYT-COMPAX.md](docs/AUDYT-COMPAX.md). Audyt wykonały wyspecjalizowane agenty AI, a najważniejsze ustalenia sprawdziłem w kodzie i lokalnie; to nie jest niezależny pentest ani opinia prawna.
+
+Co poprawiłem po audycie (każda poprawka z testem):
+- fragmenty dokumentów są sprawdzane przed wysyłką: dane o zdrowiu przy osobie, PESEL, pensje nie trafiają do chmury; fragmenty z działów bez chmury też nie (np. księgowość przy zapytaniu zarządu);
+- klasyfikacja obejmuje całą historię rozmowy, normalizuje zapis (cyfry Unicode, znaki niewidoczne, litera O zamiast zera) i skleja numer rozbity tekstem; mniej fałszywych alarmów („diagnoza usterki agregatu”, numery zamówień);
+- maskowanie: nazwiska po końcówce (także bez imienia z listy), telefony stacjonarne i 2-2-2, adresy, NIP 3-2-2-3;
+- zgłoszenia: e-mail bez zrzutu ekranu i bez treści z danymi chronionymi;
+- budżet: rezerwacja najdroższego przypadku, równoległe pytania nie przekraczają limitu;
+- zatwierdzone sprawy są w wiedzy działu (asystent je znajduje), terminy liczone od dzisiejszej daty, osoba w mianowniku, bez telefonu w temacie;
+- do modelu nie idzie imię i nazwisko pracownika; dziennik domyślnie bez treści pytań;
+- zmiana klucza szyfrowania obejmuje wszystkie pliki (także uprawnienia z panelu), wyszukiwanie RODO całym słowem i pełny eksport;
+- limity na pracownika zamiast na adres IP biura, limit czasu i ponowienie przy wywołaniach modelu, start bez klucza szyfrowania w produkcji zablokowany;
+- konto zarządu na publicznym demo z osobnym hasłem; odświeżenie strony nie wylogowuje; poprawki interfejsu na telefonie.
+
 ## Testy
 
 | Co | Ile | Jak uruchomić |
 |---|---|---|
-| Testy automatyczne | 51 | `npm test` |
+| Testy automatyczne | 64 | `npm test` |
 | Test dymny wszystkich funkcji na działającym serwerze (także z prawdziwym modelem Claude) | ponad 40 kroków | `npm run smoke`, `BASE_URL=https://compax.tech npm run smoke` |
 | CI: testy, `npm audit`, test dymny | przy każdym wypchnięciu zmian (push) | [GitHub Actions](.github/workflows/ci.yml) |
 | Aktualizacje zależności | co tydzień | Dependabot |
@@ -125,7 +141,7 @@ Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-za
 
 - **Rejestr czynności przetwarzania**, środki z art. 32, kwalifikacja DPIA, procedura postępowania w razie naruszenia i AI Act: [docs/06](docs/06-rodo-rejestr-i-ocena-ryzyka.md).
 - **Prawa osób jednym poleceniem:** `npm run admin -- szukaj | eksport | usun "Nazwisko"`.
-- **Minimalizacja:** do modelu idą tylko zamaskowane dane, dziennik nie zawiera danych osobowych, rozmowa nie jest zapisywana na serwerze.
+- **Minimalizacja:** do modelu idą tylko zamaskowane dane (bez imienia i nazwiska pracownika), dziennik domyślnie nie zapisuje treści pytań (tylko długość i rodzaje zamaskowanych danych; `LOG_PROMPTS=1` włącza zapis pytań po maskowaniu, np. w wersji pokazowej), rozmowa nie jest zapisywana na serwerze.
 - **Informacja dla pracowników:** strona [/prywatnosc](https://compax.tech/prywatnosc) w aplikacji.
 
 ## Webhooki i automatyzacje: gdzie są użyte
@@ -133,7 +149,7 @@ Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-za
 | Gdzie | Co się dzieje | Konfiguracja |
 |---|---|---|
 | Zatrzymane dane chronione | gdy ktoś wpisze PESEL albo numer konta, administrator dostaje powiadomienie (kto, dział, powód, bez treści) w Teams, na Slacku albo na Telegramie | `ALERT_WEBHOOK_URL` w `.env` ([policy.js](server/policy.js)) |
-| Przycisk „Zgłoś” | problem, pomysł albo pytanie pracownika idzie od razu do opiekuna: e-mailem przez Resend (ze zrzutem ekranu w załączniku) albo na webhook | `RESEND_API_KEY` + `FEEDBACK_TO` albo `FEEDBACK_WEBHOOK` ([feedback.js](server/feedback.js)) |
+| Przycisk „Zgłoś” | problem, pomysł albo pytanie pracownika idzie od razu do opiekuna: e-mailem przez Resend albo na webhook. Zrzut ekranu zostaje w panelu zarządu, a treść z danymi chronionymi nie wychodzi w powiadomieniu | `RESEND_API_KEY` + `FEEDBACK_TO` albo `FEEDBACK_WEBHOOK` ([feedback.js](server/feedback.js)) |
 | n8n | ten sam przepływ co w aplikacji jako workflow wywoływany webhookiem `POST /webhook/asystent`, z zapisem w Arkuszach Google i powiadomieniem na Telegramie; gotowy do importu, w demo nieuruchomiony | [n8n/](n8n/README.md) |
 | Brama AI | sama dobiera model do pytania, korzysta z pamięci odpowiedzi, pilnuje budżetu i po jego przekroczeniu przechodzi na tryb bez chmury | `APP_MONTHLY_BUDGET_USD`, `CLOUD_MONTHLY_LIMIT` |
 | Wdrożenie i serwer | wdrożenie jednym poleceniem (paczka przez SSH, restart pm2), certyfikaty HTTPS odnawiane automatycznie, kopie co noc przez cron, automatyczne poprawki bezpieczeństwa systemu | [deploy/](deploy/README.md) |

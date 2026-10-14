@@ -1,5 +1,19 @@
 # Zmiany
 
+## 1.3.0 – 2026-10-15
+
+Poprawki po audycie (docs/AUDYT-COMPAX.md), razem 64 testy.
+
+- Dane chronione: fragmenty dokumentów i cała historia rozmowy są klasyfikowane przed wysyłką do chmury; fragmenty z działów bez chmury nie wychodzą; normalizacja zapisu (Unicode, znaki niewidoczne, O zamiast 0), PESEL rozbity tekstem; mniej fałszywych alarmów.
+- Maskowanie: nazwiska po końcówce, telefony stacjonarne i 2-2-2, adresy, NIP 3-2-2-3.
+- Zgłoszenia: powiadomienie bez zrzutu ekranu i bez treści z danymi chronionymi.
+- Koszty: rezerwacja budżetu według najdroższego przypadku; domyślny mocny model to Sonnet.
+- Sprawy w wiedzy działu, data w poleceniu dla modelu, osoba w mianowniku, temat wniosku bez telefonu; bez nazwiska pracownika w zapytaniu do modelu.
+- Dziennik: 5000 wpisów, domyślnie bez treści pytań (`LOG_PROMPTS=1`), czytelne nazwy zdarzeń; historia kosztów z poprzednich miesięcy zachowana.
+- Administrator: zmiana klucza obejmuje wszystkie pliki, wyszukiwanie RODO całym słowem, pełny eksport, czyszczenie pamięci odpowiedzi.
+- Odporność: limit czasu i ponowienie wywołań modelu, limity na pracownika, fail-fast przy złym lub brakującym `DATA_KEY` w produkcji, domyślnie nasłuch tylko na localhost.
+- Interfejs: przywracanie sesji po odświeżeniu, blokada podwójnego „Zatwierdź”, informacja o braku chmury, poprawki na telefonie; konto zarządu na demo z osobnym hasłem (`PASSWORD_HASH_PREZES`).
+
 ## 1.2.1 – 2026-10-14
 
 - Ochrona przed zmyślonymi źródłami: numery [n], których model nie dostał, są usuwane z odpowiedzi i zapisywane w dzienniku (test w tests/grounding.test.mjs, razem 51 testów).

@@ -3,6 +3,7 @@
 // i od razu wysyłana do opiekuna systemu: e-mailem przez Resend (RESEND_API_KEY + FEEDBACK_TO)
 // albo na webhook (FEEDBACK_WEBHOOK). Bez konfiguracji zgłoszenie i tak trafia do panelu zarządu.
 import { mask } from "./pii.js";
+import { classify } from "./policy.js";
 
 export const FEEDBACK_TYPES = { problem: "Problem", pomysl: "Pomysł", pytanie: "Pytanie" };
 
@@ -38,10 +39,14 @@ export function parseScreenshot(dataUrl) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // Wysyłka do opiekuna. Zwraca kanał, którym poszło: "email" | "webhook" | null (tylko zapis).
-export async function notifyFeedback(item, { fetchImpl = fetch, attachment = null } = {}) {
+// Powiadomienie wychodzi poza firmę (Resend w USA, webhook), więc zrzut ekranu nigdy nie jest załączany (zostaje w panelu zarządu),
+// a treść, już zamaskowana, idzie tylko wtedy, gdy nie zawiera danych chronionych.
+export async function notifyFeedback(item, { fetchImpl = fetch, hasScreenshot = false } = {}) {
   const label = FEEDBACK_TYPES[item.type];
-  const subject = `[Compax] ${label}: ${item.text.replace(/\s+/g, " ").slice(0, 60)}`;
-  const lines = [`${label} od: ${item.userName} (${item.deptName})`, `Kiedy: ${new Date(item.ts).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" })}`, "", item.text, "",
+  const body = classify(item.text, 0).level === "restricted" ? "(treść zawiera dane chronione, jest dostępna tylko w panelu zarządu)" : item.text;
+  const subject = `[Compax] ${label} ${item.id}`;
+  const lines = [`${label} od: ${item.userName} (${item.deptName})`, `Kiedy: ${new Date(item.ts).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" })}`, "", body, "",
+    ...(hasScreenshot ? ["Zrzut ekranu: w panelu zarządu (Dziennik → Zgłoszenia pracowników)", ""] : []),
     ...Object.entries(item.context).map(([k, v]) => `${k}: ${v}`), "", `Numer zgłoszenia: ${item.id}`];
   try {
     if (process.env.RESEND_API_KEY && process.env.FEEDBACK_TO) {
@@ -52,15 +57,14 @@ export async function notifyFeedback(item, { fetchImpl = fetch, attachment = nul
           from: process.env.FEEDBACK_FROM || "Compax <onboarding@resend.dev>",
           to: process.env.FEEDBACK_TO.split(",").map(s => s.trim()),
           subject, text: lines.join("\n"),
-          ...(attachment ? { attachments: [{ filename: attachment.filename, content: attachment.buf.toString("base64") }] } : {}),
-          html: `<p><b>${esc(lines[0])}</b><br>${esc(lines[1])}</p><p style="white-space:pre-wrap">${esc(item.text)}</p><p style="color:#71717A">${lines.slice(5).map(esc).join("<br>")}</p>`
+          html: `<p><b>${esc(lines[0])}</b><br>${esc(lines[1])}</p><p style="white-space:pre-wrap">${esc(body)}</p><p style="color:#71717A">${lines.slice(5).map(esc).join("<br>")}</p>`
         })
       });
       if (r.ok) return "email";
       console.error("feedback email:", r.status);
     }
     if (process.env.FEEDBACK_WEBHOOK) {
-      const r = await fetchImpl(process.env.FEEDBACK_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, text: lines.join("\n") + (attachment ? "\n(zrzut ekranu w panelu zarządu)" : "") }) });
+      const r = await fetchImpl(process.env.FEEDBACK_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, text: lines.join("\n") }) });
       if (r.ok) return "webhook";
     }
   } catch (e) { console.error("feedback notify:", e.message); }

@@ -87,12 +87,14 @@ export function verifyPassword(password, stored) {
 }
 
 // Ogólny limit żądań per IP (okno przesuwane w pamięci procesu). Chroni klucz API i serwer przed zalaniem.
-export function rateLimit({ max, windowMs }) {
+export function rateLimit({ max, windowMs, keyOf = req => req.ip }) {
   const hits = new Map();
   return (req, res, next) => {
     const now = Date.now();
-    const list = (hits.get(req.ip) || []).filter(t => now - t < windowMs);
+    const k = keyOf(req);
+    const list = (hits.get(k) || []).filter(t => now - t < windowMs);
     if (list.length >= max) return res.status(429).json({ error: "Za dużo pytań w krótkim czasie. Spróbuj ponownie za minutę." });
-    list.push(now); hits.set(req.ip, list); next();
+    list.push(now); hits.set(k, list); next();
+    if (hits.size > 10000) for (const [key, l] of hits) if (!l.some(t => now - t < windowMs)) hits.delete(key); // sprzątanie pamięci
   };
 }

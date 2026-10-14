@@ -22,7 +22,7 @@ const ROOT = path.join(__dirname, "..");
 const PROVIDER = process.env.AI_PROVIDER || "mock";
 
 const app = express();
-app.set("trust proxy", 1); // za Caddy/Nginx: prawdziwe IP klienta dla limitu logowań
+app.set("trust proxy", process.env.TRUST_PROXY === "0" ? false : 1); // za Caddy/Nginx: prawdziwe IP klienta dla limitu logowań
 app.disable("x-powered-by");
 app.use(securityHeaders);
 app.use(requireCsrfHeader);
@@ -39,7 +39,11 @@ app.use(express.static(path.join(ROOT, "public"), { extensions: ["html"] }));
 // Baza wiedzy = dokumenty z folderu knowledge/ (administrator) + dokumenty wgrane w aplikacji (zaszyfrowane w data/)
 let KB = [], KB_VERSION = "";
 function reloadKnowledge() {
-  KB = [...loadKnowledge(path.join(ROOT, "knowledge")), ...store.docs().flatMap(d => chunksOf(d.dept, d.file, d.text, { uploaded: true, by: d.by }))];
+  // sprawy zatwierdzone przez pracowników też są wiedzą działu: asystent znajdzie notatkę o kliencie
+  const cases = store.cases(Object.keys(DEPTS));
+  const caseDocs = Object.entries(Object.groupBy(cases, c => c.dept)).flatMap(([dept, list]) =>
+    chunksOf(dept, "sprawy", list.map(c => `## Sprawa: ${c.klient || "klient"}\n${c.notatka || ""}${c.nastepny_krok ? `\nNastępny krok: ${c.nastepny_krok}` : ""}${c.termin ? `\nTermin: ${c.termin}` : ""}\nZapisano: ${String(c.when || "").slice(0, 10)}`).join("\n"), { cases: true }));
+  KB = [...loadKnowledge(path.join(ROOT, "knowledge")), ...store.docs().flatMap(d => chunksOf(d.dept, d.file, d.text, { uploaded: true, by: d.by })), ...caseDocs];
   KB_VERSION = crypto.createHash("sha1").update(KB.map(c => c.dept + c.file + c.text).join("\n")).digest("hex").slice(0, 12); // zmiana dokumentów = nowa pamięć podręczna
 }
 reloadKnowledge();
@@ -48,12 +52,25 @@ const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 const BUDGET_RESERVE_USD = Number(process.env.BUDGET_RESERVE_USD || 0.02); // górna granica kosztu jednego pytania
 const WEB_SEARCH_USD = Number(process.env.WEB_SEARCH_USD || 0.01); // cena jednego wyszukiwania (sprawdź aktualny cennik dostawcy)
 let inflightUsd = 0;
+const MAX_OUTPUT_TOKENS = 4096; // jak w providers.js
+// Dziennik: domyślnie bez treści pytań (tylko długość i rodzaje zamaskowanych danych). LOG_PROMPTS=1 zapisuje pytanie po maskowaniu,
+// np. w wersji pokazowej z fikcyjnymi danymi. Treść pytań pracowników to monitorowanie pracy: wymaga decyzji pracodawcy i informacji dla pracowników.
+const LOG_PROMPTS = process.env.LOG_PROMPTS === "1";
+// „Janem Kowalskim” -> „Jan Kowalski”, „Anną Nowak” -> „Anna Nowak”: proste końcówki narzędnika, wystarczają do nazw w sprawach
+const toNominative = s => String(s)
+  .replace(/(?<!\p{L})(\p{Lu}\p{Ll}+?)(sk|ck|dzk)im(?!\p{L})/gu, "$1$2i")   // Kowalskim -> Kowalski
+  .replace(/(?<!\p{L})(\p{Lu}\p{Ll}+?)(sk|ck|dzk)ą(?!\p{L})/gu, "$1$2a")    // Kowalską -> Kowalska
+  .replace(/(?<!\p{L})(\p{Lu}\p{Ll}{2,}?)em(?!\p{L})/gu, "$1")              // Janem -> Jan
+  .replace(/(?<!\p{L})(\p{Lu}\p{Ll}+?)ą(?!\p{L})/gu, "$1a")                 // Anną -> Anna
+  .trim();
+const stripContacts = s => String(s).replace(/\S+@\S+\.\S+/g, "").replace(/(?:tel\.?|telefon)?\s*\+?\d[\d\s-]{6,}\d/giu, "")
+  .replace(/\s*([,;])(\s*[,;])+/g, "$1").replace(/\s{2,}/g, " ").replace(/\s+([,.])/g, "$1").replace(/\s+(lub|albo|i)\s*$/u, "").trim();
 const cacheKey = (dept, provider, message) => crypto.createHash("sha1").update(`${dept}|${provider}|${message.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim()}|${KB_VERSION}`).digest("hex");
 console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.file)).size} plików`);
 
 // --- Sesje i logowanie (demo: hasło z hashem scrypt; w produkcji SSO Microsoft/Google) ---
 const sessions = createSessions({ ttlMs: 8 * 60 * 60 * 1000 });
-const loginLimiter = createLoginLimiter({ max: 10, windowMs: 15 * 60 * 1000 }); // na adres IP
+const loginLimiter = createLoginLimiter({ max: 30, windowMs: 15 * 60 * 1000 }); // na adres IP: wysoko, bo całe biuro wychodzi jednym adresem
 const accountLock = createLoginLimiter({ max: 5, windowMs: 15 * 60 * 1000 });   // na konto z danego adresu: blokada po 5 błędach
 // Dział i rola mogą być zmienione przez zarząd w panelu: czytane przy każdym żądaniu, więc zmiana działa od razu, bez ponownego logowania
 const effective = u => u && { ...u, ...(store.roles()[u.id] || {}) };
@@ -61,7 +78,7 @@ const people = () => users.map(effective);
 const auth = (req, res, next) => sessions.auth(req, res, () => { req.user = effective(users.find(u => u.id === req.user.id)); next(); });
 setDeptOverrides(() => store.deptCloud());
 const DUMMY_HASH = hashPassword(crypto.randomBytes(16).toString("hex"));
-const chatLimit = rateLimit({ max: 30, windowMs: 60 * 1000 }); // 30 pytań / min / IP: chroni klucz API i koszty
+const chatLimit = rateLimit({ max: 20, windowMs: 60 * 1000, keyOf: req => req.user?.id || req.ip }); // 20 pytań / min / pracownika: chroni klucz API i koszty
 function allowedDepts(user) {
   return user.dept === "zarzad" ? Object.keys(DEPTS) : ["wspolne", user.dept];
 }
@@ -92,6 +109,8 @@ app.post("/api/login", (req, res) => {
   const e = effective(u);
   res.json({ user: { id: e.id, name: e.name, dept: e.dept, role: e.role }, depts: allowedDepts(e), providers: allowedFor(e.dept).map(p => p.id), flags: store.flags()[e.id] || {} });
 });
+// Odświeżenie strony: ważna sesja przywraca widok bez ponownego logowania
+app.get("/api/me", auth, (req, res) => { const e = req.user; res.json({ user: { id: e.id, name: e.name, dept: e.dept, role: e.role }, depts: allowedDepts(e), providers: allowedFor(e.dept).map(p => p.id), flags: store.flags()[e.id] || {} }); });
 app.post("/api/logout", auth, (req, res) => { sessions.destroy(sessions.tokenFrom(req)); sessions.clearCookie(res); res.json({ ok: true }); });
 
 app.get("/api/knowledge", auth, (req, res) => {
@@ -113,6 +132,8 @@ app.post("/api/documents", auth, (req, res) => {
   if (Buffer.byteLength(content, "utf8") > MAX_DOC) return res.status(400).json({ error: "Plik może mieć najwyżej 200 kB." });
   const file = base + ".md";
   if (loadKnowledge(path.join(ROOT, "knowledge")).some(c => c.dept === dept && c.file === file)) return res.status(409).json({ error: "Dokument o tej nazwie jest już w bazie działu. Zmień nazwę pliku." });
+  const existing = store.docs().find(d => d.dept === dept && d.file === file);
+  if (existing && existing.by !== req.user.id && req.user.dept !== "zarzad") return res.status(409).json({ error: "Dokument o tej nazwie dodała inna osoba. Zmień nazwę pliku." });
   store.addDoc({ dept, file, text: content.replace(/\r\n/g, "\n"), by: req.user.id, at: new Date().toISOString() });
   reloadKnowledge();
   store.log({ userId: req.user.id, dept: req.user.dept, event: "doc_added", action: `${dept}/${file}` });
@@ -139,12 +160,12 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const depts = allowedDepts(user);
 
   // 1. Retrieval tylko z dokumentów, które użytkownik może widzieć
-  const hits = search(KB, message, depts, 4);
+  let hits = search(KB, message, depts, 4);
 
   // 2. Maskowanie danych osobowych PRZED wysłaniem do modelu
   const st = newState();
   const { masked } = mask(message, st);
-  const maskedHits = hits.map(h => ({ ...h, text: mask(h.text, st).masked }));
+  let maskedHits = hits.map(h => ({ ...h, text: mask(h.text, st).masked }));
   // historia rozmowy też idzie do modelu, więc maskujemy ją tym samym stanem (ta sama osoba = ten sam token)
   const maskedHistory = history.map(h => ({ role: h.role, content: mask(String(h.content ?? ""), st).masked }));
   const map = st.map;
@@ -153,10 +174,17 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
 
   // 3. Klasyfikacja i trasa: poziom wiadomości + polityka działu + wybór pracownika + limit chmury
   // kolejność chronologiczna: numer rozbity na kilka wiadomości skleja się we właściwym porządku
-  const policy = classify([...history.filter(h => h.role === "user").map(h => String(h.content ?? "")), message].join("\n"), piiInMessage);
+  // historię przysyła przeglądarka, więc sprawdzamy całą: wiadomości pracownika i odpowiedzi asystenta
+  const policy = classify([...history.map(h => String(h.content ?? "")), message].join("\n"), piiInMessage);
 
-  let trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() + inflightUsd });
+  // uprawnienia pracownika (ustawia zarząd): wiedza ogólna i wyszukiwanie w internecie, tylko przez model w chmurze
+  const flags = store.flags()[user.id] || {};
   const tierName = tier(message, hits);
+  // Rezerwacja budżetu na czas pytania: najdroższy możliwy przypadek (pełne max_tokens odpowiedzi + wyszukiwania),
+  // żeby równoległe pytania nie przekroczyły budżetu. Bez cennika: stała z BUDGET_RESERVE_USD.
+  const estIn = estimateTokens(message) + hits.reduce((s, h) => s + estimateTokens(h.text), 0) + history.reduce((s, h) => s + estimateTokens(h.content), 0) + 1500;
+  const reserveUsd = (costOf("anthropic", modelFor("anthropic", tierName), estIn, MAX_OUTPUT_TOKENS) ?? BUDGET_RESERVE_USD) + (flags.web ? 3 * WEB_SEARCH_USD : 0);
+  let trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() + inflightUsd + (appMonthlyBudgetUsd() > 0 ? reserveUsd : 0) });
   const model = modelFor(trip.provider, tierName);
   // Notatka o zamazaniu tylko wtedy, gdy coś faktycznie zamazano (w pytaniu, historii albo fragmentach)
   const maskedCount = Object.keys(map || {}).length;
@@ -175,17 +203,30 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
     });
   }
 
+  // 3c. Do chmury tylko fragmenty, które mogą tam trafić: z działów z włączoną chmurą i bez danych chronionych.
+  // Dokumenty też są sprawdzane, nie tylko pytanie: choroba czy pensja z dokumentu nie wychodzi do dostawcy.
+  if (trip.kind === "external") {
+    // w dokumentach zdrowie liczy się tylko przy konkretnej osobie: procedura „zwolnienie lekarskie trafia do kadr” może iść do chmury
+    const sensitive = (h, i) => { const r = classify(h.text, 0); if (r.level !== "restricted") return false;
+      return r.reasons.some(x => x !== "dane o zdrowiu") || /\[OSOBA_\d+\]/.test(maskedHits[i].text) || /(?<!\p{L})(pan|pani|pracownik\p{L}*|klient\p{L}*)\s+\p{Lu}/u.test(h.text); };
+    const keep = hits.map((h, i) => deptCloudAllowed(h.dept) && !sensitive(h, i));
+    const dropped = keep.filter(k => !k).length;
+    if (dropped) {
+      hits = hits.filter((_, i) => keep[i]); maskedHits = maskedHits.filter((_, i) => keep[i]);
+      policyOut.note += `; pominięto fragmenty, które nie mogą trafić do chmury: ${dropped}`;
+      policyOut.reasons = [...policyOut.reasons, "fragmenty dokumentów zostały w firmie"];
+    }
+  }
+
   // 3a. Najpierw to, co darmowe: to samo pytanie bez danych osobowych, ten sam dział i dostawca, nowa rozmowa
   const key = policy.level === "public" && history.length === 0 ? cacheKey(user.dept, trip.provider, message) : null;
   const cached = key ? store.cacheGet(key) : null;
   if (cached) {
     const out = { ...policyOut, route: "cache", note: "to samo pytanie padło już wcześniej; odpowiedź pochodzi z pamięci, bez udziału modelu" };
-    store.log({ userId: user.id, dept: user.dept, provider: cached.provider, policy: out, prompt_masked: masked, pii_found: 0, sources: cached.sourceIds, action: null, tokens_in: 0, tokens_out: 0, cost: 0, ms: Date.now() - t0 });
+    store.log({ userId: user.id, dept: user.dept, provider: cached.provider, policy: out, ...(LOG_PROMPTS ? { prompt_masked: masked } : { prompt_len: message.length }), pii_found: 0, sources: cached.sourceIds, action: null, tokens_in: 0, tokens_out: 0, cost: 0, ms: Date.now() - t0 });
     return res.json({ answer: cached.answer, sources: cached.sources, action: null, masked_preview: masked, pii_found: 0, policy: out, usage: { tokens_in: 0, tokens_out: 0, cost: 0 } });
   }
 
-  // uprawnienia pracownika (ustawia zarząd): wiedza ogólna i wyszukiwanie w internecie, tylko przez model w chmurze
-  const flags = store.flags()[user.id] || {};
   const useWeb = !!flags.web && trip.provider === "anthropic" && policy.level !== "restricted";
   const useGeneral = !!flags.general && trip.kind !== "mock";
   if (useWeb || useGeneral) policyOut.mode = useWeb ? "web" : "general";
@@ -201,14 +242,14 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   if (trip.provider === "mock") {
     out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
   } else {
-    const reserve = trip.kind === "external" ? BUDGET_RESERVE_USD : 0; // rezerwacja na czas pytania: równoległe pytania nie przekroczą budżetu
+    const reserve = trip.kind === "external" ? reserveUsd : 0; // rezerwacja na czas pytania: równoległe pytania nie przekroczą budżetu
     inflightUsd += reserve;
     try {
       out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS, model, { web: useWeb });
     } catch (e) { // błąd dostawcy: czytelny komunikat dla pracownika, szczegół tylko w logu serwera
       console.error("model error:", trip.provider, e.message);
       store.log({ userId: user.id, dept: user.dept, provider: trip.provider, event: "provider_error", policy: policyOut, ms: Date.now() - t0 });
-      return res.status(502).json({ error: `Model ${(PROVIDERS[trip.provider]?.label || trip.provider).replace(/\s*\(.*\)$/, "")} nie odpowiada. Spróbuj ponownie za chwilę albo wybierz inny model.` });
+      return res.status(502).json({ error: `${(PROVIDERS[trip.provider]?.label || trip.provider).replace(/\s*\(.*\)$/, "")} nie odpowiada. Spróbuj ponownie za chwilę albo wybierz inny model.` });
     } finally { inflightUsd -= reserve; }
   }
 
@@ -226,7 +267,9 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   }
   if (action) {
     const args = Object.fromEntries(Object.keys(def.args).map(k => [k, action.args[k] == null ? null : String(action.args[k]).slice(0, 300)]));
-    if (args.z_kim) args.z_kim = args.z_kim.replace(/^(?:z\s+)?(?:pan(?:em|a|u|ią|i)?|p\.)\s+/iu, ""); // „pan Janem” -> „Janem”
+    if (args.z_kim) args.z_kim = toNominative(args.z_kim.replace(/^(?:z\s+)?(?:pan(?:em|a|u|ią|i)?|p\.)\s+/iu, "")); // „pan Janem Kowalskim” -> „Jan Kowalski”
+    if (args.klient) args.klient = toNominative(args.klient);
+    for (const k of ["temat", "notatka"]) if (args[k]) args[k] = stripContacts(args[k]); // telefon i e-mail nie trafiają do spraw
     action = store.addPending({ tool: def.name, args, userId: user.id, dept: user.dept });
   }
 
@@ -240,7 +283,7 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   // 7. Log: co faktycznie poszło do modelu, którą trasą i ile kosztowało
   store.log({
     userId: user.id, dept: user.dept, provider: trip.provider, policy: policyOut,
-    prompt_masked: masked, pii_found: piiInMessage,
+    ...(LOG_PROMPTS ? { prompt_masked: masked } : { prompt_len: message.length, pii_types: [...new Set((masked.match(/\[([A-Z]+)_\d+\]/g) || []).map(t => t.slice(1).replace(/_\d+\]$/, "")))] }), pii_found: piiInMessage,
     sources: hits.map(h => `${h.dept}/${h.file}#${h.idx}`),
     action: action ? action.tool : null, tokens_in: tokensIn, tokens_out: tokensOut, cost, ms: Date.now() - t0,
     ...(policyOut.mode ? { mode: out.web?.length ? "web" : out.general ? "general" : "docs", web_searches: webSearches, web_sources: (out.web || []).map(w => w.url) } : {})
@@ -262,6 +305,7 @@ app.post("/api/actions/:id/approve", auth, (req, res) => {
   const a = store.takePending(req.params.id, req.user);
   if (!a) return res.status(404).json({ error: "Ten wniosek nie istnieje albo został już rozpatrzony." });
   const result = executeTool(a, store);
+  reloadKnowledge(); // asystent od razu „pamięta” nową sprawę
   store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_approved", action: a.tool }); // bez wyniku: zawiera dane osobowe z wniosku
   res.json({ ok: true, result });
 });
@@ -281,7 +325,7 @@ app.post("/api/feedback", auth, feedbackLimit, express.json({ limit: "4mb" }), s
   if (screenshot) { item.screenshot = { file: `${item.id}.${screenshot.ext}`, mime: screenshot.mime, size: screenshot.buf.length }; blobs.save(item.screenshot.file, screenshot.buf); }
   store.addFeedback(item);
   store.log({ userId: req.user.id, dept: req.user.dept, event: "feedback", action: FEEDBACK_TYPES[v.type] }); // dziennik: bez treści
-  const via = await notifyFeedback(item, { attachment: screenshot ? { filename: `zrzut-${item.id}.${screenshot.ext}`, buf: screenshot.buf } : null });
+  const via = await notifyFeedback(item, { hasScreenshot: !!screenshot });
   if (via) store.setFeedback(item.id, { via });
   res.json({ ok: true, id: item.id, via });
 }));
@@ -309,15 +353,18 @@ app.post("/api/admin/users/:id", auth, (req, res) => {
   if (typeof dept !== "string" || !Object.hasOwn(DEPTS, dept) || dept === "wspolne") return res.status(400).json({ error: "Wybierz dział z listy." });
   if (u.id === req.user.id) return res.status(400).json({ error: "Nie możesz zmienić własnego działu. Poproś o to inną osobę z zarządu." });
   if (u.dept === dept) return res.json({ ok: true, dept });
-  store.setRole(u.id, { dept, role: DEFAULT_ROLE[dept] });
-  store.log({ userId: req.user.id, dept: req.user.dept, event: "role_changed", action: `${u.id}: ${DEPTS[u.dept]} → ${DEPTS[dept]}` });
+  const base = users.find(x => x.id === u.id);
+  if (dept === base.dept) store.clearRole(u.id); // powrót do działu z konfiguracji: wraca też pierwotna rola
+  else store.setRole(u.id, { dept, role: DEFAULT_ROLE[dept] });
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "role_changed", action: `${u.name}: ${DEPTS[u.dept]} → ${DEPTS[dept]}` });
   res.json({ ok: true, dept });
 });
 // Zarząd włącza albo wyłącza chmurę (Claude po maskowaniu) dla całego działu; dane chronione i tak nigdy nie wychodzą
 app.get("/api/admin/depts", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   const ppl = people();
-  res.json(Object.keys(DEPTS).filter(d => d !== "wspolne").map(d => ({ dept: d, name: DEPTS[d], cloud: deptCloudAllowed(d), people: ppl.filter(u => u.dept === d).length })));
+  const cloudAvailable = availableProviders().some(p => p.kind === "external");
+  res.json(Object.keys(DEPTS).filter(d => d !== "wspolne").map(d => ({ dept: d, name: DEPTS[d], cloud: deptCloudAllowed(d), cloudAvailable, people: ppl.filter(u => u.dept === d).length })));
 });
 app.post("/api/admin/depts/:dept", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
@@ -355,7 +402,9 @@ app.get("/api/usage", auth, (req, res) => {
 // --- Prompt systemowy ---
 function systemPrompt(user, hits, { general = false, web = false } = {}) {
   const ctx = hits.map((h, i) => `[${i + 1}] (${h.dept}/${h.file})\n${h.text}`).join("\n\n");
-  return `Jesteś asystentem firmy Kriomar sp. z o.o. Rozmawiasz z: ${user.name}, dział: ${DEPTS[user.dept]}.
+  const today = new Date().toLocaleDateString("pl-PL", { weekday: "long", year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Europe/Warsaw" });
+  // bez imienia i nazwiska pracownika: do dostawcy idzie tylko dział i rola
+  return `Jesteś asystentem firmy Kriomar sp. z o.o. Rozmawiasz z pracownikiem działu ${DEPTS[user.dept]} (${user.role}). Dzisiaj jest ${today}; terminy typu „jutro” czy „we wtorek” zamieniaj na datę w formacie RRRR-MM-DD GG:MM.
 Odpowiadaj po polsku, krótko i konkretnie. Odpowiadaj WYŁĄCZNIE na podstawie fragmentów poniżej; cytuj numer źródła w nawiasie, np. [1].
 ${general || web
   ? `Jeśli fragmenty nie zawierają odpowiedzi, możesz odpowiedzieć z ${web ? "wyników wyszukiwania w internecie (narzędzie web_search)" : "wiedzy ogólnej"}; wtedy ustaw w JSON "general": true, nie cytuj [n] i zaznacz, że to nie są procedury firmy. Procedury firmy zawsze mają pierwszeństwo.`

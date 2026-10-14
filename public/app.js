@@ -12,7 +12,7 @@ const api = (p, o = {}) => fetch("/api" + p, { ...o, headers: { ...HDR, ...(o.he
 });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const hhmm = iso => (iso ? new Date(iso) : new Date()).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
-const TOK_NAMES = { OSOBA: "osoba", TELEFON: "telefon", EMAIL: "e-mail", NIP: "NIP", PESEL: "PESEL", KONTO: "nr konta", DOWOD: "dowód", KARTA: "karta" };
+const TOK_NAMES = { OSOBA: "osoba", TELEFON: "telefon", EMAIL: "e-mail", NIP: "NIP", PESEL: "PESEL", KONTO: "nr konta", DOWOD: "dowód", KARTA: "karta", ADRES: "adres" };
 const tokens = s => esc(s).replace(/\[([A-Z]+)_(\d+)\]/g, (_, k, n) => `<span class="tok">${TOK_NAMES[k] || k.toLowerCase()} ${n}</span>`);
 const tokTypes = s => [...new Set((String(s).match(/\[([A-Z]+)_\d+\]/g) || []).map(t => TOK_NAMES[t.slice(1, t.indexOf("_"))] || t))];
 const TITLES = { umow_spotkanie: "Umów spotkanie", zapisz_sprawe: "Zapisz sprawę", przypomnienie_platnosc: "Wyślij przypomnienie o płatności" };
@@ -21,7 +21,7 @@ const shortId = id => "W-" + String(id).slice(-5).toUpperCase();
 const isPhone = () => matchMedia("(max-width:900px)").matches;
 
 const EXAMPLES = {
-  sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek o 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Kiedy wysyłamy wezwanie do zapłaty? (pytanie z księgowości)"],
+  sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać bez zgody kierownika?", "Umów spotkanie z firmą Bałtyk Market we wtorek o 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Kiedy wysyłamy wezwanie do zapłaty?"],
   obsluga: ["Klient bez umowy zgłasza awarię – w jakim czasie przyjedziemy?", "Jakie mamy statusy zlecenia?", "Ile mamy czasu na odpowiedź na reklamację?", "Zapisz: Jan Kowalski tel. 600 123 456 zgłasza awarię chłodni w Sopocie"],
   biuro: ["Jak zarezerwować salę?", "Kiedy składa się zamówienia biurowe?", "Umów spotkanie z panią Martą Zielińską jutro o 12:00", "Jak rozliczyć delegację?"],
   ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz PESEL klienta do umowy: 90010112345 (dane chronione)", "Jaki rabat może dać handlowiec? (pytanie ze sprzedaży)"],
@@ -33,6 +33,9 @@ async function init() {
   meta = await fetch("/api/meta").then(r => r.json());
   $("#loginForm").onsubmit = e => { e.preventDefault(); login($("#login-id").value, $("#pw").value); };
   [...document.querySelectorAll("#accounts button")].forEach(b => b.onclick = () => { $("#login-id").value = b.dataset.login; $("#pw").value = b.dataset.pw; loginError(""); $("#loginBtn").focus(); });
+  // odświeżenie strony przy ważnej sesji: od razu do aplikacji, bez ponownego logowania
+  const me = await fetch("/api/me", { headers: HDR }).then(x => x.ok ? x.json() : null).catch(() => null);
+  if (me && me.user) return enterApp(me);
   if (matchMedia("(pointer:fine)").matches) $("#login-id").focus(); // na telefonie bez automatycznej klawiatury
 }
 function sessionExpired() {
@@ -53,6 +56,9 @@ async function login(id, password) {
   done();
   if (r.error) return loginError(r.error);
   $("#pw").value = "";
+  return enterApp(r);
+}
+async function enterApp(r) {
   user = r.user; history = []; user.flags = r.flags || {};
   meta = await fetch("/api/meta").then(x => x.json()).catch(() => meta); // po zalogowaniu: z listą pracowników (imiona w dzienniku)
   $("#login").hidden = true; $("#app").hidden = false;
@@ -138,14 +144,19 @@ async function refreshActions() {
     <div class="action-btns"><button class="btn btn-decide" data-a="${esc(a.id)}">Zatwierdź</button><button class="btn btn-secondary" data-r="${esc(a.id)}">Odrzuć</button></div>
   </article>`).join("");
   $$("[data-a]").forEach(b => b.onclick = async () => {
+    if (b.disabled) return;
+    b.closest(".action")?.querySelectorAll("button").forEach(x => x.disabled = true); // podwójne kliknięcie nie wyśle drugiego żądania
     const r = await api(`/actions/${b.dataset.a}/approve`, { method: "POST" });
+    if (r.error) { addMsg("ai", r.error, null, null, { scroll: false }); await refreshActions(); return; }
     setReqState(b.dataset.a, "is-ok", "Zatwierdzono");
-    addMsg("ai", r.result || r.error || "", null, null, { scroll: false });
+    addMsg("ai", r.result || "", null, null, { scroll: false });
     await refreshActions(); loadCases();
     $("#actions").insertAdjacentHTML("afterbegin", `<div class="result result-ok" role="status" tabindex="-1">${ICON.check}<span>${esc(r.result)}</span></div>`);
     ($("#actions .action [data-a]") || $("#actions .result"))?.focus();
   });
   $$("[data-r]").forEach(b => b.onclick = async () => {
+    if (b.disabled) return;
+    b.closest(".action")?.querySelectorAll("button").forEach(x => x.disabled = true);
     await api(`/actions/${b.dataset.r}/reject`, { method: "POST" });
     setReqState(b.dataset.r, "", "Odrzucono");
     addMsg("ai", "Odrzucono. Nic nie zostało wysłane ani zapisane.");
@@ -234,7 +245,7 @@ function renderCases() {
 async function loadPerm() {
   const [r, depts] = await Promise.all([api("/admin/flags"), api("/admin/depts")]); if (!Array.isArray(r)) return;
   if (Array.isArray(depts)) {
-    $("#deptRows").innerHTML = depts.map(d => `<tr><td data-label="Dział">${esc(d.name)}</td><td data-label="Osób">${d.people}</td><td data-label="Chmura"><label class="sw"><input type="checkbox" data-d="${esc(d.dept)}"${d.cloud ? " checked" : ""}><span>${d.cloud ? "Claude po maskowaniu" : "tylko model w firmie"}</span></label></td></tr>`).join("");
+    $("#deptRows").innerHTML = depts.map(d => `<tr><td data-label="Dział">${esc(d.name)}</td><td data-label="Osób">${d.people}</td><td data-label="Chmura"><label class="sw"><input type="checkbox" data-d="${esc(d.dept)}"${d.cloud ? " checked" : ""}${d.cloudAvailable === false ? " disabled" : ""}><span>${d.cloudAvailable === false ? "chmura niedostępna (brak klucza dostawcy)" : d.cloud ? "Claude po maskowaniu" : "tylko model w firmie"}</span></label></td></tr>`).join("");
     $$("#deptRows input").forEach(cb => cb.onchange = async () => {
       const res = await api(`/admin/depts/${cb.dataset.d}`, { method: "POST", body: JSON.stringify({ cloud: cb.checked }) });
       if (res.error) { cb.checked = !cb.checked; return; }
@@ -260,7 +271,7 @@ async function loadLogs() {
   const FB = { problem: "Problem", pomysl: "Pomysł", pytanie: "Pytanie" };
   $("#fb").hidden = !Array.isArray(fb) || !fb.length;
   if (Array.isArray(fb)) $("#fbList").innerHTML = fb.slice(0, 20).map(f => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(f.ts))}</span><div class="grow"><div class="li-title"><span class="badge${f.type === "problem" ? " badge-stop" : ""}">${esc(FB[f.type] || f.type)}</span> ${esc(f.userName || who(f.userId))}, ${esc(f.deptName || "")}</div><div class="li-sub">${esc(f.text)}</div></div></div><span class="li-sub">${esc(f.id)}${f.via === "email" ? " · wysłane e-mailem" : ""}${f.screenshot ? ` · <a href="/api/feedback/${esc(f.id)}/screenshot" target="_blank" rel="noopener">zrzut ekranu</a>` : ""}</span></li>`).join("");
-  const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
+  const who = id => id ? (meta.users.find(u => u.id === id) || { name: id }).name : "nieznany login";
   const prov = id => (meta.providers.find(p => p.id === id) || {}).label || id || "";
   const money = (u) => u.cloud ? (u.costKnown ? usd(u.cost) : "koszt nieznany, brak cennika") : "0 USD";
   const budgetHtml = usage.budgetUsd ? `<div><b>Budżet na chmurę</b><small>${usd(usage.spentUsd).replace(" USD", "")} z ${usage.budgetUsd} USD w tym miesiącu</small><small>po jego wyczerpaniu odpowiada model w firmie albo tryb pokazowy</small></div>` : "";
@@ -268,9 +279,9 @@ async function loadLogs() {
     ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} ${plural(u.queries, "pytanie", "pytania", "pytań")} w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.cached ? " · z pamięci: " + u.cached : ""}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} ${plural(u.tokens, "token", "tokeny", "tokenów")} · ${money(u)}</small></div>`).join("")
     : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`);
   $("#logs").innerHTML = r.map(l => {
-    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "flags_changed" ? "Zmiana uprawnień" : l.event === "role_changed" ? "Zmiana działu" : l.event === "citations_removed" ? "Usunięte zmyślone źródło" : l.event === "policy_changed" ? "Zmiana modeli działu" : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
+    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "flags_changed" ? "Zmiana uprawnień" : l.event === "role_changed" ? "Zmiana działu" : l.event === "citations_removed" ? "Usunięte zmyślone źródło" : l.event === "policy_changed" ? "Chmura dla działu" : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
     const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : l.policy.route === "cache" ? "z pamięci" : l.policy.route === "mock" ? "bez modelu" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
-    const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
+    const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : (l.prompt_masked != null ? tokens(l.prompt_masked) : `pytanie (${l.prompt_len || 0} znaków, treść nie jest zapisywana)`) + (l.pii_found ? `<br>zamaskowano: ${(l.pii_types ? l.pii_types.map(t => TOK_NAMES[t] || t.toLowerCase()) : tokTypes(l.prompt_masked)).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt nieznany" : l.cost.toFixed(4) + " USD") : ""}` : "";
     return `<tr><td class="mono" data-label="Czas">${esc(new Date(l.ts).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }))}</td><td data-label="Kto">${esc(who(l.userId))}</td><td data-label="Zdarzenie">${ev}</td><td class="mono" data-label="Model">${esc(l.event && l.event !== "blocked" ? "" : (l.policy?.model || prov(l.provider)))}${l.policy?.tier && l.policy.route !== "blocked" ? "<br>" + esc(TIER[l.policy.tier] || "") : ""}</td><td class="mono" data-label="Tokeny">${tok}</td><td class="mono" data-label="Szczegóły">${det}</td><td class="mono" data-label="Dokumenty">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
   }).join("") || `<tr><td colspan="7"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Pytania i decyzje pracowników pojawią się tutaj.</p></div></td></tr>`;
