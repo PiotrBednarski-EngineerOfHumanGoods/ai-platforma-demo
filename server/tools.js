@@ -21,7 +21,7 @@ export function executeTool(a, store) {
     return `Zapisano spotkanie: ${a.args.z_kim}, ${a.args.kiedy}. W pełnej wersji trafi też do kalendarza, a uczestnik dostanie zaproszenie e-mailem.`;
   }
   if (a.tool === "przypomnienie_platnosc") {
-    store.addCase({ dept: a.dept, klient: a.args.kontrahent, notatka: `Przypomnienie o płatności FV ${a.args.faktura} (${a.args.kwota})`, nastepny_krok: "Czekamy na wpłatę", termin: null, by: a.userId, when });
+    store.addCase({ dept: a.dept, klient: a.args.kontrahent, notatka: `Przypomnienie o płatności ${/^fv/i.test(String(a.args.faktura)) ? a.args.faktura : "FV " + a.args.faktura} (${a.args.kwota})`, nastepny_krok: "Czekamy na wpłatę", termin: null, by: a.userId, when });
     return `Przygotowano przypomnienie o płatności: ${a.args.kontrahent}. W pełnej wersji zostanie wysłane e-mailem i odnotowane w programie do faktur.`;
   }
   return "Nieznane narzędzie";

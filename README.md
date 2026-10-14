@@ -4,7 +4,7 @@
 
 **Demo na żywo:** https://compax.tech · logowanie: https://compax.tech/app (konta pokazowe na ekranie logowania)
 
-> **Pytanie:** firma ma kilka działów i chce dać pracownikom AI, ale działy mają różne dane i uprawnienia, a firma nie ma CRM. Jak to zrobić?
+> **Pytanie:** firma ma kilka działów i chce dać pracownikom AI, ale działy mają różne dane i uprawnienia, a firma nie ma systemu CRM. Jak to zrobić?
 
 ## Jak to rozwiązałem: jedna platforma dla wszystkich działów
 
@@ -17,10 +17,10 @@ Zamiast osobnego AI dla każdego działu jest **jeden asystent i jeden punkt dos
 | maskowanie danych osobowych i blokada danych chronionych | dozwolone modele (księgowość i zarząd: tylko model w firmie, bez chmury) |
 | dziennik, koszty i budżet dla zarządu | limit pytań do chmury |
 
-Cztery zasady, które trzymają całość:
+Cztery zasady, na których opiera się całość:
 
 1. **Uprawnienia przed wyszukiwaniem.** Asystent szuka tylko w dokumentach działu pracownika i we wspólnych. Model nigdy nie dostaje dokumentu, którego pracownik nie mógłby otworzyć sam.
-2. **Dane osobowe nie wychodzą jawnie.** Nazwiska, telefony i e-maile są zamieniane na etykiety („osoba 1”) przed wysłaniem do modelu. PESEL, numer konta, karta, dowód, zdrowie i wynagrodzenia nie wychodzą z firmy wcale.
+2. **Dane osobowe nie wychodzą jawnie.** Nazwiska, telefony i e-maile są zamieniane na etykiety („osoba 1”) przed wysłaniem do modelu. PESEL, numer konta, numer karty, dane z dowodu, dane o zdrowiu i wynagrodzenia nie wychodzą z firmy wcale.
 3. **Człowiek decyduje.** Asystent tylko przygotowuje spotkanie, notatkę albo przypomnienie. Nic się nie dzieje bez „Zatwierdź”.
 4. **Zarząd widzi wszystko, co trzeba.** Kto pytał, dokąd trafiło pytanie, jakim modelem, ile kosztowało. Bez treści danych osobowych.
 
@@ -34,31 +34,31 @@ Cztery zasady, które trzymają całość:
 | Księgowość | windykacja, korekty, płatności | przypomnienie o płatności | tylko model w firmie |
 | Zarząd | wszystko | wszystko + dziennik, koszty, uprawnienia | tylko model w firmie |
 
-## Firma nie ma CRM: sprawy prowadzi asystent
+## Firma nie ma systemu CRM: sprawy prowadzi asystent
 
-Nie trzeba kupować ani wdrażać CRM, żeby asystent pamiętał klientów. **Każdy zatwierdzony wniosek staje się sprawą**: spotkanie, notatka o kliencie albo przypomnienie o płatności, z klientem, terminem i następnym krokiem.
+Nie trzeba kupować ani wdrażać systemu CRM, żeby asystent pamiętał klientów. **Każdy zatwierdzony wniosek staje się sprawą**: spotkanie, notatka o kliencie albo przypomnienie o płatności, z klientem, terminem i następnym krokiem.
 
-- **Zakładka Sprawy:** dział widzi swoje sprawy, zarząd wszystkie. Filtrowanie po kliencie, rodzaju, dziale i dacie.
+- **Zakładka Sprawy:** dział widzi swoje sprawy, zarząd wszystkie. Filtrowanie według klienta, rodzaju, działu i daty.
 - **Bez przepisywania:** handlowiec pisze „umów spotkanie z firmą X we wtorek”, zatwierdza jednym kliknięciem i sprawa jest zapisana.
 - **Bezpiecznie:** sprawy są szyfrowane na dysku, a dane osoby można wyszukać, wyeksportować i usunąć jednym poleceniem (RODO).
-- **Na później:** gdy firma wdroży CRM albo kalendarz, wniosek po zatwierdzeniu trafi tam przez API, MCP albo n8n zamiast do lokalnej listy. Reszta aplikacji się nie zmienia.
+- **Na później:** gdy firma wdroży CRM albo kalendarz, wniosek po zatwierdzeniu trafi tam przez API, MCP albo n8n zamiast do lokalnej listy. Reszta aplikacji się nie zmieni.
 
 ## Jakich agentów używam?
 
-Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentów, którzy pracują równolegle. Każdy dostaje wąskie zadanie i zwraca uwagi z dowodami. Ja je weryfikuję, a każda poprawka błędu dostaje test.
+Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentów, którzy pracują równolegle. Każdy dostaje wąskie zadanie i zwraca uwagi z dowodami. Ja je weryfikuję, a do każdej poprawki błędu dopisuję test.
 
 | Agent | Zadanie | Wynik |
 |---|---|---|
 | Claude Code | główny agent: kod, testy, wdrożenia, prezentacja | cała aplikacja i infrastruktura |
 | 3 recenzentów kodu | bezpieczeństwo, jakość, UX | ponad 20 poprawek z testami |
-| specjalista UX mobilnego | iPhone SE, iPhone 14, Pixel 7, jasny i ciemny | 22 poprawki na telefonie |
-| pentester | przegląd pod kątem ataków | brak luk krytycznych i wysokich, 5 poprawek |
+| specjalista UX mobilnego | iPhone SE, iPhone 14, Pixel 7, tryb jasny i ciemny | 22 poprawki na telefonie |
+| pentester | przegląd pod kątem ataków | brak luk krytycznych i poważnych, 5 poprawek |
 
-Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległe agenty, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
+Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległa praca agentów, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z modelem Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty ekranu, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
 
 ## Czy role są dynamiczne?
 
-Tak. Zarząd w panelu „Dziennik” przenosi pracownika do innego działu i włącza albo wyłącza chmurę dla działu. Zmiana działa od następnego pytania, bez wdrożenia i bez ponownego logowania, i trafia do dziennika. Zarząd nie może zmienić własnego działu, więc nie odbierze sobie dostępu przez pomyłkę. Dane chronione nie wychodzą z firmy niezależnie od ustawień. W produkcji dział i rola przychodzą z katalogu firmy (Microsoft Entra albo Google Workspace) przez logowanie firmowe, a panel zostaje do wyjątków.
+Tak. Zarząd w panelu „Dziennik” przenosi pracownika do innego działu i włącza albo wyłącza dostęp do chmury dla działu. Zmiana działa od następnego pytania, bez wdrożenia i bez ponownego logowania, i trafia do dziennika. Zarząd nie może zmienić własnego działu, więc nie odbierze sobie dostępu przez pomyłkę. Dane chronione nie wychodzą z firmy niezależnie od ustawień. W wersji produkcyjnej dział i rola są pobierane z katalogu firmy (Microsoft Entra albo Google Workspace) przez logowanie firmowe, a panel służy do obsługi wyjątków.
 
 ## Gdzie trzymam klucze AI?
 
@@ -71,7 +71,7 @@ Klucz nigdy nie trafia do przeglądarki ani do repozytorium.
 
 ## Jak można wywołać AI inaczej niż przez API?
 
-Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmienia się tylko to, gdzie liczy model, a w aplikacji to jedna linia konfiguracji.
+Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmienia się tylko to, gdzie działa model, a w aplikacji to jedna linia konfiguracji.
 
 | Wariant | Koszt | Dane | Kiedy wybrać |
 |---|---|---|---|
@@ -80,33 +80,33 @@ Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik dział
 | **Chmura firmy** (Amazon Bedrock, Google Vertex AI w regionie UE) | w ramach umowy chmurowej | region UE, logowanie przez federację tożsamości, bez kluczy | firma już korzysta z AWS albo Google Cloud |
 | **API przez bramę** (to demo) | ok. 1 USD na 1000 pytań, twardy limit budżetu | tylko tekst po maskowaniu | własne zasady działów i pełny dziennik |
 
-**Rekomendacja: hybryda.** Dane chronione liczy model w firmie, resztę tani model w chmurze. Brama już to obsługuje.
+**Rekomendacja: hybryda.** Dane chronione obsługuje model w firmie, resztę tani model w chmurze. Brama już to obsługuje.
 
 ## Testy
 
 | Co | Ile | Jak uruchomić |
 |---|---|---|
 | Testy automatyczne | 50 | `npm test` |
-| Test dymny wszystkich funkcji na działającym serwerze (także z prawdziwym Claude) | ponad 40 kroków | `npm run smoke`, `BASE_URL=https://compax.tech npm run smoke` |
-| CI przy każdej zmianie: testy, `npm audit`, test dymny | przy każdym pushu | [GitHub Actions](.github/workflows/ci.yml) |
+| Test dymny wszystkich funkcji na działającym serwerze (także z prawdziwym modelem Claude) | ponad 40 kroków | `npm run smoke`, `BASE_URL=https://compax.tech npm run smoke` |
+| CI: testy, `npm audit`, test dymny | przy każdym wypchnięciu zmian (push) | [GitHub Actions](.github/workflows/ci.yml) |
 | Aktualizacje zależności | co tydzień | Dependabot |
 
 Testy obejmują: logowanie, sesje i blokadę konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), wykrywanie danych chronionych (także numery rozbite na kilka wiadomości i numery kart z sumą kontrolną), brak fałszywych alarmów, limity i budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, szyfrowanie na dysku, narzędzie administratora RODO, zgłoszenia ze zrzutem ekranu (odrzucenie plików udających obraz), uprawnienia ustawiane przez zarząd (także przeniesienie pracownika do innego działu i chmura dla działu, z ochroną przed odebraniem uprawnień samemu sobie) i wyszukiwanie w internecie.
 
 ## Bezpieczeństwo
 
-- **Logowanie:** hasła hashowane scryptem, blokada po 5 nieudanych próbach, ten sam komunikat dla złego hasła i nieznanego loginu, sesja w ciasteczku HttpOnly i SameSite=Strict.
-- **Przeglądarka:** restrykcyjne CSP bez wyjątków, ochrona CSRF, zero skryptów i czcionek z obcych serwerów, HSTS, Permissions-Policy.
+- **Logowanie:** hasła hashowane scryptem, blokada po 5 nieudanych próbach, ten sam komunikat dla błędnego hasła i nieznanego loginu, sesja w ciasteczku HttpOnly i SameSite=Strict.
+- **Przeglądarka:** restrykcyjne CSP bez wyjątków, ochrona CSRF, żadnych skryptów ani czcionek z obcych serwerów, HSTS, Permissions-Policy.
 - **Model:** dostaje tylko tekst po maskowaniu; wnioski, które proponuje, serwer sprawdza według działu (ochrona przed prompt injection).
-- **Dane na dysku:** szyfrowanie AES-256-GCM, kopia co noc, klucz poza kopią; uruchomienie ze złym kluczem nie nadpisze danych.
-- **Koszty:** limit pytań na minutę, limit chmury na dział i twardy budżet miesięczny.
+- **Dane na dysku:** szyfrowanie AES-256-GCM, kopia co noc, klucz poza kopią; uruchomienie z błędnym kluczem nie nadpisze danych.
+- **Koszty:** limit pytań na minutę, limit chmury na dział i nieprzekraczalny budżet miesięczny.
 - **Serwer w UE:** Hetzner w Niemczech, HTTPS, firewall, SSH tylko kluczem, aplikacja bez uprawnień administratora.
 
 Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-zagrozen.md). Zgłaszanie podatności: [SECURITY.md](SECURITY.md).
 
 ## RODO
 
-- **Rejestr czynności przetwarzania**, środki z art. 32, kwalifikacja DPIA, procedura naruszenia i AI Act: [docs/06](docs/06-rodo-rejestr-i-ocena-ryzyka.md).
+- **Rejestr czynności przetwarzania**, środki z art. 32, kwalifikacja DPIA, procedura postępowania w razie naruszenia i AI Act: [docs/06](docs/06-rodo-rejestr-i-ocena-ryzyka.md).
 - **Prawa osób jednym poleceniem:** `npm run admin -- szukaj | eksport | usun "Nazwisko"`.
 - **Minimalizacja:** do modelu idą tylko zamaskowane dane, dziennik nie zawiera danych osobowych, rozmowa nie jest zapisywana na serwerze.
 - **Informacja dla pracowników:** strona [/prywatnosc](https://compax.tech/prywatnosc) w aplikacji.
@@ -115,9 +115,9 @@ Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-za
 
 | Gdzie | Co się dzieje | Konfiguracja |
 |---|---|---|
-| Zatrzymane dane chronione | gdy ktoś wpisze PESEL albo numer konta, administrator dostaje powiadomienie (kto, dział, powód, bez treści) na Teams, Slack albo Telegram | `ALERT_WEBHOOK_URL` w `.env` ([policy.js](server/policy.js)) |
+| Zatrzymane dane chronione | gdy ktoś wpisze PESEL albo numer konta, administrator dostaje powiadomienie (kto, dział, powód, bez treści) w Teams, na Slacku albo na Telegramie | `ALERT_WEBHOOK_URL` w `.env` ([policy.js](server/policy.js)) |
 | Przycisk „Zgłoś” | problem, pomysł albo pytanie pracownika idzie od razu do opiekuna: e-mailem przez Resend (ze zrzutem ekranu w załączniku) albo na webhook | `RESEND_API_KEY` + `FEEDBACK_TO` albo `FEEDBACK_WEBHOOK` ([feedback.js](server/feedback.js)) |
-| n8n | ten sam przepływ co w aplikacji jako workflow wywoływany webhookiem `POST /webhook/asystent`, z logiem w Google Sheets i powiadomieniem na Telegram; gotowy do importu, w demo nieuruchomiony | [n8n/](n8n/README.md) |
+| n8n | ten sam przepływ co w aplikacji jako workflow wywoływany webhookiem `POST /webhook/asystent`, z zapisem w Arkuszach Google i powiadomieniem na Telegramie; gotowy do importu, w demo nieuruchomiony | [n8n/](n8n/README.md) |
 | Brama AI | sama dobiera model do pytania, korzysta z pamięci odpowiedzi, pilnuje budżetu i po jego przekroczeniu przechodzi na tryb bez chmury | `APP_MONTHLY_BUDGET_USD`, `CLOUD_MONTHLY_LIMIT` |
 | Wdrożenie i serwer | wdrożenie jednym poleceniem (paczka przez SSH, restart pm2), certyfikaty HTTPS odnawiane automatycznie, kopie co noc przez cron, automatyczne poprawki bezpieczeństwa systemu | [deploy/](deploy/README.md) |
 | GitHub | CI przy każdej zmianie, Dependabot co tydzień | [.github/](.github/workflows/ci.yml) |
@@ -125,27 +125,27 @@ Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-za
 ## Co jeszcze jest w aplikacji
 
 - **Dokumenty od pracowników:** dodawane w aplikacji do bazy działu, od razu dostępne w wyszukiwaniu.
-- **Uprawnienia od zarządu, zmieniane w panelu:** przeniesienie pracownika do innego działu (od razu widzi dokumenty, narzędzia i modele nowego działu, bez ponownego logowania), włączenie chmury dla całego działu oraz dla wybranych osób wiedza ogólna (odpowiedź spoza dokumentów, wyraźnie oznaczona) i wyszukiwanie w internecie (Claude, po maskowaniu, ze źródłami). Każda zmiana trafia do dziennika.
+- **Uprawnienia od zarządu, zmieniane w panelu:** przeniesienie pracownika do innego działu (od razu widzi dokumenty, narzędzia i modele nowego działu, bez ponownego logowania), włączenie dostępu do chmury dla całego działu oraz – dla wybranych osób – wiedzy ogólnej (odpowiedzi spoza dokumentów, wyraźnie oznaczonej) i wyszukiwania w internecie (Claude, po maskowaniu, ze źródłami). Każda zmiana trafia do dziennika.
 - **Wybór modelu:** pracownik wybiera spośród dozwolonych w dziale; GPT, Gemini, Mistral, Bielik i Ollama są pokazane jako gotowe do podłączenia.
 - **Panel „Co dostał model”:** pracownik widzi dokładnie, co wyszło do modelu.
-- **Telefon, tryb ciemny i dostępność:** poprawione po audycie na trzech telefonach.
+- **Wersja na telefon, tryb ciemny i dostępność:** poprawione po audycie na trzech telefonach.
 
 Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane są przykładowe. Działa prawdziwy model Claude z budżetem 3 USD miesięcznie.
 
 ## Czego brakuje do produkcji
 
-Demo działa na żywo, ale uczciwie: tego jeszcze nie ma i to bym zrobił przed wdrożeniem u klienta.
+Demo działa na żywo, ale – mówiąc uczciwie – tego jeszcze nie ma i to zrobiłbym przed wdrożeniem u klienta.
 
 | Brakuje | Dlaczego ważne | Plan |
 |---|---|---|
 | Logowanie firmowe (SSO z MFA) | konta lokalne i hasła to najsłabszy punkt | Microsoft Entra ID albo Google Workspace, role z katalogu firmy |
 | Podłączony model w firmie | księgowość i zarząd mają dziś tylko odpowiedzi z dokumentów | Ollama z Bielikiem na serwerze z kartą graficzną; integracja w bramie jest gotowa |
-| Druga warstwa wykrywania danych osobowych | reguły nie rozumieją kontekstu | Microsoft Presidio + model rozpoznawania nazw dla polskiego |
+| Druga warstwa wykrywania danych osobowych | reguły nie rozumieją kontekstu | Microsoft Presidio + model rozpoznawania nazw własnych dla języka polskiego |
 | Baza danych zamiast plików | jeden serwer, sesje w pamięci (restart wylogowuje) | PostgreSQL z szyfrowaniem, klucz w KMS, sesje w Redis |
 | Kopie poza serwerem i monitoring | dziś kopie leżą na tym samym serwerze | Storage Box, alerty o błędach, kosztach i dostępności |
 | Uruchomiony n8n | workflow jest tylko przygotowany | wpięcie zgłoszeń i alertów do istniejących kanałów firmy |
 | Wysyłka e-maili ze zgłoszeń | wymaga klucza Resend | dodanie klucza i zweryfikowanej domeny nadawcy |
-| Testy z prawdziwymi użytkownikami | demo sprawdzali agenci i testy automatyczne | pilotaż w jednym dziale, pomiar przed i po ([plan](docs/05-plan-wdrozenia.md)) |
+| Testy z prawdziwymi użytkownikami | demo sprawdzali agenci i testy automatyczne | pilotaż w jednym dziale, pomiar przed wdrożeniem i po nim ([plan](docs/05-plan-wdrozenia.md)) |
 
 ## Dokumentacja dla klienta
 
@@ -178,13 +178,13 @@ Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
 
 | Login | Osoba | Dział | Co sprawdzić |
 |---|---|---|---|
-| `a.lis` | Anna Lis | sprzedaż | pytanie o rabat (Claude, ze źródłem), spotkanie z zamaskowanym nazwiskiem i zatwierdzeniem |
+| `a.lis` | Anna Lis | sprzedaż | pytanie o rabat (Claude, ze źródłem), wniosek o spotkanie z zamaskowanym nazwiskiem i jego zatwierdzenie |
 | `m.wojcik` | Marek Wójcik | obsługa klienta | czas reakcji na awarię, reklamacje |
 | `e.nowak` | Ewa Nowak | biuro | rezerwacja sali, delegacje |
 | `t.kaczmarek` | Tomasz Kaczmarek | księgowość | windykacja; nic nie wychodzi do chmury, PESEL zatrzymany |
 | `j.zielinski` | Jan Zieliński | zarząd | zakładka Dziennik: trasa, model i koszt każdego pytania, budżet miesiąca, zgłoszenia pracowników |
 
-Hasła kont demo są wypisane na ekranie logowania (rozwijana lista „Konta demo”), bo firma i dane są fikcyjne. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W produkcji logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
+Hasła kont demo są wypisane na ekranie logowania (rozwijana lista „Konta demo”), bo firma i dane są fikcyjne. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: uruchom `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W wersji produkcyjnej logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
 
 ## Warianty dostawcy AI
 
@@ -205,7 +205,7 @@ Zmiana dostawcy nie wymaga zmian w kodzie agentów – na tym polega rola bramy 
 server/app.js        – API i przepływ: uprawnienia → wyszukiwanie → maskowanie → klasyfikacja → pamięć → trasa → model → odmaskowanie → walidacja akcji → log
 server/index.js      – uruchomienie serwera
 server/providers.js  – brama AI (mock / anthropic / openai / ollama)
-server/knowledge.js  – baza wiedzy: cięcie na fragmenty + wyszukiwanie (BM25-podobne, bez zależności)
+server/knowledge.js  – baza wiedzy: cięcie na fragmenty + wyszukiwanie (podobne do BM25, bez zależności)
 server/pii.js        – maskowanie / odmaskowanie danych osobowych
 server/tools.js      – narzędzia agenta i ich wykonanie po zatwierdzeniu
 server/store.js      – sprawy, logi, liczniki chmury, pamięć odpowiedzi (JSON w data/, zapis atomowy); kolejka wniosków w pamięci procesu
@@ -218,7 +218,7 @@ public/app.html      – aplikacja: logowanie, czat, sprawy z filtrami, dokument
 public/prywatnosc.html – informacja o przetwarzaniu danych i zasady korzystania
 server/feedback.js   – zgłoszenia „Zgłoś”: walidacja, zrzut ekranu, e-mail (Resend) albo webhook
 scripts/admin.mjs    – narzędzie administratora: RODO (szukaj, eksport, usuń) i zmiana klucza szyfrowania
-tests/               – testy automatyczne (npm test) i test dymny działającej instalacji (npm run smoke)
+tests/               – testy automatyczne (npm test) i test dymny na działającym serwerze (npm run smoke)
 skills/              – przykładowy skill dla Claude Code: checklista bezpieczeństwa wdrożenia AI
 ```
 
@@ -238,8 +238,8 @@ sequenceDiagram
         C-->>P: Nie wysłano, nic nie wychodzi z firmy
     else jawne lub wewnętrzne
         C->>M: Tekst z etykietami „osoba 1”, „telefon 1”
-        M-->>C: Odpowiedź + propozycja akcji
-        Note over C: Przywraca dane, sprawdza akcję według działu
+        M-->>C: Odpowiedź + propozycja wniosku
+        Note over C: Przywraca dane, sprawdza wniosek według działu
         C-->>P: Odpowiedź ze źródłem, wniosek czeka na „Zatwierdź”
     end
     Note over C: Dziennik: kto, dokąd, jakim modelem, ile kosztowało
@@ -252,21 +252,21 @@ Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), pote
 | Element | Jak działa | Konfiguracja |
 |---|---|---|
 | Dostawcy | mock (demo), ollama (lokalny), anthropic, openai; dostępne są te, do których są klucze lub adresy | `AI_PROVIDER`, `OLLAMA_URL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` |
-| Polityka działu | administrator ustala, jakich dostawców dział może używać; pracownik wybiera w nagłówku tylko spośród nich. Domyślnie księgowość i zarząd: tylko serwer firmy | `DEPT_POLICY_JSON` + panel zarządu (chmura per dział) |
-| Klasyfikacja | jawne / wewnętrzne (dane osobowe, zamaskowane) / chronione (PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające) | reguły w `policy.js` (produkcja: Presidio/NER) |
-| Trasa | chronione: wyłącznie model lokalny, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
-| Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model lokalny albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |
-| Dobór modelu | proste pytanie i prośba o akcję idą do taniego modelu, analiza (porównaj, podsumuj, raport, długie pytanie) do mocnego; pytanie bez trafień w dokumentach nie idzie do modelu w ogóle; pracownik wybiera dostawcę, poziom dobiera brama | `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG` |
-| Pamięć odpowiedzi | pytanie bez danych osobowych i bez akcji, na które już odpowiedziano z tych samych dokumentów, jest zwracane z pamięci bez kosztu; klucz zawiera dział i wersję dokumentów, ważność 7 dni | automatycznie |
-| Koszty | tokeny z odpowiedzi dostawcy i koszt z cennika w logu każdego zapytania; zarząd widzi sumy w podziale na działy i budżet w bieżącym miesiącu | `PRICING_JSON`, `APP_MONTHLY_BUDGET_USD` |
+| Polityka działu | administrator ustala, jakich dostawców dział może używać; pracownik wybiera w nagłówku tylko spośród nich. Domyślnie księgowość i zarząd: tylko model w firmie | `DEPT_POLICY_JSON` + panel zarządu (chmura dla każdego działu) |
+| Klasyfikacja | jawne / wewnętrzne (dane osobowe, zamaskowane) / chronione (PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające) | reguły w `policy.js` (w wersji produkcyjnej: Presidio/NER) |
+| Trasa | chronione: wyłącznie model w firmie, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
+| Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model w firmie albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |
+| Dobór modelu | proste pytanie i prośba o przygotowanie wniosku trafiają do taniego modelu, analiza (porównaj, podsumuj, raport, długie pytanie) do mocnego; pytanie bez trafień w dokumentach nie idzie do modelu w ogóle; pracownik wybiera dostawcę, a tańszy lub mocniejszy model dobiera brama | `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG` |
+| Pamięć odpowiedzi | odpowiedź na pytanie bez danych osobowych i bez wniosku, na które już odpowiedziano na podstawie tych samych dokumentów, jest zwracana z pamięci bez kosztu; klucz zawiera dział i wersję dokumentów, ważność 7 dni | automatycznie |
+| Koszty | tokeny z odpowiedzi dostawcy i koszt z cennika w dzienniku każdego zapytania; zarząd widzi sumy w podziale na działy i budżet w bieżącym miesiącu | `PRICING_JSON`, `APP_MONTHLY_BUDGET_USD` |
 | Alert | zatrzymana wiadomość = wpis `blocked` bez treści i powiadomienie administratora | `ALERT_WEBHOOK_URL` |
 
-Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
+Panel „Co dostał model” pokazuje poziom wrażliwości, dokąd trafiło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
 
 ## Dokumenty i dane
 
 - **Dodawanie dokumentów.** Pracownik dodaje plik .md lub .txt w zakładce „Dokumenty działu” do bazy swojego działu, zarząd do dowolnego działu i do wspólnych. Dokument jest od razu dostępny w wyszukiwaniu i tylko dla działu, do którego trafił. Usunąć go może autor albo zarząd. Każde dodanie i usunięcie jest w dzienniku. Rozmowy na czacie nie trafiają do bazy wiedzy; dodanie dokumentu jest świadomą decyzją pracownika.
-- **Szyfrowanie na dysku.** Gdy ustawiony jest `DATA_KEY`, wszystkie pliki w `data/` (sprawy, dziennik, liczniki, pamięć odpowiedzi, wgrane dokumenty) są zapisywane jako AES-256-GCM z losowym wektorem i znacznikiem integralności. Zapis atomowy, prawa 600.
+- **Szyfrowanie na dysku.** Gdy ustawiony jest `DATA_KEY`, wszystkie pliki w `data/` (sprawy, dziennik, liczniki, pamięć odpowiedzi, wgrane dokumenty) są szyfrowane algorytmem AES-256-GCM z losowym wektorem inicjującym i znacznikiem integralności. Zapis atomowy, prawa 600.
 - **Kopie zapasowe.** `deploy/backup.sh --install` dodaje codzienną kopię zaszyfrowanych danych, przechowywaną 14 dni. Klucz nie jest częścią kopii.
 
 ## Co jest uproszczone (i jak wygląda w produkcji)
@@ -275,19 +275,19 @@ Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona 
 |---|---|
 | hasła z hashem scrypt, sesja w ciasteczku HttpOnly, blokada konta, lista użytkowników w kodzie | SSO Microsoft Entra / Google Workspace, role z katalogu firmy, sesje w Redis |
 | wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia do poszczególnych dokumentów |
-| maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla polskiego, polityka dla każdego działu w konfiguracji |
-| akcje zapisują do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |
+| maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla języka polskiego, polityka dla każdego działu w konfiguracji |
+| zatwierdzone wnioski są zapisywane do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |
 | dane w plikach JSON zaszyfrowanych AES-256-GCM, klucz w `.env`, codzienna kopia na tym samym serwerze | PostgreSQL z szyfrowaniem, klucz w KMS, kopie poza serwerem (np. Hetzner Backup, S3 z wersjonowaniem) |
 | dokumenty .md/.txt dodawane w aplikacji do bazy działu | import PDF/DOCX, synchronizacja z SharePointem / Dyskiem Google, zatwierdzanie dokumentów przez kierownika |
 | logi w JSON | baza z retencją, alerty błędów (Telegram/Teams), panel kosztów dla każdego działu |
-| jeden proces Node | serwer w UE, HTTPS, sekrety w sejfie, kopie zapasowe |
+| jeden proces Node | serwer w UE, HTTPS, klucze i hasła w sejfie, kopie zapasowe |
 
 ## Wdrożenie na VPS
 
-Gotowe skrypty i instrukcja krok po kroku dla Hetzner Cloud (Caddy + HTTPS, pm2, firewall, użytkownik bez uprawnień): [deploy/README.md](deploy/README.md).
+Gotowe skrypty i instrukcja krok po kroku dla Hetzner Cloud (Caddy + HTTPS, pm2, firewall, użytkownik bez uprawnień administratora): [deploy/README.md](deploy/README.md).
 
 ## Licencja
 
-© 2026 Piotr Bednarski, wszelkie prawa zastrzeżone. Kod opublikowany do oceny w procesie rekrutacyjnym; wykorzystanie poza tym celem wymaga zgody autora. Szczegóły w pliku `LICENSE`.
+© 2026 Piotr Bednarski, wszelkie prawa zastrzeżone. Kod opublikowany do oceny w procesie rekrutacyjnym; wykorzystanie w innym celu wymaga zgody autora. Szczegóły w pliku `LICENSE`.
 
 Autor: Piotr Bednarski, październik 2026.

@@ -24,7 +24,7 @@ const EXAMPLES = {
   sprzedaz: ["Ile kosztuje przegląd klimatyzacji?", "Jaki rabat mogę dać sam?", "Umów spotkanie z firmą Bałtyk Market we wtorek o 10:00", "Zapisz: klient Fregata chce ofertę na 3 lokalizacje", "Kiedy wysyłamy wezwanie do zapłaty? (pytanie z księgowości)"],
   obsluga: ["Klient bez umowy zgłasza awarię – w jakim czasie przyjedziemy?", "Jakie mamy statusy zlecenia?", "Ile mamy czasu na odpowiedź na reklamację?", "Zapisz: Jan Kowalski tel. 600 123 456 zgłasza awarię chłodni w Sopocie"],
   biuro: ["Jak zarezerwować salę?", "Kiedy składa się zamówienia biurowe?", "Umów spotkanie z panią Martą Zielińską jutro o 12:00", "Jak rozliczyć delegację?"],
-  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta Sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz PESEL klienta do umowy: 90010112345 (dane chronione)", "Jaki rabat może dać handlowiec? (pytanie ze sprzedaży)"],
+  ksiegowosc: ["Kiedy wysyłamy pierwsze przypomnienie o płatności?", "Kto akceptuje korektę powyżej 5000 zł?", "Wyślij przypomnienie o płatności do firmy Delta sp. z o.o. FV 123/2026 na 4 200 zł", "Zapisz PESEL klienta do umowy: 90010112345 (dane chronione)", "Jaki rabat może dać handlowiec? (pytanie ze sprzedaży)"],
   zarzad: ["Jakie mamy cele na 2026?", "Co zawiera raport tygodniowy?", "Jaki rabat może dać handlowiec?", "Kiedy wysyłamy wezwanie do zapłaty?"]
 };
 
@@ -200,7 +200,7 @@ async function loadKb() {
 }
 $("#upFile").onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
-  if (file.size > 200 * 1024) { $("#upMsg").textContent = "Plik może mieć najwyżej 200 KB."; e.target.value = ""; return; }
+  if (file.size > 200 * 1024) { $("#upMsg").textContent = "Plik może mieć najwyżej 200 kB."; e.target.value = ""; return; }
   const content = await file.text();
   const r = await api("/documents", { method: "POST", body: JSON.stringify({ name: file.name, content, dept: $("#upDept").value || user.dept }) });
   $("#upMsg").textContent = r.error || `Dodano „${r.path}”. ${($("#upDept").value || user.dept) === "wspolne" ? "Asystent od teraz korzysta z niego we wszystkich działach." : `Asystent od teraz korzysta z niego w dziale „${meta.depts[($("#upDept").value || user.dept)]}”.`}`;
@@ -227,7 +227,7 @@ function renderCases() {
   $("#cfCount").textContent = casesAll.length ? (filtered ? `${r.length} z ${casesAll.length}` : `${casesAll.length} ${plural(casesAll.length, "sprawa", "sprawy", "spraw")}`) : "";
   $("#cases").innerHTML = r.map(c => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(c.when))}</span><div class="grow"><div class="li-title">${esc(c.klient)}</div><div class="li-sub">${esc(c.notatka)}</div></div></div><span class="badge badge-wait">${esc(c.nastepny_krok || "")}</span><span class="li-sub">${esc(meta.depts[c.dept] || c.dept)}</span></li>`).join("")
     || (casesAll.length
-      ? `<div class="empty"><span class="empty-title">Żadna sprawa nie pasuje do filtrów</span><p>Zmień wyszukiwanie albo wybierz „Wszystkie”.</p></div>`
+      ? `<div class="empty"><span class="empty-title">Żadna sprawa nie pasuje do filtrów</span><p>Zmień wyszukiwanie albo wyczyść filtry.</p></div>`
       : `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`);
 }
 ["#cfQ", "#cfType", "#cfDept", "#cfSort"].forEach(s => $(s).addEventListener("input", renderCases));

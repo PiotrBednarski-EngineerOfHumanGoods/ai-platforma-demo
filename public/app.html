@@ -133,7 +133,7 @@
       </div>
 
       <div class="pane tabpanel" id="t-kb" role="tabpanel">
-        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, na podstawie których asystent odpowiada w Twoim dziale.</p></div>
+        <div class="tp-head"><div><h2>Dokumenty działu</h2><p>Dokumenty, na podstawie których asystent odpowiada w Twoim dziale.</p></div>
           <form class="upload" id="upload">
             <select id="upDept" aria-label="Dział" hidden></select>
             <label class="btn btn-secondary" for="upFile">Dodaj dokument</label>
@@ -145,7 +145,7 @@
       </div>
 
       <div class="pane tabpanel" id="t-logs" role="tabpanel">
-        <div class="tp-head"><div><h2>Dziennik</h2><p>Kto pytał, co wyszło do modelu, co zatwierdzono. Tylko dla zarządu.</p></div></div>
+        <div class="tp-head"><div><h2>Dziennik</h2><p>Kto pytał, co trafiło do modelu, co zatwierdzono. Tylko dla zarządu.</p></div></div>
         <div class="usage" id="usage"></div>
         <div class="perm" id="permDepts"><h3>Działy i modele</h3><p class="perm-sub">Chmura: dział może pytać Claude’a, a dane osobowe są maskowane przed wysłaniem. Bez chmury odpowiada tylko model w firmie. Dane chronione (PESEL, konto, zdrowie) nigdy nie wychodzą, niezależnie od ustawienia.</p><div class="table-wrap"><table class="perm-t"><thead><tr><th>Dział</th><th>Liczba osób</th><th>Chmura</th></tr></thead><tbody id="deptRows"></tbody></table></div></div>
         <div class="perm" id="perm"><h3>Uprawnienia pracowników</h3><p class="perm-sub">Od działu zależy, jakie dokumenty, narzędzia i modele widzi pracownik. Zmiana obowiązuje od jego następnego pytania. Wiedza ogólna: asystent może odpowiadać na podstawie wiedzy spoza dokumentów i wyraźnie to zaznacza. Internet: wyszukuje w sieci (tylko Claude, po maskowaniu, nigdy z danymi chronionymi). Każda zmiana trafia do dziennika.</p><div class="table-wrap"><table class="perm-t"><thead><tr><th>Pracownik</th><th>Dział</th><th>Wiedza ogólna</th><th>Internet</th></tr></thead><tbody id="permRows"></tbody></table></div></div>

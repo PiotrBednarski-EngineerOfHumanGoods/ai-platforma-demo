@@ -109,7 +109,7 @@ app.post("/api/documents", auth, (req, res) => {
   const base = String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\.(md|txt)$/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
   if (!base || !/\.(md|txt)$/i.test(String(name))) return res.status(400).json({ error: "Możesz dodać tylko plik tekstowy (.txt lub .md)." });
   if (typeof content !== "string" || !content.trim()) return res.status(400).json({ error: "Plik jest pusty." });
-  if (Buffer.byteLength(content, "utf8") > MAX_DOC) return res.status(400).json({ error: "Plik jest większy niż 200 KB." });
+  if (Buffer.byteLength(content, "utf8") > MAX_DOC) return res.status(400).json({ error: "Plik może mieć najwyżej 200 kB." });
   const file = base + ".md";
   if (loadKnowledge(path.join(ROOT, "knowledge")).some(c => c.dept === dept && c.file === file)) return res.status(409).json({ error: "Dokument o tej nazwie jest już w bazie działu. Zmień nazwę pliku." });
   store.addDoc({ dept, file, text: content.replace(/\r\n/g, "\n"), by: req.user.id, at: new Date().toISOString() });
