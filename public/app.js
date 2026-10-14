@@ -233,24 +233,35 @@ const MODEL_INFO = {
   openai:    { name: "GPT", sub: "chmura, dane osobowe maskowane przed wysłaniem", where: "out" }
 };
 function renderModelPicker(allowed) {
-  const localReady = allowed.some(p => p.id === "ollama");
-  const items = allowed.map(p => ({ id: p.id, ...(MODEL_INFO[p.id] || { name: p.label, sub: "", where: "out" }) }));
-  if (!localReady) items.push({ id: "ollama-soon", name: "Model w firmie", sub: "do danych chronionych, jeszcze niepodłączony", where: "in", disabled: true });
-  // domyślnie: dostawca ustawiony na serwerze, jeśli dział go ma; inaczej pierwszy dostępny
-  const def = allowed.find(p => p.id === meta.provider) || allowed[0];
+  // do wyboru: modele podłączone i dozwolone w dziale (tryb pokazowy nie jest wyborem, tylko zapasem serwera)
+  const localReady = allowed.some(p => p.id === "ollama"), cloudOk = allowed.some(p => MODEL_INFO[p.id]?.where === "out");
+  const items = allowed.filter(p => p.id !== "mock").map(p => ({ id: p.id, ...(MODEL_INFO[p.id] || { name: p.label, sub: "", where: "out" }) }));
+  // na szaro: modele, które brama obsłuży po dodaniu klucza albo serwera (bez zmian w kodzie)
+  const soon = [
+    ...(localReady ? [] : [{ id: "ollama-soon", name: "Bielik", sub: "polski model na serwerze firmy, do danych chronionych", where: "in" }]),
+    ...(cloudOk ? [
+      { id: "openai-soon", name: "GPT", sub: "OpenAI, chmura", where: "out" },
+      { id: "gemini-soon", name: "Gemini", sub: "Google, chmura", where: "out" },
+      { id: "mistral-soon", name: "Mistral", sub: "chmura w UE", where: "out" }
+    ].filter(c => !allowed.some(p => p.id === c.id.replace("-soon", ""))) : [])
+  ].map(c => ({ ...c, disabled: true }));
+  const fallback = { id: "mock", name: "Bez modelu AI", sub: "", where: "in" };
+  // domyślnie: dostawca ustawiony na serwerze, jeśli dział go ma; inaczej pierwszy podłączony; bez modeli: odpowiedzi z dokumentów
+  const def = items.find(p => p.id === meta.provider) || items[0] || fallback;
   $("#prov").innerHTML = allowed.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
   $("#prov").value = def ? def.id : "";
   const list = $("#mpList"), btn = $("#mpBtn");
   const choose = id => {
-    $("#prov").value = id; const it = items.find(i => i.id === id) || items[0];
+    $("#prov").value = id; const it = items.find(i => i.id === id) || fallback;
     $("#mpLabel").textContent = it.name; $("#mpDot").className = "mp-dot " + (it.where === "in" ? "in" : "out");
     list.querySelectorAll("[role=option]").forEach(o => o.setAttribute("aria-selected", o.dataset.id === id));
   };
-  list.innerHTML = `<div class="mp-head">Model dla działu ${esc(meta.depts[user.dept] || "")}</div>` + items.map(it => `
+  const note = items.length ? "" : `<p class="mp-note">Ten dział korzysta tylko z modelu w firmie. Do czasu jego podłączenia asystent odpowiada fragmentami dokumentów działu.</p>`;
+  list.innerHTML = `<div class="mp-head">Model dla działu ${esc(meta.depts[user.dept] || "")}</div>` + note + [...items, ...soon].map(it => `
     <div class="mp-opt${it.disabled ? " is-off" : ""}" role="option" data-id="${esc(it.id)}" tabindex="${it.disabled ? -1 : 0}" aria-disabled="${!!it.disabled}">
       <i class="mp-dot ${it.where}"></i>
       <span class="mp-text"><b>${esc(it.name)}</b><small>${esc(it.sub)}</small></span>
-      ${it.disabled ? '<span class="mp-tag">wkrótce</span>' : '<svg class="mp-check" width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M15.85 5.65a.5.5 0 0 1 0 .7l-7.5 7.5a.5.5 0 0 1-.7 0l-3.5-3.5a.5.5 0 1 1 .7-.7L8 12.79l7.15-7.14a.5.5 0 0 1 .7 0" fill="currentColor"></path></svg>'}
+      ${it.disabled ? '<span class="mp-tag">do podłączenia</span>' : '<svg class="mp-check" width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M15.85 5.65a.5.5 0 0 1 0 .7l-7.5 7.5a.5.5 0 0 1-.7 0l-3.5-3.5a.5.5 0 1 1 .7-.7L8 12.79l7.15-7.14a.5.5 0 0 1 .7 0" fill="currentColor"></path></svg>'}
     </div>`).join("") + `<div class="mp-foot"><i class="mp-dot in"></i>w firmie <i class="mp-dot out"></i>chmura</div>`;
   const open = v => { list.hidden = !v; btn.setAttribute("aria-expanded", v); if (v) (list.querySelector('[aria-selected="true"]') || list.querySelector(".mp-opt:not(.is-off)"))?.focus(); };
   btn.onclick = () => open(list.hidden);
