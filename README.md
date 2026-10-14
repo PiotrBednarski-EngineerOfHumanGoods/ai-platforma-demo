@@ -54,7 +54,7 @@ Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentó
 | specjalista UX mobilnego | iPhone SE, iPhone 14, Pixel 7, tryb jasny i ciemny | 22 poprawki na telefonie |
 | pentester | przegląd pod kątem ataków | brak luk krytycznych i poważnych, 5 poprawek |
 
-Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległa praca agentów, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z modelem Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty ekranu, testy w przeglądarce, pomiar płynności animacji), skille **HyperFrames** od HeyGen (42-sekundowy film demo aplikacji z napisami, złożony z kodu HTML i wyrenderowany do MP4). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
+Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległa praca agentów, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z modelem Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty ekranu, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
 
 ## Czy role są dynamiczne?
 
