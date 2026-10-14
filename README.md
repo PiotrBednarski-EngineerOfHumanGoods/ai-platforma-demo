@@ -1,40 +1,135 @@
-# Compax – asystent AI dla firmy z kilkoma działami
+# Compax – jedno AI dla firmy z kilkoma działami
 
 [![CI](https://github.com/PiotrBednarski-EngineerOfHumanGoods/ai-platforma-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/PiotrBednarski-EngineerOfHumanGoods/ai-platforma-demo/actions/workflows/ci.yml)
 
-**Demo na żywo:** https://compax.tech (ekran startowy) · logowanie: https://compax.tech/app, konta demo pod formularzem.
+**Demo na żywo:** https://compax.tech · logowanie: https://compax.tech/app (konta pokazowe na ekranie logowania)
 
-Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale działy różnią się danymi i uprawnieniami – jak to zrobić?* Jedna wspólna platforma, a na niej osobna konfiguracja dla każdego działu: własne dokumenty, narzędzia i polityka modeli. Wszyscy logują się do tego samego asystenta, ale dostęp do danych zależy od działu.
+> **Pytanie:** firma ma kilka działów i chce dać pracownikom AI, ale działy mają różne dane i uprawnienia, a firma nie ma CRM. Jak to zrobić?
 
-- **logowanie z rolą** – użytkownik widzi tylko dokumenty swojego działu i dokumenty wspólne (zarząd widzi wszystko),
-- **baza wiedzy** – pliki `.md` w `knowledge/<dział>/`, odpowiedzi z podaniem źródła,
-- **brama AI** – jeden punkt dostępu do modeli; dostawca wybierany konfiguracją (mock / Claude / OpenAI / Ollama),
-- **maskowanie danych osobowych** przed wysłaniem do modelu (panel „Co dostał model”),
-- **akcje z zatwierdzeniem** – agent przygotowuje spotkanie, notatkę, przypomnienie; wykonuje po kliknięciu „Zatwierdź”,
-- **pamięć spraw** zamiast CRM – lekki rejestr klientów i następnych kroków,
-- **dziennik** – co trafiło do modelu, ile danych zamaskowano, jakie źródła, jaka akcja (zakładka dla zarządu),
-- **brama danych** – klasyfikacja jawne / wewnętrzne / chronione; dane chronione tylko do modelu w firmie, reszta do chmury po maskowaniu,
-- **koszty pod kontrolą** – tani model do prostych pytań, mocny do analiz, pamięć odpowiedzi, budżet miesięczny i limity na dział,
-- **dokumenty od pracowników** – dodawane w aplikacji do bazy działu; dane na dysku szyfrowane, codzienne kopie,
-- **„Zgłoś”** – problem, pomysł albo pytanie od pracownika trafia od razu e-mailem do opiekuna systemu (dane osobowe zamaskowane, można dołączyć zrzut ekranu),
-- **uprawnienia od zarządu** – dla wybranych pracowników: wiedza ogólna (odpowiedź spoza dokumentów, wyraźnie oznaczona) i wyszukiwanie w internecie (Claude, po maskowaniu, ze źródłami); każda zmiana w dzienniku,
-- **filtrowanie spraw** – po kliencie, rodzaju, dziale i dacie.
+## Jak to rozwiązałem: jedna platforma, dział to konfiguracja
 
-Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na żywo działa prawdziwy model Claude z budżetem 3 USD miesięcznie; księgowość i zarząd celowo nie korzystają z chmury.
+Zamiast osobnego AI dla każdego działu jest **jeden asystent i jedna brama do modeli**, a dział to konfiguracja: własne dokumenty, własne narzędzia i własne zasady, z jakich modeli wolno korzystać. Wszyscy logują się w jednym miejscu, ale każdy widzi tylko to, do czego ma prawo.
 
-## Jak to zbudowałem
+| Wspólne dla całej firmy | Osobne dla każdego działu |
+|---|---|
+| logowanie i role | dokumenty (procedury, cenniki, windykacja) |
+| brama do modeli AI (Claude, GPT, model w firmie) | narzędzia (np. sprzedaż umawia spotkania, księgowość wysyła przypomnienia o płatności) |
+| maskowanie danych osobowych i blokada danych chronionych | dozwolone modele (księgowość i zarząd: tylko model w firmie, bez chmury) |
+| dziennik, koszty i budżet dla zarządu | limit pytań do chmury |
 
-Z AI jako zespołem: Claude Code buduje, a wyspecjalizowani agenci sprawdzają (bezpieczeństwo, jakość kodu, UX, polszczyzna, UX mobilny, pentest). Każda poprawka błędu ma test. Pełna lista agentów, skilli, testów i automatyzacji oraz odpowiedzi na pytania o klucze, koszty, RODO i warianty bez API: [docs/08-jak-powstal-i-pytania.md](docs/08-jak-powstal-i-pytania.md).
+Cztery zasady, które trzymają całość:
 
-## Gotowe do oddania klientowi
+1. **Uprawnienia przed wyszukiwaniem.** Asystent szuka tylko w dokumentach działu pracownika i we wspólnych. Model nigdy nie dostaje dokumentu, którego pracownik nie mógłby otworzyć sam.
+2. **Dane osobowe nie wychodzą jawnie.** Nazwiska, telefony i e-maile są zamieniane na etykiety („osoba 1”) przed wysłaniem do modelu. PESEL, numer konta, karta, dowód, zdrowie i wynagrodzenia nie wychodzą z firmy wcale.
+3. **Człowiek decyduje.** Asystent tylko przygotowuje spotkanie, notatkę albo przypomnienie. Nic się nie dzieje bez „Zatwierdź”.
+4. **Zarząd widzi wszystko, co trzeba.** Kto pytał, dokąd trafiło pytanie, jakim modelem, ile kosztowało. Bez treści danych osobowych.
 
-| Obszar | Co jest zrobione | Gdzie |
+**Nowy dział** to folder z dokumentami i kilka wierszy konfiguracji, a nie nowy projekt.
+
+| Dział | Widzi dokumenty | Asystent przygotowuje | Model |
+|---|---|---|---|
+| Sprzedaż | cennik, rabaty, oferty + wspólne | spotkanie, notatkę o kliencie | Claude, po maskowaniu |
+| Obsługa klienta | awarie, statusy, reklamacje | spotkanie, notatkę | Claude, po maskowaniu |
+| Biuro | sale, delegacje, zamówienia | spotkanie, notatkę | Claude, po maskowaniu |
+| Księgowość | windykacja, korekty, płatności | przypomnienie o płatności | tylko model w firmie |
+| Zarząd | wszystko | wszystko + dziennik, koszty, uprawnienia | tylko model w firmie |
+
+## Firma nie ma CRM: sprawy prowadzi asystent
+
+Nie trzeba kupować ani wdrażać CRM, żeby asystent pamiętał klientów. **Każdy zatwierdzony wniosek staje się sprawą**: spotkanie, notatka o kliencie albo przypomnienie o płatności, z klientem, terminem i następnym krokiem.
+
+- **Zakładka Sprawy:** dział widzi swoje sprawy, zarząd wszystkie. Filtrowanie po kliencie, rodzaju, dziale i dacie.
+- **Bez przepisywania:** handlowiec pisze „umów spotkanie z firmą X we wtorek”, zatwierdza jednym kliknięciem i sprawa jest zapisana.
+- **Bezpiecznie:** sprawy są szyfrowane na dysku, a dane osoby można wyszukać, wyeksportować i usunąć jednym poleceniem (RODO).
+- **Na później:** gdy firma wdroży CRM albo kalendarz, wniosek po zatwierdzeniu trafi tam przez API, MCP albo n8n zamiast do lokalnej listy. Reszta aplikacji się nie zmienia.
+
+## Pytania pracodawcy
+
+### Jakich agentów używam?
+
+Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentów, którzy pracują równolegle. Każdy dostaje wąskie zadanie i zwraca uwagi z dowodami. Ja je weryfikuję, a każda poprawka błędu dostaje test.
+
+| Agent | Zadanie | Wynik |
 |---|---|---|
-| RODO | rejestr czynności przetwarzania, środki z art. 32, kwalifikacja DPIA, procedura naruszenia, obsługa praw osób narzędziem administratora | [06](docs/06-rodo-rejestr-i-ocena-ryzyka.md), `npm run admin` |
-| Bezpieczeństwo | model zagrożeń z testem do każdego zabezpieczenia, polityka zgłaszania podatności, nagłówki i CSP sprawdzane automatycznie | [07](docs/07-model-zagrozen.md), [SECURITY.md](SECURITY.md) |
-| Dane | szyfrowanie AES-256-GCM na dysku, maskowanie przed modelem, dziennik bez danych osobowych, codzienne kopie, bezpieczna zmiana klucza | [02](docs/02-bezpieczenstwo-i-rodo.md) |
-| Jakość | testy jednostkowe i integracyjne, test dymny wszystkich funkcji na działającym serwerze, CI na każdą zmianę, `npm audit`, Dependabot | `npm test`, `npm run smoke`, [CI](.github/workflows/ci.yml) |
-| Utrzymanie | instrukcja administratora, skrypty wdrożenia i kopii, plan wdrożenia z miarami, koszty z prawdziwych pomiarów | [03](docs/03-instrukcja-administratora.md), [04](docs/04-koszty.md), [05](docs/05-plan-wdrozenia.md), [deploy](deploy/README.md) |
+| Claude Code | główny agent: kod, testy, wdrożenia, prezentacja | cała aplikacja i infrastruktura |
+| 3 recenzentów kodu | bezpieczeństwo, jakość, UX | ponad 20 poprawek z testami |
+| 3 redaktorów | polszczyzna w prezentacji, aplikacji i dokumentach | spójna terminologia, bez kalk z angielskiego |
+| specjalista UX mobilnego | iPhone SE, iPhone 14, Pixel 7, jasny i ciemny | 22 poprawki na telefonie |
+| pentester | przegląd pod kątem ataków | brak luk krytycznych i wysokich, 5 poprawek |
+
+Skille i narzędzia: skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
+
+### Gdzie trzymam klucze AI?
+
+| Opcja | Jak działa | Kiedy |
+|---|---|---|
+| Klucz w zmiennej środowiskowej | klucz w `.env` na serwerze, poza repozytorium, z prawami tylko dla procesu aplikacji; limit wydatków w konsoli dostawcy jako drugi bezpiecznik | to demo: zwykły serwer VPS |
+| Federacja tożsamości (Workload Identity Federation) | serwer nie ma żadnego stałego klucza; tożsamość z chmury klienta jest wymieniana na token ważny kilka minut | wdrożenie u klienta w jego chmurze |
+
+Klucz nigdy nie trafia do przeglądarki ani do repozytorium.
+
+### Jak można wywołać AI inaczej niż przez API?
+
+Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmienia się tylko to, gdzie liczy model, a w aplikacji to jedna linia konfiguracji.
+
+| Wariant | Koszt | Dane | Kiedy wybrać |
+|---|---|---|---|
+| **Model w firmie** (Ollama, np. Bielik) | serwer z kartą graficzną, bez opłat za pytanie | nie opuszczają firmy | dane chronione, księgowość, zarząd |
+| **Subskrypcja firmowa** (Claude Team, Microsoft 365 Copilot) | stała opłata za osobę | u dostawcy, na umowie firmowej | szybki start bez własnej aplikacji, mniej kontroli nad działami |
+| **Chmura firmy** (Amazon Bedrock, Google Vertex AI w regionie UE) | w ramach umowy chmurowej | region UE, logowanie przez federację tożsamości, bez kluczy | firma już korzysta z AWS albo Google Cloud |
+| **API przez bramę** (to demo) | ok. 1 USD na 1000 pytań, twardy limit budżetu | tylko tekst po maskowaniu | własne zasady działów i pełny dziennik |
+
+**Rekomendacja: hybryda.** Dane chronione liczy model w firmie, resztę tani model w chmurze. Brama już to obsługuje.
+
+## Testy
+
+| Co | Ile | Jak uruchomić |
+|---|---|---|
+| Testy automatyczne | 48 | `npm test` |
+| Test dymny wszystkich funkcji na działającym serwerze (także z prawdziwym Claude) | ponad 40 kroków | `npm run smoke`, `BASE_URL=https://compax.tech npm run smoke` |
+| CI przy każdej zmianie: testy, `npm audit`, test dymny | przy każdym pushu | [GitHub Actions](.github/workflows/ci.yml) |
+| Aktualizacje zależności | co tydzień | Dependabot |
+
+Testy obejmują: logowanie, sesje i blokadę konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), wykrywanie danych chronionych (także numery rozbite na kilka wiadomości i numery kart z sumą kontrolną), brak fałszywych alarmów, limity i budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, szyfrowanie na dysku, narzędzie administratora RODO, zgłoszenia ze zrzutem ekranu (odrzucenie plików udających obraz), uprawnienia ustawiane przez zarząd i wyszukiwanie w internecie.
+
+## Bezpieczeństwo
+
+- **Logowanie:** hasła hashowane scryptem, blokada po 5 nieudanych próbach, ten sam komunikat dla złego hasła i nieznanego loginu, sesja w ciasteczku HttpOnly i SameSite=Strict.
+- **Przeglądarka:** restrykcyjne CSP bez wyjątków, ochrona CSRF, zero skryptów i czcionek z obcych serwerów, HSTS, Permissions-Policy.
+- **Model:** dostaje tylko tekst po maskowaniu; wnioski, które proponuje, serwer sprawdza według działu (ochrona przed prompt injection).
+- **Dane na dysku:** szyfrowanie AES-256-GCM, kopia co noc, klucz poza kopią; uruchomienie ze złym kluczem nie nadpisze danych.
+- **Koszty:** limit pytań na minutę, limit chmury na dział i twardy budżet miesięczny.
+- **Serwer w UE:** Hetzner w Niemczech, HTTPS, firewall, SSH tylko kluczem, aplikacja bez uprawnień administratora.
+
+Model zagrożeń z testem do każdego zabezpieczenia: [docs/07](docs/07-model-zagrozen.md). Zgłaszanie podatności: [SECURITY.md](SECURITY.md).
+
+## RODO
+
+- **Rejestr czynności przetwarzania**, środki z art. 32, kwalifikacja DPIA, procedura naruszenia i AI Act: [docs/06](docs/06-rodo-rejestr-i-ocena-ryzyka.md).
+- **Prawa osób jednym poleceniem:** `npm run admin -- szukaj | eksport | usun "Nazwisko"`.
+- **Minimalizacja:** do modelu idą tylko zamaskowane dane, dziennik nie zawiera danych osobowych, rozmowa nie jest zapisywana na serwerze.
+- **Informacja dla pracowników:** strona [/prywatnosc](https://compax.tech/prywatnosc) w aplikacji.
+
+## Webhooki i automatyzacje: gdzie są użyte
+
+| Gdzie | Co się dzieje | Konfiguracja |
+|---|---|---|
+| Zatrzymane dane chronione | gdy ktoś wpisze PESEL albo numer konta, administrator dostaje powiadomienie (kto, dział, powód, bez treści) na Teams, Slack albo Telegram | `ALERT_WEBHOOK_URL` w `.env` ([policy.js](server/policy.js)) |
+| Przycisk „Zgłoś” | problem, pomysł albo pytanie pracownika idzie od razu do opiekuna: e-mailem przez Resend (ze zrzutem ekranu w załączniku) albo na webhook | `RESEND_API_KEY` + `FEEDBACK_TO` albo `FEEDBACK_WEBHOOK` ([feedback.js](server/feedback.js)) |
+| n8n | ten sam przepływ co w aplikacji jako workflow wywoływany webhookiem `POST /webhook/asystent`, z logiem w Google Sheets i powiadomieniem na Telegram; gotowy do importu, w demo nieuruchomiony | [n8n/](n8n/README.md) |
+| Brama AI | sama dobiera model do pytania, korzysta z pamięci odpowiedzi, pilnuje budżetu i po jego przekroczeniu przechodzi na tryb bez chmury | `APP_MONTHLY_BUDGET_USD`, `CLOUD_MONTHLY_LIMIT` |
+| Wdrożenie i serwer | wdrożenie jednym poleceniem (paczka przez SSH, restart pm2), certyfikaty HTTPS odnawiane automatycznie, kopie co noc przez cron, automatyczne poprawki bezpieczeństwa systemu | [deploy/](deploy/README.md) |
+| GitHub | CI przy każdej zmianie, Dependabot co tydzień | [.github/](.github/workflows/ci.yml) |
+
+## Co jeszcze jest w aplikacji
+
+- **Dokumenty od pracowników:** dodawane w aplikacji do bazy działu, od razu dostępne w wyszukiwaniu.
+- **Uprawnienia od zarządu:** dla wybranych osób wiedza ogólna (odpowiedź spoza dokumentów, wyraźnie oznaczona) i wyszukiwanie w internecie (Claude, po maskowaniu, ze źródłami).
+- **Wybór modelu:** pracownik wybiera spośród dozwolonych w dziale; GPT, Gemini, Mistral, Bielik i Ollama są pokazane jako gotowe do podłączenia.
+- **Panel „Co dostał model”:** pracownik widzi dokładnie, co wyszło do modelu.
+- **Telefon, tryb ciemny i dostępność:** poprawione po audycie na trzech telefonach.
+
+Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane są przykładowe. Działa prawdziwy model Claude z budżetem 3 USD miesięcznie.
 
 ## Czego brakuje do produkcji
 
@@ -50,19 +145,6 @@ Demo działa na żywo, ale uczciwie: tego jeszcze nie ma i to bym zrobił przed 
 | Uruchomiony n8n | workflow jest tylko przygotowany | wpięcie zgłoszeń i alertów do istniejących kanałów firmy |
 | Wysyłka e-maili ze zgłoszeń | wymaga klucza Resend | dodanie klucza i zweryfikowanej domeny nadawcy |
 | Testy z prawdziwymi użytkownikami | demo sprawdzali agenci i testy automatyczne | pilotaż w jednym dziale, pomiar przed i po ([plan](docs/05-plan-wdrozenia.md)) |
-
-## Nie tylko API: cztery drogi, ta sama brama
-
-Uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmienia się tylko to, gdzie liczy model, a w aplikacji to jedna linia konfiguracji.
-
-| Wariant | Koszt | Dane | Kiedy wybrać |
-|---|---|---|---|
-| **Model w firmie** (Ollama, np. Bielik) | serwer z kartą graficzną, bez opłat za pytanie | nie opuszczają firmy | dane chronione, księgowość, zarząd |
-| **Subskrypcja firmowa** (Claude Team, Microsoft 365 Copilot) | stała opłata za osobę | u dostawcy, na umowie firmowej | szybki start bez własnej aplikacji, mniej kontroli nad działami |
-| **Chmura firmy** (Amazon Bedrock, Google Vertex AI w regionie UE) | w ramach umowy chmurowej | region UE, logowanie przez federację tożsamości, bez kluczy | firma już korzysta z AWS albo Google Cloud |
-| **API przez bramę** (to demo) | ok. 1 USD na 1000 pytań, twardy limit budżetu | tylko tekst po maskowaniu | własne zasady działów i pełny dziennik |
-
-**Rekomendacja: hybryda.** Dane chronione liczy model w firmie, resztę tani model w chmurze. Brama już to obsługuje.
 
 ## Dokumentacja dla klienta
 
@@ -116,15 +198,6 @@ Skopiuj `.env.example` do `.env` i ustaw `AI_PROVIDER`:
 
 Zmiana dostawcy nie wymaga zmian w kodzie agentów – na tym polega rola bramy AI.
 
-## Co pokazać na prezentacji (5 minut)
-
-1. Zaloguj się jako **Anna (sprzedaż)**: „Jaki rabat mogę dać sam?” → odpowiedź ze źródłem; w panelu „Co dostał model” trasa i koszt.
-2. Zapytaj o coś z księgowości: „Kiedy wysyłamy wezwanie do zapłaty?” → asystent nie widzi tych dokumentów (uprawnienia).
-3. „Umów spotkanie z panem Janem Kowalskim, tel. 600 123 456, we wtorek o 10:00” → do modelu poszło „osoba 1”, „telefon 1”; wniosek czeka na zatwierdzenie.
-4. Zatwierdź → zakładka **Sprawy** pokazuje wpis (pamięć bez CRM).
-5. Zaloguj się jako **Tomasz (księgowość)**: „Zapisz: PESEL 85010112345 klienta” → pytanie nie wychodzi z firmy.
-6. Zaloguj się jako **Jan (zarząd)** → zakładka **Logi**: kto, co poszło do modelu, którą trasą, ile kosztowało, budżet miesiąca.
-
 ## Struktura
 
 ```
@@ -140,9 +213,11 @@ server/security.js   – nagłówki HTTP, sesje z wygasaniem, limit prób logowa
 server/policy.js     – klasyfikacja wrażliwości, trasowanie (lokalny / zewnętrzny / blokada), alert
 knowledge/<dział>/   – dokumenty firmy (.md)
 public/index.html    – ekran startowy (co to jest, jak działa, działy, poziomy danych)
-public/app.html      – aplikacja: logowanie, czat, sprawy, dokumenty, logi (app.js, app.css; bez frameworka)
+public/app.html      – aplikacja: logowanie, czat, sprawy z filtrami, dokumenty, dziennik i uprawnienia (app.js, app.css; bez frameworka)
 public/prywatnosc.html – informacja o przetwarzaniu danych i zasady korzystania
-tests/app.test.mjs   – testy: logowanie, uprawnienia, maskowanie, brama, wnioski, walidacja
+server/feedback.js   – zgłoszenia „Zgłoś”: walidacja, zrzut ekranu, e-mail (Resend) albo webhook
+scripts/admin.mjs    – narzędzie administratora: RODO (szukaj, eksport, usuń) i zmiana klucza szyfrowania
+tests/               – testy automatyczne (npm test) i test dymny działającej instalacji (npm run smoke)
 skills/              – przykładowy skill dla Claude Code: checklista bezpieczeństwa wdrożenia AI
 ```
 
@@ -189,18 +264,9 @@ Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona 
 
 ## Dokumenty i dane
 
-- **Dodawanie dokumentów.** Pracownik dodaje plik .md lub .txt w zakładce „Moja baza wiedzy” do bazy swojego działu, zarząd do dowolnego działu i do wspólnych. Dokument jest od razu dostępny w wyszukiwaniu i tylko dla działu, do którego trafił. Usunąć go może autor albo zarząd. Każde dodanie i usunięcie jest w dzienniku. Rozmowy na czacie nie trafiają do bazy wiedzy; dodanie dokumentu jest świadomą decyzją pracownika.
+- **Dodawanie dokumentów.** Pracownik dodaje plik .md lub .txt w zakładce „Dokumenty działu” do bazy swojego działu, zarząd do dowolnego działu i do wspólnych. Dokument jest od razu dostępny w wyszukiwaniu i tylko dla działu, do którego trafił. Usunąć go może autor albo zarząd. Każde dodanie i usunięcie jest w dzienniku. Rozmowy na czacie nie trafiają do bazy wiedzy; dodanie dokumentu jest świadomą decyzją pracownika.
 - **Szyfrowanie na dysku.** Gdy ustawiony jest `DATA_KEY`, wszystkie pliki w `data/` (sprawy, dziennik, liczniki, pamięć odpowiedzi, wgrane dokumenty) są zapisywane jako AES-256-GCM z losowym wektorem i znacznikiem integralności. Zapis atomowy, prawa 600.
 - **Kopie zapasowe.** `deploy/backup.sh --install` dodaje codzienną kopię zaszyfrowanych danych, przechowywaną 14 dni. Klucz nie jest częścią kopii.
-
-## Klucze do modeli: dwie opcje
-
-| Opcja | Jak działa | Kiedy |
-|---|---|---|
-| Klucz API w zmiennej środowiskowej | klucz w `.env` na serwerze, prawa `600`, dostęp tylko dla procesu aplikacji; limit wydatków ustawiony w konsoli Anthropic jako drugi bezpiecznik | to demo: zwykły serwer VPS (Hetzner) nie wystawia tożsamości chmurowej |
-| Federacja tożsamości (Workload Identity Federation) | serwer nie przechowuje żadnego klucza; tożsamość nadana przez chmurę (konto usługi GCP, rola AWS, tożsamość Azure, GitHub Actions) jest wymieniana na token Anthropic ważny kilka minut i odnawiany automatycznie | wdrożenie u klienta w jego chmurze i CI: nie ma statycznego klucza do wycieku ani do ręcznej rotacji |
-
-W obu wariantach klucz lub token nigdy nie trafia do przeglądarki ani do repozytorium.
 
 ## Co jest uproszczone (i jak wygląda w produkcji)
 
