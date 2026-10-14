@@ -13,7 +13,8 @@
   .login{max-width:560px;margin:60px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
   .login h2{margin:0 0 6px;color:var(--navy)} .login p{color:var(--muted);margin:0 0 18px}
   .users{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-  .u{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:#fff} .u:hover{border-color:var(--blue)} .u b{display:block} .u small{color:var(--muted)}
+  .u{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:#fff} .u:hover{border-color:var(--blue)} .u.on{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)} .u b{display:block} .u small{color:var(--muted)}
+  .loginForm{display:flex;gap:8px;margin-top:14px} .loginForm input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font:inherit} .err{color:var(--red);min-height:1.2em}
   main{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:16px;max-width:1300px;margin:0 auto}
   @media(max-width:900px){main{grid-template-columns:1fr}}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
@@ -41,9 +42,13 @@
 
 <div id="login" class="login">
   <h2>Zaloguj się</h2>
-  <p>W produkcji: logowanie kontem firmowym (Microsoft/Google). Tu: wybierz pracownika i podaj PIN z listy.</p>
+  <p>W produkcji: logowanie kontem firmowym (Microsoft/Google). W demie: wybierz pracownika i podaj hasło konta demo.</p>
   <div class="users" id="users"></div>
-  <p class="hint" style="margin-top:14px">PIN-y demo: Anna 1111 · Marek 2222 · Ewa 3333 · Tomasz 4444 · Prezes 0000</p>
+  <form id="loginForm" class="loginForm" autocomplete="off">
+    <input type="password" id="pw" placeholder="Hasło" autocomplete="current-password" required>
+    <button type="submit" id="loginBtn" disabled>Zaloguj</button>
+  </form>
+  <p class="hint err" id="loginErr"></p>
 </div>
 
 <main id="app" style="display:none">
@@ -89,12 +94,17 @@ async function init() {
   meta = await fetch("/api/meta").then(r => r.json());
   $("#prov").textContent = "dostawca AI: " + meta.provider + (meta.model ? " · " + meta.model : "") + (meta.provider === "mock" ? " (demo bez klucza)" : "");
   $("#users").innerHTML = meta.users.map(u => `<div class="u" data-id="${u.id}"><b>${u.name}</b><small>${meta.depts[u.dept]} · ${u.role}</small></div>`).join("");
-  document.querySelectorAll(".u").forEach(el => el.onclick = () => login(el.dataset.id));
+  document.querySelectorAll(".u").forEach(el => el.onclick = () => {
+    document.querySelectorAll(".u").forEach(x => x.classList.toggle("on", x === el));
+    selectedUser = el.dataset.id; $("#loginBtn").disabled = false; $("#loginErr").textContent = ""; $("#pw").focus();
+  });
+  $("#loginForm").onsubmit = e => { e.preventDefault(); if (selectedUser) login(selectedUser, $("#pw").value); };
 }
-async function login(id) {
-  const pin = prompt("PIN:"); if (pin === null) return;
-  const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: id, pin }) }).then(r => r.json());
-  if (r.error) return alert(r.error);
+let selectedUser = null;
+async function login(id, password) {
+  const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: id, password }) }).then(r => r.json());
+  if (r.error) { $("#loginErr").textContent = r.error; return; }
+  $("#pw").value = "";
   token = r.token; user = r.user; history = [];
   $("#login").style.display = "none"; $("#app").style.display = ""; $("#logout").style.display = "";
   $("#who").textContent = `${user.name} · ${meta.depts[user.dept]}`;

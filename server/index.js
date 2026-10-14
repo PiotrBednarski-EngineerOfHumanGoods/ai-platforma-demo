@@ -1,5 +1,5 @@
 // Platforma AI dla firmy wielodziałowej – demo
-// Jeden backend: logowanie z rolą, baza wiedzy per dział, brama AI (mock/Claude/OpenAI/Ollama),
+// Jeden backend: logowanie z rolą (hasło z hashem), baza wiedzy per dział, brama AI (mock/Claude/OpenAI/Ollama),
 // maskowanie danych osobowych, akcje z zatwierdzeniem, pamięć spraw, logi.
 
 import express from "express";
@@ -11,7 +11,7 @@ import { mask, unmask, newState } from "./pii.js";
 import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store } from "./store.js";
-import { securityHeaders, createSessions, createLoginLimiter } from "./security.js";
+import { securityHeaders, createSessions, createLoginLimiter, verifyPassword } from "./security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -28,7 +28,7 @@ app.use(express.static(path.join(ROOT, "public")));
 let KB = loadKnowledge(path.join(ROOT, "knowledge"));
 console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.file)).size} plików`);
 
-// --- Sesje i logowanie (demo: PIN; w produkcji SSO Microsoft/Google) ---
+// --- Sesje i logowanie (demo: hasło z hashem scrypt; w produkcji SSO Microsoft/Google) ---
 const sessions = createSessions({ ttlMs: 8 * 60 * 60 * 1000 });
 const loginLimiter = createLoginLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
 const auth = sessions.auth;
@@ -44,9 +44,9 @@ app.get("/api/meta", (req, res) => res.json({
 
 app.post("/api/login", (req, res) => {
   if (loginLimiter.blocked(req.ip)) return res.status(429).json({ error: "Za dużo nieudanych prób. Spróbuj za 15 minut." });
-  const { userId, pin } = req.body;
-  const u = users.find(x => x.id === userId && x.pin === String(pin));
-  if (!u) { loginLimiter.failed(req.ip); return res.status(401).json({ error: "Zły PIN" }); }
+  const { userId, password } = req.body;
+  const u = users.find(x => x.id === userId);
+  if (!u || !verifyPassword(password, u.passwordHash)) { loginLimiter.failed(req.ip); return res.status(401).json({ error: "Nieprawidłowy użytkownik lub hasło" }); }
   loginLimiter.reset(req.ip);
   const token = sessions.create(u);
   res.json({ token, user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u) });

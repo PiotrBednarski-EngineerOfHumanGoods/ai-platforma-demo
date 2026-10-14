@@ -20,7 +20,19 @@ npm start
 # http://localhost:3000
 ```
 
-Zaloguj się jako jeden z pracowników (PIN-y na ekranie logowania) i użyj podpowiedzi pod czatem.
+Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
+
+## Konta demo
+
+| Użytkownik | Dział |
+|---|---|
+| anna (Anna Lis) | sprzedaż |
+| marek (Marek Wójcik) | obsługa klienta |
+| ewa (Ewa Nowak) | biuro / administracja |
+| tomasz (Tomasz Kaczmarek) | księgowość |
+| prezes (Jan Zieliński) | zarząd, widzi wszystko i logi |
+
+Hasła kont demo są przekazywane osobno, nie w repozytorium. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W produkcji logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
 
 ## Warianty dostawcy AI
 
@@ -63,7 +75,7 @@ skills/              – przykładowy skill dla Claude Code: checklista bezpiecz
 
 | W demo | W produkcji |
 |---|---|
-| PIN i lista użytkowników | SSO Microsoft Entra / Google Workspace, role z katalogu firmy |
+| hasła z hashem scrypt, lista użytkowników w kodzie | SSO Microsoft Entra / Google Workspace, role z katalogu firmy |
 | wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia per dokument |
 | maskowanie regułami + lista imion | Microsoft Presidio + NER dla polskiego |
 | akcje zapisują do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |

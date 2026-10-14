@@ -66,9 +66,9 @@ Klucz leży tylko w `.env` z prawami `600` na serwerze. Nie trafia do kodu ani d
 
 | Zabezpieczone | Nadal uproszczenie demo |
 |---|---|
-| HTTPS z HSTS, aplikacja niewidoczna poza Caddy | logowanie PIN-em (produkcja: SSO Microsoft/Google) |
+| HTTPS z HSTS, aplikacja niewidoczna poza Caddy | hasła z hashem scrypt, lista kont w kodzie (produkcja: SSO Microsoft/Google) |
 | losowe tokeny sesji, wygasają po 8 h | dane spraw i logi w plikach JSON (produkcja: Postgres z szyfrowaniem) |
-| limit 10 prób PIN / 15 min / IP | brak kopii zapasowych |
+| limit 10 prób hasła / 15 min / IP | brak kopii zapasowych |
 | nagłówki: CSP, nosniff, no-frame, no-referrer | brak retencji czasowej logów |
 | PII maskowane w pytaniu, fragmentach i historii | maskowanie regułami (produkcja: Presidio + NER) |
 | proces bez roota, bez shella, firewall | jeden serwer, bez monitoringu |
