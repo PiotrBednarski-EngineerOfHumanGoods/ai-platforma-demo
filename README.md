@@ -1,6 +1,6 @@
 # Compax – asystent AI dla firmy z kilkoma działami
 
-**Demo na żywo:** https://195-201-97-88.sslip.io (ekran startowy) · logowanie: https://195-201-97-88.sslip.io/app.html, konta demo pod formularzem.
+**Demo na żywo:** https://compax.tech (ekran startowy) · logowanie: https://compax.tech/app.html, konta demo pod formularzem.
 
 Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale działy różnią się danymi i uprawnieniami – jak to zrobić?* Jedna wspólna platforma, a na niej osobna konfiguracja dla każdego działu: własne dokumenty, narzędzia i polityka modeli. Wszyscy logują się do tego samego asystenta, ale dostęp do danych zależy od działu.
 
@@ -92,6 +92,29 @@ public/app.html      – aplikacja: logowanie, czat, sprawy, dokumenty, logi (ap
 public/prywatnosc.html – informacja o przetwarzaniu danych i zasady korzystania
 tests/app.test.mjs   – testy: logowanie, uprawnienia, maskowanie, brama, wnioski, walidacja
 skills/              – przykładowy skill dla Claude Code: checklista bezpieczeństwa wdrożenia AI
+```
+
+## Przebieg jednego pytania
+
+```mermaid
+sequenceDiagram
+    actor P as Pracownik
+    participant C as Compax (serwer)
+    participant D as Dokumenty działu
+    participant M as Model AI
+    P->>C: Pytanie (dział i rola z sesji)
+    C->>D: Szukaj tylko w dziale i wspólnych
+    D-->>C: Pasujące fragmenty
+    Note over C: Zamazuje dane osobowe, ocenia poziom
+    alt dane chronione (PESEL, konto, zdrowie)
+        C-->>P: Nie wysłano, nic nie wychodzi z firmy
+    else jawne lub wewnętrzne
+        C->>M: Tekst z etykietami „osoba 1”, „telefon 1”
+        M-->>C: Odpowiedź + propozycja akcji
+        Note over C: Przywraca dane, sprawdza akcję według działu
+        C-->>P: Odpowiedź ze źródłem, wniosek czeka na „Zatwierdź”
+    end
+    Note over C: Dziennik: kto, dokąd, jakim modelem, ile kosztowało
 ```
 
 ## Brama AI: dostawcy, polityka działów, klasyfikacja, koszty
