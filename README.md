@@ -6,9 +6,9 @@
 
 > **Pytanie:** firma ma kilka działów i chce dać pracownikom AI, ale działy mają różne dane i uprawnienia, a firma nie ma CRM. Jak to zrobić?
 
-## Jak to rozwiązałem: jedna platforma, dział to konfiguracja
+## Jak to rozwiązałem: jedna platforma dla wszystkich działów
 
-Zamiast osobnego AI dla każdego działu jest **jeden asystent i jedna brama do modeli**, a dział to konfiguracja: własne dokumenty, własne narzędzia i własne zasady, z jakich modeli wolno korzystać. Wszyscy logują się w jednym miejscu, ale każdy widzi tylko to, do czego ma prawo.
+Zamiast osobnego AI dla każdego działu jest **jeden asystent i jeden punkt dostępu do AI**, a każdy dział ma w nim własne ustawienia: własne dokumenty, własne narzędzia i własne zasady, z jakich modeli wolno korzystać. Wszyscy logują się w jednym miejscu, ale każdy widzi tylko to, do czego ma prawo.
 
 | Wspólne dla całej firmy | Osobne dla każdego działu |
 |---|---|
