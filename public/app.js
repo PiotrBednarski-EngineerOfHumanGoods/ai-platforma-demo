@@ -25,6 +25,7 @@ const EXAMPLES = {
 async function init() {
   meta = await fetch("/api/meta").then(r => r.json());
   $("#loginForm").onsubmit = e => { e.preventDefault(); login($("#login-id").value, $("#pw").value); };
+  $("#accounts button").forEach(b => b.onclick = () => { $("#login-id").value = b.dataset.login; $("#pw").value = b.dataset.pw; loginError(""); $("#loginBtn").focus(); });
   $("#login-id").focus();
 }
 function loginError(msg) { const b = $("#loginErr"); b.querySelector("span").textContent = msg; b.classList.toggle("on", !!msg); $$("#loginForm .input").forEach(i => i.classList.toggle("is-invalid", !!msg)); }
@@ -180,3 +181,15 @@ async function loadLogs() {
   }).join("") || `<tr><td colspan="7"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Każde zapytanie i każda decyzja pracowników pojawi się tutaj.</p></div></td></tr>`;
 }
 init();
+
+/* ---------- tryb jasny / ciemny: zapamiętany na tym urządzeniu, domyślnie jak w systemie ---------- */
+(() => {
+  const KEY = "compax-theme", root = document.documentElement;
+  let saved = null; try { saved = localStorage.getItem(KEY); } catch {}
+  if (saved) root.dataset.theme = saved;
+  const current = () => root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const btns = [...document.querySelectorAll(".theme-btn")];
+  const label = () => btns.forEach(b => b.setAttribute("aria-label", current() === "dark" ? "Włącz tryb jasny" : "Włącz tryb ciemny"));
+  label();
+  btns.forEach(b => b.onclick = () => { const next = current() === "dark" ? "light" : "dark"; root.dataset.theme = next; try { localStorage.setItem(KEY, next); } catch {} label(); });
+})();

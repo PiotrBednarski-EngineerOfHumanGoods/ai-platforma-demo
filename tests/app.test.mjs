@@ -26,12 +26,12 @@ async function call(p, { method = "GET", body, cookie, headers = {} } = {}) {
   let json = null; try { json = JSON.parse(text); } catch { /* nie-JSON */ }
   return { status: res.status, json, headers: res.headers, text };
 }
-async function login(id, password = `${id}-nordica-2026`) {
+async function login(id, password = `${id}-kriomar-2026`) {
   const r = await call("/api/login", { method: "POST", body: { userId: id, password } });
   const cookie = (r.headers.get("set-cookie") || "").split(";")[0];
   return { ...r, cookie };
 }
-const PASS = { anna: "anna-nordica-2026", marek: "marek-nordica-2026", tomasz: "tomasz-nordica-2026", prezes: "prezes-nordica-2026" };
+const PASS = { anna: "anna-kriomar-2026", marek: "marek-kriomar-2026", tomasz: "tomasz-kriomar-2026", prezes: "prezes-kriomar-2026" };
 
 // ---------- hasła i logowanie ----------
 test("hasło: hash scrypt weryfikuje tylko poprawne hasło", () => {
@@ -73,7 +73,7 @@ test("wylogowanie unieważnia sesję po stronie serwera", async () => {
 
 test("blokada konta po 5 błędnych próbach, inne konta działają", async () => {
   for (let i = 0; i < 5; i++) await call("/api/login", { method: "POST", body: { userId: "ewa", password: "zle" } });
-  const locked = await call("/api/login", { method: "POST", body: { userId: "ewa", password: "ewa-nordica-2026" } });
+  const locked = await call("/api/login", { method: "POST", body: { userId: "ewa", password: "ewa-kriomar-2026" } });
   assert.equal(locked.status, 423);
   assert.equal((await login("tomasz", PASS.tomasz)).status, 200);
 });

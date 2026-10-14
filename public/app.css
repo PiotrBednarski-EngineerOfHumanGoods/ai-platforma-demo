@@ -245,3 +245,46 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--fg2);white-space:pre-
 .empty-tight{padding:16px 8px 8px}
 .grow{min-width:0}
 .badge-stop{background:var(--decide-bg);color:var(--decide-fg)}
+
+/* ---------- konta demo na ekranie logowania ---------- */
+.accounts{margin-top:16px;border-top:1px solid var(--stroke2);padding-top:12px}
+.accounts summary{cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px}
+.accounts summary::-webkit-details-marker{display:none}
+.accounts summary::before{content:"";width:6px;height:6px;border-right:2px solid var(--fg3);border-bottom:2px solid var(--fg3);transform:rotate(-45deg);transition:transform .15s;margin:0 6px 2px 2px}
+.accounts[open] summary::before{transform:rotate(45deg)}
+.accounts .hint{margin:8px 0 6px;color:var(--fg3);font-size:12px}
+.accounts ul{list-style:none;margin:0;padding:0}
+.accounts li button{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 10px;border:0;border-radius:var(--r-md);background:none;color:var(--fg1);text-align:left;cursor:pointer}
+.accounts li button:hover{background:var(--bg3)}
+.accounts li button small{color:var(--fg3);font-size:12px}
+
+/* ---------- znak: łuk rysuje się, igła kompasu osiada po wejściu na logowanie ---------- */
+.brand{position:relative}
+.theme-float{position:absolute;right:-12px;top:-12px}
+.logo-anim .arc{stroke-dasharray:46;stroke-dashoffset:46;animation:draw .9s ease-out forwards}
+.logo-anim .needle{transform-origin:12px 12px;animation:settle 1.8s .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes settle{from{transform:rotate(-540deg)}60%{transform:rotate(14deg)}80%{transform:rotate(-6deg)}to{transform:rotate(0)}}
+.brand-mark:hover .needle{animation:wiggle .6s ease}
+@keyframes wiggle{0%{transform:rotate(0)}30%{transform:rotate(-18deg)}60%{transform:rotate(10deg)}100%{transform:rotate(0)}}
+
+/* ---------- przełącznik motywu ---------- */
+.theme-btn{height:32px;width:32px;padding:0;border-radius:var(--r-md);border:1px solid var(--stroke1);background:var(--bg1);color:var(--fg2);display:inline-grid;place-items:center;cursor:pointer}
+.theme-btn:hover{background:var(--bg3)}
+.hdr-icon.theme-btn{border-color:rgba(255,255,255,.35);background:transparent;color:#fff}
+.hdr-icon.theme-btn:hover{background:rgba(255,255,255,.14)}
+
+/* ---------- tryb ciemny: te same tokeny, inne wartości; domyślnie jak w systemie, przełącznik nadpisuje ---------- */
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg1:#1B1F22;--bg2:#15191C;--bg3:#242A2E;--bg4:#2C3338;--stroke1:#3E474D;--stroke2:#2F373C;--stroke3:#283034;--stroke-access:#8A959C;
+  --fg1:#F2F4F5;--fg2:#D0D6DA;--fg3:#9AA5AB;--fg4:#7C878D;--brand:#4F9DE3;--brand-hover:#6CB0EC;--brand-pressed:#2F7CC2;--brand-bg2:#13283A;
+  --decide:#E07A2F;--decide-fg:#F0A670;--decide-bg:#2A1E14;--decide-stroke:#5A3A20;--redact:#0B0E10;--ok-fg:#5BC45B;--ok-bg:#15291A;--danger-fg:#F28B8B
+}
+:root:not([data-theme=light]) .tok{color:#BFE6EC;box-shadow:inset 0 0 0 1px #3E474D}}
+:root[data-theme=dark]{
+  --bg1:#1B1F22;--bg2:#15191C;--bg3:#242A2E;--bg4:#2C3338;--stroke1:#3E474D;--stroke2:#2F373C;--stroke3:#283034;--stroke-access:#8A959C;
+  --fg1:#F2F4F5;--fg2:#D0D6DA;--fg3:#9AA5AB;--fg4:#7C878D;--brand:#4F9DE3;--brand-hover:#6CB0EC;--brand-pressed:#2F7CC2;--brand-bg2:#13283A;
+  --decide:#E07A2F;--decide-fg:#F0A670;--decide-bg:#2A1E14;--decide-stroke:#5A3A20;--redact:#0B0E10;--ok-fg:#5BC45B;--ok-bg:#15291A;--danger-fg:#F28B8B
+}
+:root[data-theme=dark] .tok{color:#BFE6EC;box-shadow:inset 0 0 0 1px #3E474D}
+@media (prefers-reduced-motion:reduce){.logo-anim .arc,.logo-anim .needle,.brand-mark:hover .needle{animation:none;stroke-dashoffset:0}}

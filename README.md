@@ -10,7 +10,7 @@ Demo do koncepcji „jedna wspólna platforma AI, osobni agenci dla działów”
 - **pamięć spraw** zamiast CRM – lekki rejestr klientów i następnych kroków,
 - **logi** – co poszło do modelu, ile danych zamaskowano, jakie źródła, jaka akcja (zakładka dla zarządu).
 
-Firma w demo jest fikcyjna (Nordica Serwis Sp. z o.o.), dane przykładowe.
+Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe.
 
 ## Uruchomienie (bez klucza API, 1 minuta)
 
@@ -32,7 +32,7 @@ Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
 | tomasz (Tomasz Kaczmarek) | księgowość |
 | prezes (Jan Zieliński) | zarząd, widzi wszystko i logi |
 
-Hasła kont demo są przekazywane osobno, nie w repozytorium. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W produkcji logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
+Hasła kont demo są wypisane na ekranie logowania (rozwijana lista „Konta demo”), bo firma i dane są fikcyjne. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W produkcji logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
 
 ## Warianty dostawcy AI
 

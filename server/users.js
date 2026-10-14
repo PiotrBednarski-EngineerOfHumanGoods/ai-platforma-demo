@@ -10,9 +10,9 @@ export const DEPTS = {
 };
 
 export const users = [
-  { id: "anna", login: "a.lis",   name: "Anna Lis",        dept: "sprzedaz",   role: "handlowiec",            passwordHash: "scrypt$44fed1eac826740a47bad66afe9b35a0$ef1f25c526276ca88a50551c08ca40f3b2c835a8d691943b506395e7a2cfa01a" },
-  { id: "marek", login: "m.wojcik",  name: "Marek Wójcik",    dept: "obsluga",    role: "obsługa klienta",       passwordHash: "scrypt$3b45c5dc6fd418406706bdcbe767d7be$b018ee681b699ee73fe4022318a428d2b0b0fb65cc4c23cd4b8b10a8c6d24aa1" },
-  { id: "ewa", login: "e.nowak",    name: "Ewa Nowak",       dept: "biuro",      role: "asystentka biura",      passwordHash: "scrypt$25e188fb5a47d238e14b6d19734865c5$8247bb2376df798b1af531e6a3c45258e380197faff3a7982304a84bb5a4acff" },
-  { id: "tomasz", login: "t.kaczmarek", name: "Tomasz Kaczmarek",dept: "ksiegowosc", role: "księgowy",              passwordHash: "scrypt$0ceeac165b6efe09e11750b400e2bd70$a9072b779ef8f21df41378ab002062c70ce65116db32be5d62e4b4ab80f6288a" },
-  { id: "prezes", login: "j.zielinski", name: "Jan Zieliński",   dept: "zarzad",     role: "prezes (widzi wszystko)", passwordHash: "scrypt$c2b195af4559be7ec156bb0441361ec2$111093aebca3045a6dd3294e6a4e0e00416e48120437433659bc983498044d87" }
+  { id: "anna", login: "a.lis",   name: "Anna Lis",        dept: "sprzedaz",   role: "handlowiec",            passwordHash: "scrypt$3a669bcac7c6635b21c3394c820f21bb$b2b4540d8354a0ed0e73ab1d19dd6ba398d7d6c69553f9e471c09c55535a1e14" },
+  { id: "marek", login: "m.wojcik",  name: "Marek Wójcik",    dept: "obsluga",    role: "obsługa klienta",       passwordHash: "scrypt$e10e83fc1931129758bc2a4d36ae23db$ba6051619e14714cf16e1dc48143081a480d418c9f9e14b6220dc5813f0bb1a3" },
+  { id: "ewa", login: "e.nowak",    name: "Ewa Nowak",       dept: "biuro",      role: "asystentka biura",      passwordHash: "scrypt$6644ab6e6a871181b372071ec7a56119$91f436cf2e48fdeadbc3fa6f4fccf9484eed6a51806d8ea7b48ecba6a98f9c3e" },
+  { id: "tomasz", login: "t.kaczmarek", name: "Tomasz Kaczmarek",dept: "ksiegowosc", role: "księgowy",              passwordHash: "scrypt$e9ec54d5e487556efb13644b319e1e9a$73bc5332f82222f2ba5c5e5e97f6d21d698af7f2c067ee8c6d6f82866ea4df56" },
+  { id: "prezes", login: "j.zielinski", name: "Jan Zieliński",   dept: "zarzad",     role: "prezes (widzi wszystko)", passwordHash: "scrypt$91bbf552943a564004ad38a6086b30b7$e2776aee7999fffcd99cee3a6bbb53e34e0172226b8e5de39667f67eeb212c64" }
 ];

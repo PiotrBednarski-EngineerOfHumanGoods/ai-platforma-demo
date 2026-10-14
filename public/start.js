@@ -15,16 +15,31 @@
   // 3. Kursor: światło w tle i lekkie pochylenie karty demo. Tylko dla urządzeń z myszą.
   if (!matchMedia("(hover: hover)").matches) return;
   let raf = 0, px = 0, py = 0;
-  hero.addEventListener("pointermove", e => {
+  let cx = 0, cy = 0;
+  window.addEventListener("pointermove", e => {
+    cx = e.clientX; cy = e.clientY;
     const r = hero.getBoundingClientRect();
     px = (e.clientX - r.left) / r.width; py = (e.clientY - r.top) / r.height;
     if (!raf) raf = requestAnimationFrame(() => {
       raf = 0;
-      hero.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
-      hero.style.setProperty("--my", (py * 100).toFixed(1) + "%");
-      demo.style.setProperty("--rx", ((px - 0.5) * 6).toFixed(2) + "deg");
-      demo.style.setProperty("--ry", ((0.5 - py) * 6).toFixed(2) + "deg");
+      document.documentElement.style.setProperty("--mx", cx + "px");
+      document.documentElement.style.setProperty("--my", cy + "px");
+      const inHero = px >= 0 && px <= 1 && py >= 0 && py <= 1;
+      demo.style.setProperty("--rx", inHero ? ((px - 0.5) * 6).toFixed(2) + "deg" : "0deg");
+      demo.style.setProperty("--ry", inHero ? ((0.5 - py) * 6).toFixed(2) + "deg" : "0deg");
     });
-  });
-  hero.addEventListener("pointerleave", () => { demo.style.setProperty("--rx", "0deg"); demo.style.setProperty("--ry", "0deg"); });
+  }, { passive: true });
+  document.addEventListener("pointerleave", () => { demo.style.setProperty("--rx", "0deg"); demo.style.setProperty("--ry", "0deg"); });
+})();
+
+/* ---------- tryb jasny / ciemny: zapamiętany na tym urządzeniu, domyślnie jak w systemie ---------- */
+(() => {
+  const KEY = "compax-theme", root = document.documentElement;
+  let saved = null; try { saved = localStorage.getItem(KEY); } catch {}
+  if (saved) root.dataset.theme = saved;
+  const current = () => root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const btns = [...document.querySelectorAll(".theme-btn")];
+  const label = () => btns.forEach(b => b.setAttribute("aria-label", current() === "dark" ? "Włącz tryb jasny" : "Włącz tryb ciemny"));
+  label();
+  btns.forEach(b => b.onclick = () => { const next = current() === "dark" ? "light" : "dark"; root.dataset.theme = next; try { localStorage.setItem(KEY, next); } catch {} label(); });
 })();
