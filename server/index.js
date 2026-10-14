@@ -79,6 +79,8 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   // historia rozmowy też idzie do modelu, więc maskujemy ją tym samym stanem (ta sama osoba = ten sam token)
   const maskedHistory = history.map(h => ({ role: h.role, content: mask(String(h.content ?? ""), st).masked }));
   const map = st.map;
+  // Licznik dla użytkownika: tokeny w jego wiadomości. Fragmenty dokumentów też są maskowane tym samym stanem.
+  const piiInMessage = (masked.match(/\[[A-Z]+_\d+\]/g) || []).length;
 
   // 3. Wywołanie modelu przez bramę (provider wybierany konfiguracją)
   const sys = systemPrompt(user, maskedHits);
@@ -97,12 +99,12 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   // 5. Log: co faktycznie poszło do modelu
   store.log({
     userId: user.id, dept: user.dept, provider: PROVIDER,
-    prompt_masked: masked, pii_found: Object.keys(map).length,
+    prompt_masked: masked, pii_found: piiInMessage,
     sources: hits.map(h => `${h.dept}/${h.file}#${h.idx}`),
     action: action ? action.tool : null, ms: Date.now() - t0
   });
 
-  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: Object.keys(map).length });
+  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: piiInMessage });
 });
 
 // Akcje wymagające zatwierdzenia przez człowieka
@@ -145,7 +147,7 @@ ${ctx || "(brak pasujących dokumentów)"}`;
 function mockAnswer(message, hits, user) {
   const action = detectToolMock(message, user);
   let answer;
-  if (action && !hits.length) {
+  if (action) { // prośba o akcję: krótkie potwierdzenie zamiast fragmentów dokumentów
     answer = `Rozumiem. Przygotowałem akcję „${TOOLS.find(t => t.name === action.tool).title}” – sprawdź dane i zatwierdź w panelu po prawej. Wykonam ją dopiero po Twojej zgodzie.`;
     return { answer, action };
   }
@@ -155,7 +157,6 @@ function mockAnswer(message, hits, user) {
   } else {
     answer = "Nie znajduję tego w dokumentach firmy, do których masz dostęp. Zapytaj przełożonego działu lub poproś o dodanie dokumentu do bazy wiedzy.";
   }
-  if (action) answer += `\n\nPrzygotowałem akcję „${TOOLS.find(t => t.name === action.tool).title}” – sprawdź i zatwierdź w panelu po prawej.`;
   return { answer, action };
 }
 

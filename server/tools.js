@@ -27,23 +27,33 @@ export function executeTool(a, store) {
   return "Nieznane narzędzie";
 }
 
-// Tryb demo bez modelu: prosta detekcja intencji po słowach kluczowych
+// Tryb demo bez modelu: prosta detekcja intencji po słowach kluczowych.
+// Akcję wyzwala tryb rozkazujący ("umów", "wyślij", "zapisz"), nie samo słowo w pytaniu
+// ("klient bez umowy", "kiedy wysyłamy przypomnienie"). Z prawdziwym modelem decyduje model.
 export function detectToolMock(message, user) {
   const m = message.toLowerCase();
   const can = t => TOOLS.find(x => x.name === t).depts.includes(user.dept);
-  if (/um[óo]w|spotkani|zaplanuj/.test(m) && can("umow_spotkanie")) {
+  if (/\bum[óo]w(?:\b|i[ćm]|my)|\bzaplanuj\b|\bzarezerwuj\b/.test(m) && can("umow_spotkanie")) {
     const kiedy = (m.match(/\b(\d{1,2}[.:]\d{2}|jutro|pojutrze|poniedzia\w+|wtor\w+|środ\w+|czwart\w+|piąt\w+)\b/g) || ["do ustalenia"]).join(" ");
     return { tool: "umow_spotkanie", args: { z_kim: guessClient(message), kiedy, temat: message.slice(0, 80) } };
   }
-  if (/przypomn|zaleg|nie zapłac|płatno/.test(m) && can("przypomnienie_platnosc")) {
+  if ((/\b(wyślij|wyslij|przygotuj|wystaw)\b[\s\S]*(przypomn|płatno|zaleg)|\bprzypomnij\b/.test(m)) && can("przypomnienie_platnosc")) {
     return { tool: "przypomnienie_platnosc", args: { kontrahent: guessClient(message), faktura: (m.match(/fv[\s/-]?\d+[\/\d]*/i) || ["(numer)"])[0], kwota: (m.match(/\d[\d\s]*(?:,\d+)?\s*zł/) || ["(kwota)"])[0] } };
   }
-  if (/zapisz|zanotuj|notatk|zapamiętaj/.test(m) && can("zapisz_sprawe")) {
+  if (/\b(zapisz|zanotuj|zapamiętaj)\b|notatk/.test(m) && can("zapisz_sprawe")) {
     return { tool: "zapisz_sprawe", args: { klient: guessClient(message), notatka: message, nastepny_krok: "do ustalenia", termin: null } };
   }
   return null;
 }
+
+// Nazwa klienta: słowa z wielkiej litery po przyimku ("z firmą Bałtyk Market", "do Delta Sp. z o.o."),
+// a bez przyimka ("Zapisz: Jan Kowalski …") pierwsza para słów z wielkiej litery po pierwszym słowie.
+const NAME = "[A-ZĄĆĘŁŃÓŚŹŻ][\\p{L}\\p{N}&.-]*";
+const UNIT = `(?:${NAME}|Sp\\.|z|o\\.o\\.|S\\.A\\.)`;
+const AFTER_PREPOSITION = new RegExp(`(?:\\bz|\\bdla|\\bdo|firm[aąy]|klient\\p{L}*)\\s+(?:(?:Pan|Pani|p\\.)\\s+)?(${NAME}(?:\\s${UNIT})*)`, "u");
+const FIRST_NAME_RUN = new RegExp(`(${NAME}(?:\\s${UNIT}){1,4})`, "u");
 function guessClient(message) {
-  const m = message.match(/(?:z|dla|do|firm[aąy]|klient\w*)\s+(?:(?:Pan|Pani|p\.)\s+)?((?:[A-ZĄĆĘŁŃÓŚŹŻ][\w&.-]*|Sp\.|z|o\.o\.|S\.A\.)(?:\s(?:[A-ZĄĆĘŁŃÓŚŹŻ][\w&.-]*|Sp\.|z|o\.o\.|S\.A\.))*)/);
-  return m ? m[1].replace(/\s+(tel|we|w|na|jutro|o)$/i, "").trim() : "(klient)";
+  const m = message.match(AFTER_PREPOSITION) || message.replace(/^\S+\s*/, "").match(FIRST_NAME_RUN);
+  if (!m) return "(klient)";
+  return m[1].split(/\s+(?=(?:FV|NIP|tel|we|w|na|jutro|o|chce|zgłasza)\b(?!\.))/i)[0].trim();
 }

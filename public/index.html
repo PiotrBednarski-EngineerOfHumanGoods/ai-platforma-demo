@@ -98,16 +98,30 @@
   .mask .count{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);color:var(--ink);font-size:13px;line-height:1.4}
   .tok{display:inline-block;background:var(--tok-bg);color:var(--tok-fg);border-radius:3px;padding:1px 7px;margin:0 1px;font-size:12.5px;letter-spacing:.02em;line-height:1.5;vertical-align:baseline;white-space:nowrap}
 
+  .chips button{text-align:left}
+
+  /* telefon: zakładki przyklejone u góry, panel boczny jako wysuwana karta od dołu */
+  .panelBtn,.panelBar{display:none}
   @media(max-width:960px){
     .login{grid-template-columns:1fr;gap:32px;padding:32px 16px}
     .intro h2{font-size:28px}
-    main{grid-template-columns:1fr;padding:16px}
-    .chat{height:52vh}
     header{padding:0 16px;gap:12px}
     .brand span,.status{display:none}
     #who{font-size:13px;color:#B9D3DA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+    main{grid-template-columns:1fr;padding:12px 12px 90px}
+    .card{padding:0 14px 14px}
+    .tabs{position:sticky;top:0;z-index:2;background:var(--frost);margin:0 -14px 12px;padding:0 14px;gap:18px;overflow-x:auto;scrollbar-width:none}
+    .tabs button{white-space:nowrap}
+    .chat{height:calc(100dvh - 330px);min-height:240px}
+    aside.card{display:none;position:fixed;left:0;right:0;bottom:0;z-index:5;max-height:78vh;overflow:auto;border-radius:14px 14px 0 0;border:0;box-shadow:0 -10px 32px rgba(15,59,76,.28);padding:0 16px 24px}
+    body.panel-open aside.card{display:block}
+    .panelBar{display:flex;justify-content:space-between;align-items:center;padding:12px 0 2px}
+    .panelBar span{width:40px;height:4px;border-radius:2px;background:var(--line-strong);margin:0 auto}
+    .panelBar button{background:none;border:0;color:var(--teal);padding:6px 0;cursor:pointer}
+    body.in .panelBtn{display:flex;position:fixed;right:16px;bottom:16px;z-index:4;align-items:center;gap:8px;background:var(--deep);color:#fff;border:0;border-radius:999px;padding:11px 16px;box-shadow:0 6px 20px rgba(15,59,76,.3);cursor:pointer}
+    .panelBtn b{background:rgba(255,255,255,.18);border-radius:999px;padding:1px 8px;font-weight:600}
+    .panelBtn.has b{background:var(--amber)}
   }
-  .chips button{text-align:left}
 </style>
 </head>
 <body>
@@ -131,7 +145,7 @@
   </div>
   <form id="loginForm" class="panel" autocomplete="off">
     <h3>Zaloguj się</h3>
-    <p>Wybierz swoje konto i wpisz hasło. W produkcji to miejsce zajmuje logowanie kontem firmowym Microsoft lub Google.</p>
+    <p>Wybierz swoje konto i zaloguj się danymi firmowymi, które dostałeś e-mailem.</p>
     <div class="users" id="users"></div>
     <div class="loginForm">
       <input type="password" id="pw" placeholder="Hasło" autocomplete="current-password" required aria-label="Hasło">
@@ -160,12 +174,14 @@
   </section>
 
   <aside class="card">
+    <div class="panelBar"><span></span><button id="panelClose" type="button">Zamknij</button></div>
     <h3>Do zatwierdzenia</h3>
     <div id="actions"><p class="hint">Nic do zatwierdzenia. Gdy asystent przygotuje akcję, pojawi się tutaj i poczeka na Twoją decyzję.</p></div>
     <h3 class="second">Co dostał model</h3>
     <div id="masked" class="hint">Po każdym pytaniu zobaczysz tu wersję wysłaną do modelu, z zamaskowanymi danymi osobowymi.</div>
   </aside>
 </main>
+<button id="panelBtn" class="panelBtn" type="button">Do zatwierdzenia <b id="panelCount">0</b></button>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -199,7 +215,7 @@ async function login(id, password) {
   if (r.error) { $("#loginErr").textContent = r.error; return; }
   $("#pw").value = "";
   token = r.token; user = r.user; history = [];
-  $("#login").style.display = "none"; $("#app").style.display = ""; $("#logout").style.display = "";
+  $("#login").style.display = "none"; $("#app").style.display = ""; $("#logout").style.display = ""; document.body.classList.add("in");
   $("#who").textContent = `${user.name}, ${meta.depts[user.dept]}`;
   $("#logsTab").style.display = user.dept === "zarzad" ? "" : "none";
   $("#chat").innerHTML = ""; addMsg("ai", `Cześć ${user.name.split(" ")[0]}. Widzę dokumenty działu „${meta.depts[user.dept]}” i dokumenty wspólne. O co chcesz zapytać?`);
@@ -208,6 +224,11 @@ async function login(id, password) {
   refreshActions(); loadKb(); loadCases();
 }
 $("#logout").onclick = async () => { await api("/logout", { method: "POST" }).catch(() => {}); location.reload(); };
+// na telefonie panel boczny jest kartą wysuwaną od dołu
+const isPhone = () => matchMedia("(max-width:960px)").matches;
+const openPanel = v => document.body.classList.toggle("panel-open", v);
+$("#panelBtn").onclick = () => openPanel(!document.body.classList.contains("panel-open"));
+$("#panelClose").onclick = () => openPanel(false);
 
 function addMsg(role, text, sources) {
   const d = document.createElement("div"); d.className = "msg " + (role === "me" ? "me" : "ai"); d.textContent = text;
@@ -226,7 +247,7 @@ async function send() {
     history.push({ role: "user", content: t }, { role: "assistant", content: r.answer });
     $("#masked").className = "";
     $("#masked").innerHTML = `<div class="mask"><b>Wysłane do modelu</b>${tokens(r.masked_preview)}<div class="count">Zamaskowane dane osobowe: ${r.pii_found}</div></div>`;
-    if (r.action) refreshActions();
+    if (r.action) { await refreshActions(); if (isPhone()) openPanel(true); }
   } catch (e) { addMsg("ai", "Nie udało się wysłać: " + e.message); }
   $("#send").disabled = false;
 }
@@ -234,11 +255,12 @@ $("#send").onclick = send; $("#inp").onkeydown = e => { if (e.key === "Enter") s
 
 async function refreshActions() {
   const list = await api("/actions");
+  $("#panelCount").textContent = list.length; $("#panelBtn").classList.toggle("has", list.length > 0);
   if (!list.length) { $("#actions").innerHTML = `<p class="hint">Nic do zatwierdzenia. Gdy asystent przygotuje akcję, pojawi się tutaj i poczeka na Twoją decyzję.</p>`; return; }
   const TITLES = { umow_spotkanie: "Umów spotkanie", zapisz_sprawe: "Zapisz sprawę", przypomnienie_platnosc: "Wyślij przypomnienie o płatności" };
   $("#actions").innerHTML = list.map(a => `<div class="act"><b>${TITLES[a.tool] || a.tool}</b><pre>${esc(Object.entries(a.args).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join("\n"))}</pre><button class="ok" data-a="${a.id}">Zatwierdź</button><button class="no" data-r="${a.id}">Odrzuć</button></div>`).join("");
-  document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { const r = await api(`/actions/${b.dataset.a}/approve`, { method: "POST" }); addMsg("ai", "Zatwierdzono. " + r.result); refreshActions(); loadCases(); });
-  document.querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { await api(`/actions/${b.dataset.r}/reject`, { method: "POST" }); addMsg("ai", "Akcja odrzucona."); refreshActions(); });
+  document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { const r = await api(`/actions/${b.dataset.a}/approve`, { method: "POST" }); addMsg("ai", "Zatwierdzono. " + r.result); openPanel(false); refreshActions(); loadCases(); });
+  document.querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { await api(`/actions/${b.dataset.r}/reject`, { method: "POST" }); addMsg("ai", "Akcja odrzucona."); openPanel(false); refreshActions(); });
 }
 async function loadKb() { const r = await api("/knowledge"); $("#kb").innerHTML = r.files.map(f => `<li>${f}</li>`).join(""); }
 async function loadCases() { const r = await api("/cases"); $("#cases").innerHTML = r.map(c => `<tr><td>${c.when.slice(0, 16).replace("T", " ")}</td><td>${meta.depts[c.dept] || c.dept}</td><td>${esc(c.klient)}</td><td>${esc(c.notatka)}</td><td>${esc(c.nastepny_krok || "")}</td><td>${esc(c.termin || "")}</td></tr>`).join("") || `<tr><td colspan=6 class="hint">Jeszcze nie ma spraw. Poproś asystenta: „Zapisz: …”, a po zatwierdzeniu wpis pojawi się tutaj.</td></tr>`; }
