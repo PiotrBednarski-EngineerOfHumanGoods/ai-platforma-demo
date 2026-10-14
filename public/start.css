@@ -52,6 +52,10 @@ h3{font-size:16px;line-height:22px}
 
 /* sekcja otwierająca: tekst + karta demo; światło za kursorem */
 .hero{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:72px;align-items:center;max-width:1184px;margin:0 auto;padding:112px 32px 96px}
+.compass{display:inline-grid;place-items:center;width:96px;height:96px;margin:0 0 28px;color:var(--fg1)}
+.compass .ring{stroke:var(--stroke2);stroke-width:.6}
+.compass .needle{transform-origin:12px 12px;transform:rotate(var(--ang,0deg));transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.compass.idle .needle{transition:transform 1.6s cubic-bezier(.2,.8,.2,1)}
 .kicker{margin:0 0 18px;color:var(--fg3);font-weight:500;font-size:14px;letter-spacing:.01em}
 h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
 .lead{margin:24px 0 32px;font-size:18px;line-height:1.65;color:var(--fg2);max-width:50ch}
@@ -142,6 +146,7 @@ h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
   .flow,.depts,.levels,.sec,.help{padding:56px 0}
   .sub{margin-bottom:24px}
   .demo{padding:16px}
+  .compass{width:64px;height:64px;margin-bottom:18px} .compass svg{width:64px;height:64px}
   .topnav a:not(.btn){display:none}
   .brand .co{display:none}
   .demo{transform:none!important}
@@ -152,6 +157,7 @@ h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
   .reveal,.step{opacity:1;transform:none;animation:none;transition:none}
   .demo{transform:none!important;transition:none}
   .redact b,.redact i,.demo-sum,.demo-action{transition:none}
+  .compass .needle{transition:none;transform:none!important}
 }
 
 /* ---------- przełącznik motywu i tryb ciemny ---------- */

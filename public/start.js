@@ -12,10 +12,23 @@
   const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -12% 0px", threshold: 0.2 });
   document.querySelectorAll(".reveal, .step").forEach(el => io.observe(el));
 
-  // 3. Kursor: lekkie pochylenie karty demo w sekcji otwierającej. Tylko dla urządzeń z myszą.
+  // 3. Kursor: igła kompasu wskazuje kursor (jak prawdziwa igła biegun), po chwili bezruchu wraca na północ;
+  //    plus lekkie pochylenie karty demo w sekcji otwierającej. Tylko dla urządzeń z myszą.
   if (!matchMedia("(hover: hover)").matches) return;
+  const compass = document.getElementById("compass");
+  let idleTimer = 0;
+  // igła w znaku wskazuje domyślnie północny wschód (45°), więc kąt do kursora liczymy względem tego kierunku
+  const point = (x, y) => {
+    const r = compass.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const deg = Math.atan2(y - cy, x - cx) * 180 / Math.PI; // 0° = w prawo
+    compass.classList.remove("idle");
+    compass.style.setProperty("--ang", (deg + 45).toFixed(1) + "deg");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { compass.classList.add("idle"); compass.style.setProperty("--ang", "0deg"); }, 2000);
+  };
   let raf = 0, px = 0, py = 0;
   window.addEventListener("pointermove", e => {
+    point(e.clientX, e.clientY);
     const r = hero.getBoundingClientRect();
     px = (e.clientX - r.left) / r.width; py = (e.clientY - r.top) / r.height;
     if (!raf) raf = requestAnimationFrame(() => {

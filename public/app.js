@@ -138,7 +138,7 @@ const TIER = { cheap: "tani model", strong: "mocny model" };
   const LEVEL = { public: "jawne", internal: "wewnętrzne", restricted: "chronione" };
   const [dotCls, routeLabel] = ROUTE[p.route] || ["", p.route || ""];
   const provLabel = p.route === "mock" ? "" : (meta.providers.find(x => x.id === p.provider) || {}).label;
-  const usageTxt = u && p.route !== "mock" ? `<b>Tokeny:</b><span>~${u.tokens_in} wejście, ~${u.tokens_out} wyjście${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
+  const usageTxt = u && p.route !== "mock" && p.route !== "cache" ? `<b>Tokeny:</b><span>~${u.tokens_in} wejście, ~${u.tokens_out} wyjście${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
   const routeHtml = `<div class="mask-sum"><b>Poziom pytania:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}</div>
     <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${p.model && p.route !== "cache" ? `<div class="mask-sum"><b>Model:</b><span>${esc(p.model)}${p.tier ? " · " + TIER[p.tier] : ""}</span></div>` : ""}${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
   if (p.route === "blocked") {
