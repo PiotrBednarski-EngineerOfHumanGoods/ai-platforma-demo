@@ -6,11 +6,11 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { users, DEPTS } from "./users.js";
-import { loadKnowledge, search } from "./knowledge.js";
+import { loadKnowledge, search, chunksOf } from "./knowledge.js";
 import { mask, unmask, newState } from "./pii.js";
 import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
-import { store } from "./store.js";
+import { store, encryptionOn } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, hashPassword, rateLimit } from "./security.js";
 import crypto from "crypto";
 import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor } from "./policy.js";
@@ -24,12 +24,18 @@ app.set("trust proxy", 1); // za Caddy/Nginx: prawdziwe IP klienta dla limitu lo
 app.disable("x-powered-by");
 app.use(securityHeaders);
 app.use(requireCsrfHeader);
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "512kb" }));
 app.use(express.static(path.join(ROOT, "public")));
 
 // --- Baza wiedzy ładowana przy starcie (pliki .md w knowledge/<dział>/) ---
-let KB = loadKnowledge(path.join(ROOT, "knowledge"));
-const KB_VERSION = crypto.createHash("sha1").update(KB.map(c => c.text).join("\n")).digest("hex").slice(0, 12); // zmiana dokumentów = nowa pamięć podręczna
+// Baza wiedzy = dokumenty z folderu knowledge/ (administrator) + dokumenty wgrane w aplikacji (zaszyfrowane w data/)
+let KB = [], KB_VERSION = "";
+function reloadKnowledge() {
+  KB = [...loadKnowledge(path.join(ROOT, "knowledge")), ...store.docs().flatMap(d => chunksOf(d.dept, d.file, d.text, { uploaded: true, by: d.by }))];
+  KB_VERSION = crypto.createHash("sha1").update(KB.map(c => c.dept + c.file + c.text).join("\n")).digest("hex").slice(0, 12); // zmiana dokumentów = nowa pamięć podręczna
+}
+reloadKnowledge();
+console.log(`Szyfrowanie danych na dysku: ${encryptionOn() ? "włączone (AES-256-GCM)" : "wyłączone (brak DATA_KEY)"}`);
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 const cacheKey = (dept, provider, message) => crypto.createHash("sha1").update(`${dept}|${provider}|${message.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim()}|${KB_VERSION}`).digest("hex");
 console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.file)).size} plików`);
@@ -74,7 +80,35 @@ app.post("/api/logout", auth, (req, res) => { sessions.destroy(sessions.tokenFro
 app.get("/api/knowledge", auth, (req, res) => {
   const depts = allowedDepts(req.user);
   const files = [...new Set(KB.filter(c => depts.includes(c.dept)).map(c => `${c.dept}/${c.file}`))];
-  res.json({ files });
+  const uploaded = store.docs().filter(d => depts.includes(d.dept)).map(d => ({ path: `${d.dept}/${d.file}`, by: d.by, at: d.at, canDelete: d.by === req.user.id || req.user.dept === "zarzad" }));
+  res.json({ files, uploaded, canUploadTo: uploadTargets(req.user) });
+});
+
+// Dodawanie dokumentu: świadoma czynność, nie zapis czatu. Pracownik do swojego działu, zarząd także do innych i do wspólnych.
+const uploadTargets = user => user.dept === "zarzad" ? Object.keys(DEPTS) : [user.dept];
+const MAX_DOC = 200 * 1024;
+app.post("/api/documents", auth, (req, res) => {
+  const { name, content, dept = req.user.dept } = req.body || {};
+  if (!uploadTargets(req.user).includes(dept)) return res.status(403).json({ error: "Nie możesz dodawać dokumentów do tego działu." });
+  const base = String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\.(md|txt)$/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  if (!base || !/\.(md|txt)$/i.test(String(name))) return res.status(400).json({ error: "Dodaj plik .md albo .txt z nazwą." });
+  if (typeof content !== "string" || !content.trim()) return res.status(400).json({ error: "Plik jest pusty." });
+  if (Buffer.byteLength(content, "utf8") > MAX_DOC) return res.status(400).json({ error: "Plik jest większy niż 200 KB." });
+  const file = base + ".md";
+  if (loadKnowledge(path.join(ROOT, "knowledge")).some(c => c.dept === dept && c.file === file)) return res.status(409).json({ error: "Dokument o tej nazwie jest już w bazie działu. Zmień nazwę pliku." });
+  store.addDoc({ dept, file, text: content.replace(/\r\n/g, "\n"), by: req.user.id, at: new Date().toISOString() });
+  reloadKnowledge();
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "doc_added", action: `${dept}/${file}` });
+  res.json({ ok: true, path: `${dept}/${file}` });
+});
+app.delete("/api/documents/:dept/:file", auth, (req, res) => {
+  const { dept, file } = req.params;
+  const doc = store.docs().find(d => d.dept === dept && d.file === file);
+  if (!doc || !allowedDepts(req.user).includes(dept)) return res.status(404).json({ error: "Brak dokumentu" });
+  if (doc.by !== req.user.id && req.user.dept !== "zarzad") return res.status(403).json({ error: "Możesz usuwać tylko dokumenty, które dodałeś." });
+  store.removeDoc(dept, file); reloadKnowledge();
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "doc_removed", action: `${dept}/${file}` });
+  res.json({ ok: true });
 });
 
 const safe = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next); // Express 4 nie łapie odrzuconych obietnic

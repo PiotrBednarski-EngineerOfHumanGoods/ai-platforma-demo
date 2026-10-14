@@ -31,7 +31,12 @@ async function init() {
 function loginError(msg) { const b = $("#loginErr"); b.querySelector("span").textContent = msg; b.classList.toggle("on", !!msg); $$("#loginForm .input").forEach(i => i.classList.toggle("is-invalid", !!msg)); }
 async function login(id, password) {
   loginError("");
-  const r = await fetch("/api/login", { method: "POST", headers: HDR, body: JSON.stringify({ userId: id, password }) }).then(r => r.json());
+  const mark = document.querySelector(".brand-mark"), btn = $("#loginBtn");
+  mark.classList.add("spinning"); btn.disabled = true; btn.textContent = "Logowanie…";
+  const minWait = new Promise(r => setTimeout(r, 900));
+  const done = () => { mark.classList.remove("spinning"); btn.disabled = false; btn.textContent = "Zaloguj się"; };
+  const [r] = await Promise.all([fetch("/api/login", { method: "POST", headers: HDR, body: JSON.stringify({ userId: id, password }) }).then(r => r.json()).catch(() => ({ error: "Brak połączenia z serwerem. Spróbuj ponownie." })), minWait]);
+  done();
   if (r.error) return loginError(r.error);
   $("#pw").value = "";
   user = r.user; history = [];
@@ -163,9 +168,28 @@ const TIER = { cheap: "tani model", strong: "mocny model" };
 /* ---------- zakładki: sprawy, dokumenty, logi ---------- */
 async function loadKb() {
   const r = await api("/knowledge");
-  $("#kb").innerHTML = r.files.map(f => { const [dept, name] = f.split("/"); return `<li class="li"><div class="li-main"><span class="file-ico">${ICON.docx}</span><div class="grow"><div class="li-title">${esc(name.replace(/\.md$/, "").replace(/-/g, " "))}</div><div class="li-sub">${esc(meta.depts[dept] || dept)} · ${esc(f)}</div></div></div></li>`; }).join("")
-    || `<div class="empty">${ICON.emptyKb}<span class="empty-title">Brak dokumentów</span><p>Dodaj procedury albo cenniki do folderu swojego działu.</p></div>`;
+  const up = Object.fromEntries((r.uploaded || []).map(u => [u.path, u]));
+  const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
+  $("#kb").innerHTML = r.files.map(f => { const [dept, name] = f.split("/"); const u = up[f];
+    return `<li class="li"><div class="li-main"><span class="file-ico">${ICON.docx}</span><div class="grow"><div class="li-title">${esc(name.replace(/\.md$/, "").replace(/-/g, " "))}</div><div class="li-sub">${esc(meta.depts[dept] || dept)}${u ? ` · dodał(a) ${esc(who(u.by))}, ${esc(u.at.slice(0, 10))}` : ""}</div></div></div>${u && u.canDelete ? `<button class="btn btn-secondary" data-del="${esc(f)}">Usuń</button>` : ""}</li>`; }).join("")
+    || `<div class="empty">${ICON.emptyKb}<span class="empty-title">Brak dokumentów</span><p>Dodaj procedurę albo cennik przyciskiem „Dodaj dokument”.</p></div>`;
+  const targets = r.canUploadTo || [];
+  $("#upDept").hidden = targets.length < 2;
+  $("#upDept").innerHTML = targets.map(d => `<option value="${esc(d)}"${d === user.dept ? " selected" : ""}>${esc(meta.depts[d] || d)}</option>`).join("");
+  $("[data-del]").forEach(b => b.onclick = async () => {
+    const [dept, file] = b.dataset.del.split("/");
+    const res = await api(`/documents/${encodeURIComponent(dept)}/${encodeURIComponent(file)}`, { method: "DELETE" });
+    $("#upMsg").textContent = res.error || "Usunięto dokument z bazy działu."; loadKb();
+  });
 }
+$("#upFile").onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  if (file.size > 200 * 1024) { $("#upMsg").textContent = "Plik jest większy niż 200 KB."; e.target.value = ""; return; }
+  const content = await file.text();
+  const r = await api("/documents", { method: "POST", body: JSON.stringify({ name: file.name, content, dept: $("#upDept").value || user.dept }) });
+  $("#upMsg").textContent = r.error || `Dodano „${file.name}”. Asystent korzysta z niego od teraz w dziale ${meta.depts[($("#upDept").value || user.dept)]}.`;
+  e.target.value = ""; loadKb();
+};
 async function loadCases() {
   const r = await api("/cases");
   $("#casesTag").textContent = r.length || "";
@@ -203,23 +227,3 @@ init();
   btns.forEach(b => b.onclick = () => { const next = current() === "dark" ? "light" : "dark"; root.dataset.theme = next; try { localStorage.setItem(KEY, next); } catch {} label(); });
 })();
 
-/* ---------- kompas na ekranie logowania: po wejściu igła osiada, potem wskazuje kursor ---------- */
-(() => {
-  const c = document.getElementById("loginCompass");
-  if (!c || matchMedia("(prefers-reduced-motion: reduce)").matches || !matchMedia("(hover: hover)").matches) return;
-  let idle = 0, raf = 0, x = 0, y = 0, ready = false;
-  setTimeout(() => { ready = true; }, 2400); // najpierw animacja wejścia, potem śledzenie kursora
-  addEventListener("pointermove", e => {
-    x = e.clientX; y = e.clientY;
-    if (!ready || document.getElementById("login").hidden || raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = 0;
-      const r = c.getBoundingClientRect();
-      const deg = Math.atan2(y - (r.top + r.height / 2), x - (r.left + r.width / 2)) * 180 / Math.PI;
-      c.classList.remove("idle");
-      c.style.setProperty("--ang", (deg + 45).toFixed(1) + "deg"); // igła w znaku wskazuje 45°, liczymy względem tego kierunku
-      clearTimeout(idle);
-      idle = setTimeout(() => { c.classList.add("idle"); c.style.setProperty("--ang", "0deg"); }, 2000);
-    });
-  }, { passive: true });
-})();

@@ -13,13 +13,15 @@ export function loadKnowledge(dir) {
     const d = path.join(dir, dept);
     if (!fs.statSync(d).isDirectory()) continue;
     for (const file of fs.readdirSync(d).filter(f => f.endsWith(".md"))) {
-      const text = fs.readFileSync(path.join(d, file), "utf8");
-      // fragment = sekcja po nagłówku "## " (lub cały plik)
-      const parts = text.split(/\n(?=## )/).map(p => p.trim()).filter(Boolean);
-      parts.forEach((p, idx) => chunks.push({ dept, file, idx, text: p, tokens: norm(p) }));
+      chunks.push(...chunksOf(dept, file, fs.readFileSync(path.join(d, file), "utf8")));
     }
   }
   return chunks;
+}
+
+// fragment = sekcja po nagłówku "## " (lub cały plik); też dla dokumentów wgranych w aplikacji
+export function chunksOf(dept, file, text, extra = {}) {
+  return text.split(/\n(?=## )/).map(p => p.trim()).filter(Boolean).map((p, idx) => ({ dept, file, idx, text: p, tokens: norm(p), ...extra }));
 }
 
 export function search(KB, query, depts, k = 4) {

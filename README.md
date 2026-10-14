@@ -17,7 +17,7 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe.
 ```bash
 npm install
 npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app.html
-npm test     # 28 testów automatycznych (node --test), bez dodatkowych zależności
+npm test     # 31 testów automatycznych (node --test), bez dodatkowych zależności
 ```
 
 Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
@@ -94,6 +94,12 @@ Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), pote
 
 Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
 
+## Dokumenty i dane
+
+- **Dodawanie dokumentów.** Pracownik dodaje plik .md lub .txt w zakładce „Moja baza wiedzy” do bazy swojego działu, zarząd do dowolnego działu i do wspólnych. Dokument działa w wyszukiwaniu od razu i tylko dla działu, do którego trafił. Usunąć go może autor albo zarząd. Każde dodanie i usunięcie jest w dzienniku. Czat nie zapisuje się jako wiedza: dokument to świadoma czynność.
+- **Szyfrowanie na dysku.** Gdy ustawiony jest `DATA_KEY`, wszystkie pliki w `data/` (sprawy, dziennik, liczniki, pamięć odpowiedzi, wgrane dokumenty) są zapisywane jako AES-256-GCM z losowym wektorem i znacznikiem integralności. Zapis atomowy, prawa 600.
+- **Kopie zapasowe.** `deploy/backup.sh --install` dodaje codzienną kopię zaszyfrowanych danych, przechowywaną 14 dni. Klucz nie jest częścią kopii.
+
 ## Klucze do modeli: dwie opcje
 
 | Opcja | Jak działa | Kiedy |
@@ -111,6 +117,8 @@ W obu wariantach klucz lub token nigdy nie trafia do przeglądarki ani do repozy
 | wyszukiwanie leksykalne | embeddingi + PostgreSQL/pgvector lub Qdrant, uprawnienia per dokument |
 | maskowanie i klasyfikacja regułami | Microsoft Presidio + NER dla polskiego, polityka per dział w konfiguracji |
 | akcje zapisują do pliku | API kalendarza/poczty/faktur lub MCP, z zatwierdzeniem |
+| dane w plikach JSON zaszyfrowanych AES-256-GCM, klucz w `.env`, codzienna kopia na tym samym serwerze | PostgreSQL z szyfrowaniem, klucz w KMS, kopie poza serwerem (np. Hetzner Backup, S3 z wersjonowaniem) |
+| dokumenty .md/.txt dodawane w aplikacji do bazy działu | import PDF/DOCX, synchronizacja z SharePointem / Dyskiem Google, zatwierdzanie dokumentów przez kierownika |
 | logi w JSON | baza z retencją, alerty błędów (Telegram/Teams), panel kosztów per dział |
 | jeden proces Node | serwer w UE, HTTPS, sekrety w sejfie, kopie zapasowe |
 

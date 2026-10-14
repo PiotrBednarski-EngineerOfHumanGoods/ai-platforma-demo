@@ -10,13 +10,6 @@
 
 <div id="login" class="lg">
   <div class="lg-col">
-    <div class="login-compass" id="loginCompass" aria-hidden="true">
-      <svg width="88" height="88" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="11" class="ring"></circle>
-        <path class="arc" d="M18.4 6.2A8.6 8.6 0 1 0 18.4 17.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
-        <g class="needle-wrap"><g class="needle"><path d="M16.2 7.8L12.9 12.9L11.1 11.1Z" fill="currentColor"></path><path d="M7.8 16.2L11.1 11.1L12.9 12.9Z" fill="currentColor" opacity=".45"></path></g></g>
-      </svg>
-    </div>
     <main class="card">
       <div class="brand">
         <button class="theme-float theme-btn" type="button" aria-label="Przełącz tryb ciemny" title="Tryb jasny / ciemny"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 10 2m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M5 10a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5m10.66-5.66a.5.5 0 0 1 0 .71l-1.42 1.41a.5.5 0 1 1-.7-.7l1.41-1.42a.5.5 0 0 1 .71 0M6.46 13.54a.5.5 0 0 1 0 .7l-1.42 1.42a.5.5 0 0 1-.7-.71l1.41-1.41a.5.5 0 0 1 .71 0m9.2 2.12a.5.5 0 0 1-.71 0l-1.41-1.42a.5.5 0 0 1 .7-.7l1.42 1.41a.5.5 0 0 1 0 .71M6.46 6.46a.5.5 0 0 1-.71 0L4.34 5.05a.5.5 0 1 1 .7-.71l1.42 1.42a.5.5 0 0 1 0 .7M10 6a4 4 0 1 1 0 8 4 4 0 0 1 0-8m0 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6" fill="currentColor"></path></svg></button>
@@ -40,7 +33,7 @@
         <div class="actions"><button class="btn btn-primary btn-lg" type="submit" id="loginBtn">Zaloguj się</button></div>
       </form>
       <p class="help">Nie masz loginu albo nie pamiętasz hasła? Napisz do administratora.</p>
-      <details class="accounts" id="accounts" open>
+      <details class="accounts" id="accounts">
         <summary>Konta demo</summary>
         <p class="hint">Kliknij konto, pola wypełnią się same. Firma i ludzie są wymyśleni.</p>
         <ul>
@@ -99,7 +92,14 @@
       </div>
 
       <div class="pane tabpanel" id="t-kb" role="tabpanel">
-        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, z których asystent odpowiada w Twoim dziale.</p></div></div>
+        <div class="tp-head"><div><h2>Moja baza wiedzy</h2><p>Dokumenty, z których asystent odpowiada w Twoim dziale.</p></div>
+          <form class="upload" id="upload">
+            <select id="upDept" aria-label="Dział" hidden></select>
+            <label class="btn btn-secondary" for="upFile">Dodaj dokument</label>
+            <input id="upFile" class="sr-only" type="file" accept=".md,.txt,text/plain,text/markdown">
+          </form>
+        </div>
+        <p class="hint up-msg" id="upMsg" aria-live="polite"></p>
         <ul class="list" id="kb"></ul>
       </div>
 
