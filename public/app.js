@@ -46,13 +46,7 @@ async function login(id, password) {
   $("#logsTab").hidden = $("#bnLogs").hidden = user.dept !== "zarzad";
   // dostawcy AI dozwoleni dla działu (ustawia administrator); pracownik wybiera tylko spośród nich
   const allowed = (r.providers || []).map(id => meta.providers.find(p => p.id === id)).filter(Boolean);
-  // model w firmie: gdy nie jest jeszcze podłączony, widać go na liście jako opcję do podłączenia (dla danych wrażliwych)
-  const localReady = allowed.some(p => p.id === "ollama");
-  $("#prov").innerHTML = allowed.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("")
-    + (localReady ? "" : `<option disabled>Model w firmie (Ollama), do podłączenia</option>`);
-  $("#prov").disabled = false;
-  $("#prov").title = localReady ? "Modele dostępne w Twoim dziale"
-    : "Model w firmie, np. Bielik przez Ollamę, obsłuży dane wrażliwe bez wysyłania ich do chmury. Podłączenie: OLLAMA_URL i OLLAMA_MODEL w konfiguracji serwera.";
+  renderModelPicker(allowed);
   $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod odpowiedzią będzie nazwa dokumentu, z którego pochodzi. Masz dostęp do dokumentów działu ${esc(meta.depts[user.dept])} i wspólnych.</p></div>`;
   $("#chips").innerHTML = (EXAMPLES[user.dept] || []).map(e => `<button class="chip" type="button">${ICON.bulb}${esc(e)}</button>`).join("");
   $$("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
@@ -227,3 +221,46 @@ init();
   btns.forEach(b => b.onclick = () => { const next = current() === "dark" ? "light" : "dark"; root.dataset.theme = next; try { localStorage.setItem(KEY, next); } catch {} label(); });
 })();
 
+
+/* ---------- wybór modelu: własne menu zamiast natywnej listy; wartość trzyma ukryty <select id="prov"> ---------- */
+const MODEL_INFO = {
+  mock:      { name: "Tryb pokazowy", sub: "bez modelu, fragmenty dokumentów", where: "in" },
+  ollama:    { name: "Model w firmie", sub: "dane nie opuszczają serwera", where: "in" },
+  anthropic: { name: "Claude", sub: "chmura, dane osobowe zamazane przed wysyłką", where: "out" },
+  openai:    { name: "GPT", sub: "chmura, dane osobowe zamazane przed wysyłką", where: "out" }
+};
+function renderModelPicker(allowed) {
+  const localReady = allowed.some(p => p.id === "ollama");
+  const items = allowed.map(p => ({ id: p.id, ...(MODEL_INFO[p.id] || { name: p.label, sub: "", where: "out" }) }));
+  if (!localReady) items.push({ id: "ollama-soon", name: "Model w firmie", sub: "do danych wrażliwych, do podłączenia", where: "in", disabled: true });
+  // domyślnie: dostawca ustawiony na serwerze, jeśli dział go ma; inaczej pierwszy dostępny
+  const def = allowed.find(p => p.id === meta.provider) || allowed[0];
+  $("#prov").innerHTML = allowed.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
+  $("#prov").value = def ? def.id : "";
+  const list = $("#mpList"), btn = $("#mpBtn");
+  const choose = id => {
+    $("#prov").value = id; const it = items.find(i => i.id === id) || items[0];
+    $("#mpLabel").textContent = it.name; $("#mpDot").className = "mp-dot " + (it.where === "in" ? "in" : "out");
+    list.querySelectorAll("[role=option]").forEach(o => o.setAttribute("aria-selected", o.dataset.id === id));
+  };
+  list.innerHTML = `<div class="mp-head">Model dla działu ${esc(meta.depts[user.dept] || "")}</div>` + items.map(it => `
+    <div class="mp-opt${it.disabled ? " is-off" : ""}" role="option" data-id="${esc(it.id)}" tabindex="${it.disabled ? -1 : 0}" aria-disabled="${!!it.disabled}">
+      <i class="mp-dot ${it.where}"></i>
+      <span class="mp-text"><b>${esc(it.name)}</b><small>${esc(it.sub)}</small></span>
+      ${it.disabled ? '<span class="mp-tag">wkrótce</span>' : '<svg class="mp-check" width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M15.85 5.65a.5.5 0 0 1 0 .7l-7.5 7.5a.5.5 0 0 1-.7 0l-3.5-3.5a.5.5 0 1 1 .7-.7L8 12.79l7.15-7.14a.5.5 0 0 1 .7 0" fill="currentColor"></path></svg>'}
+    </div>`).join("") + `<div class="mp-foot"><i class="mp-dot in"></i>w firmie <i class="mp-dot out"></i>chmura</div>`;
+  const open = v => { list.hidden = !v; btn.setAttribute("aria-expanded", v); if (v) (list.querySelector('[aria-selected="true"]') || list.querySelector(".mp-opt:not(.is-off)"))?.focus(); };
+  btn.onclick = () => open(list.hidden);
+  list.querySelectorAll(".mp-opt:not(.is-off)").forEach(o => {
+    o.onclick = () => { choose(o.dataset.id); open(false); btn.focus(); };
+    o.onkeydown = e => {
+      const opts = [...list.querySelectorAll(".mp-opt:not(.is-off)")], i = opts.indexOf(o);
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); o.click(); }
+      if (e.key === "ArrowDown") { e.preventDefault(); opts[(i + 1) % opts.length].focus(); }
+      if (e.key === "ArrowUp") { e.preventDefault(); opts[(i - 1 + opts.length) % opts.length].focus(); }
+    };
+  });
+  document.addEventListener("click", e => { if (!$("#modelPick").contains(e.target)) open(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !list.hidden) { open(false); btn.focus(); } });
+  choose($("#prov").value);
+}

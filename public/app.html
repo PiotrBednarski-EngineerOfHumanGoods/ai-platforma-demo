@@ -57,7 +57,14 @@
       <span class="hdr-sep" aria-hidden="true"></span>
       <span class="hdr-co">Kriomar</span>
     </a>
-    <select class="provider" id="prov" aria-label="Dostawca AI"></select>
+    <div class="model-pick" id="modelPick">
+      <select id="prov" hidden aria-hidden="true" tabindex="-1"></select>
+      <button type="button" class="mp-btn" id="mpBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Model AI">
+        <i class="mp-dot" id="mpDot"></i><span id="mpLabel">Model</span>
+        <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 7.6a.5.5 0 0 1 .7 0L10 11.3l3.7-3.7a.5.5 0 1 1 .7.7l-4 4a.5.5 0 0 1-.8 0l-4-4a.5.5 0 0 1 0-.7" fill="currentColor"></path></svg>
+      </button>
+      <div class="mp-list" id="mpList" role="listbox" aria-label="Model AI" hidden></div>
+    </div>
     <div class="user">
       <div class="user-text"><div class="user-name" id="who"></div><div class="user-dept" id="whoDept"></div></div>
       <span class="av" id="av" aria-hidden="true"></span>
