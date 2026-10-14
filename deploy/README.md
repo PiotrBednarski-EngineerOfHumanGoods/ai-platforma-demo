@@ -66,11 +66,13 @@ Klucz leży tylko w `.env` z prawami `600` na serwerze. Nie trafia do kodu ani d
 
 | Zabezpieczone | Nadal uproszczenie demo |
 |---|---|
-| HTTPS z HSTS, aplikacja niewidoczna poza Caddy | hasła z hashem scrypt, lista kont w kodzie (produkcja: SSO Microsoft/Google) |
-| losowe tokeny sesji, wygasają po 8 h | dane spraw i logi w plikach JSON (produkcja: Postgres z szyfrowaniem) |
-| limit 10 prób hasła / 15 min / IP | brak kopii zapasowych |
-| nagłówki: CSP, nosniff, no-frame, no-referrer | brak retencji czasowej logów |
-| PII maskowane w pytaniu, fragmentach i historii | maskowanie regułami (produkcja: Presidio + NER) |
-| proces bez roota, bez shella, firewall | jeden serwer, bez monitoringu |
+| HTTPS z HSTS (Caddy), aplikacja niewidoczna poza Caddy | hasła z hashem scrypt, lista kont w kodzie (produkcja: SSO Microsoft/Google) |
+| SSH tylko kluczem, root bez hasła, automatyczne aktualizacje bezpieczeństwa | dane spraw i logi w plikach JSON (produkcja: Postgres z szyfrowaniem) |
+| firewall: tylko 22, 80, 443; proces bez roota, bez shella | brak kopii zapasowych |
+| losowe tokeny sesji, wygasają po 8 h, wylogowanie unieważnia token | brak retencji czasowej logów |
+| limit 10 prób hasła / 15 min / IP; limit 30 pytań / min / IP | limity w pamięci procesu (produkcja: Redis) |
+| walidacja wejścia: typ i długość wiadomości oraz historii | maskowanie regułami (produkcja: Presidio + NER) |
+| nagłówki: CSP, nosniff, no-frame, no-referrer; treść użytkownika escapowana w UI | jeden serwer, bez monitoringu i alertów |
+| PII maskowane w pytaniu, fragmentach i historii; klucz API tylko w .env (600) | |
 
 Przydatne: `ssh root@IP "sudo -u ai pm2 logs ai-demo --lines 50"` (logi aplikacji), `ssh root@IP "journalctl -u caddy -n 50"` (logi Caddy).

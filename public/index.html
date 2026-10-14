@@ -114,7 +114,7 @@ async function login(id, password) {
   document.querySelectorAll("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
   refreshActions(); loadKb(); loadCases();
 }
-$("#logout").onclick = () => location.reload();
+$("#logout").onclick = async () => { await api("/logout", { method: "POST" }).catch(() => {}); location.reload(); };
 
 function addMsg(role, text, sources) {
   const d = document.createElement("div"); d.className = "msg " + (role === "me" ? "me" : "ai"); d.textContent = text;

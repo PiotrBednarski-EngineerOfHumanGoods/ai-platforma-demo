@@ -22,6 +22,11 @@ apt-get update -y && apt-get install -y caddy
 id -u ai >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin ai
 mkdir -p /opt/ai-demo && chown -R ai:ai /opt/ai-demo
 
+# SSH tylko kluczem (bez haseł), root tylko kluczem; aktualizacje bezpieczeństwa automatycznie
+sed -i -E 's/^#?PasswordAuthentication .*/PasswordAuthentication no/; s/^#?PermitRootLogin .*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+systemctl restart ssh
+apt-get install -y unattended-upgrades && dpkg-reconfigure -f noninteractive unattended-upgrades
+
 # Firewall: SSH, HTTP (tylko do przekierowania na HTTPS), HTTPS. Port 3000 NIE jest otwarty.
 ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
 

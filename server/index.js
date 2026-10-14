@@ -11,7 +11,7 @@ import { mask, unmask, newState } from "./pii.js";
 import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store } from "./store.js";
-import { securityHeaders, createSessions, createLoginLimiter, verifyPassword } from "./security.js";
+import { securityHeaders, createSessions, createLoginLimiter, verifyPassword, rateLimit } from "./security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -32,6 +32,7 @@ console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.fil
 const sessions = createSessions({ ttlMs: 8 * 60 * 60 * 1000 });
 const loginLimiter = createLoginLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
 const auth = sessions.auth;
+const chatLimit = rateLimit({ max: 30, windowMs: 60 * 1000 }); // 30 pytań / min / IP: chroni klucz API i koszty
 function allowedDepts(user) {
   return user.dept === "zarzad" ? Object.keys(DEPTS) : ["wspolne", user.dept];
 }
@@ -51,6 +52,7 @@ app.post("/api/login", (req, res) => {
   const token = sessions.create(u);
   res.json({ token, user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u) });
 });
+app.post("/api/logout", auth, (req, res) => { sessions.destroy(req.headers.authorization?.replace("Bearer ", "")); res.json({ ok: true }); });
 
 app.get("/api/knowledge", auth, (req, res) => {
   const depts = allowedDepts(req.user);
@@ -58,9 +60,12 @@ app.get("/api/knowledge", auth, (req, res) => {
   res.json({ files });
 });
 
-app.post("/api/chat", auth, async (req, res) => {
+app.post("/api/chat", auth, chatLimit, async (req, res) => {
   const t0 = Date.now();
   const { message, history = [] } = req.body;
+  // Walidacja wejścia: treść to dane, ale rozmiar i typ muszą być pod kontrolą
+  if (typeof message !== "string" || !message.trim() || message.length > 2000) return res.status(400).json({ error: "Wiadomość: 1–2000 znaków" });
+  if (!Array.isArray(history) || history.length > 20 || history.some(h => !h || typeof h.content !== "string" || h.content.length > 4000 || !["user", "assistant"].includes(h.role))) return res.status(400).json({ error: "Nieprawidłowa historia rozmowy" });
   const user = req.user;
   const depts = allowedDepts(user);
 

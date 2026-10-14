@@ -29,7 +29,8 @@ export function createSessions({ ttlMs = 8 * 60 * 60 * 1000 } = {}) {
       const s = sessions.get(token);
       if (!s || s.exp < Date.now()) { sessions.delete(token); return res.status(401).json({ error: "Zaloguj się" }); }
       req.user = s.user; next();
-    }
+    },
+    destroy(token) { sessions.delete(token); }
   };
 }
 
@@ -56,4 +57,15 @@ export function verifyPassword(password, stored) {
   const given = crypto.scryptSync(String(password ?? ""), salt, 32);
   const expected = Buffer.from(hash, "hex");
   return given.length === expected.length && crypto.timingSafeEqual(given, expected);
+}
+
+// Ogólny limit żądań per IP (okno przesuwane w pamięci procesu). Chroni klucz API i serwer przed zalaniem.
+export function rateLimit({ max, windowMs }) {
+  const hits = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const list = (hits.get(req.ip) || []).filter(t => now - t < windowMs);
+    if (list.length >= max) return res.status(429).json({ error: "Za dużo żądań. Spróbuj za chwilę." });
+    list.push(now); hits.set(req.ip, list); next();
+  };
 }
