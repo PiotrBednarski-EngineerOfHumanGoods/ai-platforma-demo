@@ -82,6 +82,9 @@ export const store = {
   takePending(id, user) { const i = pending.findIndex(p => p.id === id && p.userId === user.id); if (i < 0) return null; return pending.splice(i, 1)[0]; },
   // Dokumenty wgrane przez pracowników (baza wiedzy działu), zaszyfrowane jak reszta danych
   docs() { return read("docs"); },
+  // uprawnienia ustawiane przez zarząd dla pojedynczych pracowników: { userId: { general, web } }
+  flags() { const f = read("flags"); return Array.isArray(f) ? {} : f; },
+  setFlags(userId, patch) { const f = this.flags(); f[userId] = { ...(f[userId] || {}), ...patch }; write("flags", f); return f[userId]; },
   feedback() { return read("feedback"); },
   addFeedback(f) { const l = read("feedback"); l.unshift(f); l.slice(500).forEach(x => x.screenshot && blobs.remove(x.screenshot.file)); write("feedback", l.slice(0, 500)); }, // starsze niż 500: razem ze zrzutem
   setFeedback(id, patch) { write("feedback", read("feedback").map(f => f.id === id ? { ...f, ...patch } : f)); },

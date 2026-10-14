@@ -16,7 +16,9 @@ Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale dzia
 - **brama danych** – klasyfikacja jawne / wewnętrzne / chronione; dane chronione tylko do modelu w firmie, reszta do chmury po maskowaniu,
 - **koszty pod kontrolą** – tani model do prostych pytań, mocny do analiz, pamięć odpowiedzi, budżet miesięczny i limity na dział,
 - **dokumenty od pracowników** – dodawane w aplikacji do bazy działu; dane na dysku szyfrowane, codzienne kopie,
-- **„Zgłoś”** – problem, pomysł albo pytanie od pracownika trafia od razu e-mailem do opiekuna systemu (dane osobowe zamaskowane).
+- **„Zgłoś”** – problem, pomysł albo pytanie od pracownika trafia od razu e-mailem do opiekuna systemu (dane osobowe zamaskowane, można dołączyć zrzut ekranu),
+- **uprawnienia od zarządu** – dla wybranych pracowników: wiedza ogólna (odpowiedź spoza dokumentów, wyraźnie oznaczona) i wyszukiwanie w internecie (Claude, po maskowaniu, ze źródłami); każda zmiana w dzienniku,
+- **filtrowanie spraw** – po kliencie, rodzaju, dziale i dacie.
 
 Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na żywo działa prawdziwy model Claude z budżetem 3 USD miesięcznie; księgowość i zarząd celowo nie korzystają z chmury.
 
@@ -33,6 +35,21 @@ Z AI jako zespołem: Claude Code buduje, a wyspecjalizowani agenci sprawdzają (
 | Dane | szyfrowanie AES-256-GCM na dysku, maskowanie przed modelem, dziennik bez danych osobowych, codzienne kopie, bezpieczna zmiana klucza | [02](docs/02-bezpieczenstwo-i-rodo.md) |
 | Jakość | testy jednostkowe i integracyjne, test dymny wszystkich funkcji na działającym serwerze, CI na każdą zmianę, `npm audit`, Dependabot | `npm test`, `npm run smoke`, [CI](.github/workflows/ci.yml) |
 | Utrzymanie | instrukcja administratora, skrypty wdrożenia i kopii, plan wdrożenia z miarami, koszty z prawdziwych pomiarów | [03](docs/03-instrukcja-administratora.md), [04](docs/04-koszty.md), [05](docs/05-plan-wdrozenia.md), [deploy](deploy/README.md) |
+
+## Czego brakuje do produkcji
+
+Demo działa na żywo, ale uczciwie: tego jeszcze nie ma i to bym zrobił przed wdrożeniem u klienta.
+
+| Brakuje | Dlaczego ważne | Plan |
+|---|---|---|
+| Logowanie firmowe (SSO z MFA) | konta lokalne i hasła to najsłabszy punkt | Microsoft Entra ID albo Google Workspace, role z katalogu firmy |
+| Podłączony model w firmie | księgowość i zarząd mają dziś tylko odpowiedzi z dokumentów | Ollama z Bielikiem na serwerze z kartą graficzną; integracja w bramie jest gotowa |
+| Druga warstwa wykrywania danych osobowych | reguły nie rozumieją kontekstu | Microsoft Presidio + model rozpoznawania nazw dla polskiego |
+| Baza danych zamiast plików | jeden serwer, sesje w pamięci (restart wylogowuje) | PostgreSQL z szyfrowaniem, klucz w KMS, sesje w Redis |
+| Kopie poza serwerem i monitoring | dziś kopie leżą na tym samym serwerze | Storage Box, alerty o błędach, kosztach i dostępności |
+| Uruchomiony n8n | workflow jest tylko przygotowany | wpięcie zgłoszeń i alertów do istniejących kanałów firmy |
+| Wysyłka e-maili ze zgłoszeń | wymaga klucza Resend | dodanie klucza i zweryfikowanej domeny nadawcy |
+| Testy z prawdziwymi użytkownikami | demo sprawdzali agenci i testy automatyczne | pilotaż w jednym dziale, pomiar przed i po ([plan](docs/05-plan-wdrozenia.md)) |
 
 ## Nie tylko API: cztery drogi, ta sama brama
 

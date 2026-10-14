@@ -411,3 +411,14 @@ body:has(#app[hidden]) .fab-report{display:none} /* dymek dopiero po zalogowaniu
 .cf-count{margin-left:auto;font-size:13px;color:var(--fg3)}
 @media (max-width:900px){.cf-q{flex-basis:100%;max-width:none;height:44px}.cf-sel{height:44px;flex:1 1 140px}.cf-count{margin-left:0}}
 .li-id{width:auto;min-width:116px;white-space:nowrap}
+
+/* tryby odpowiedzi i uprawnienia */
+.mode-tag{align-self:flex-start;margin:0 0 6px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--decide-bg);color:var(--decide-fg);border:1px solid var(--decide-stroke)}
+.mode-tag.web{background:var(--bg3);color:var(--fg2);border-color:var(--stroke2)}
+a.src.web{color:var(--fg2);text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.perm{margin:8px 0 24px}
+.perm h3{font-size:15px;margin:0 0 4px}
+.perm-sub{margin:0 0 10px;font-size:13px;line-height:19px;color:var(--fg3);max-width:80ch}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--fg2)}
+.sw input{width:18px;height:18px;accent-color:var(--brand)}
+.sw input:disabled + span{color:var(--fg4)}

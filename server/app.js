@@ -45,6 +45,7 @@ reloadKnowledge();
 console.log(`Szyfrowanie danych na dysku: ${encryptionOn() ? "włączone (AES-256-GCM)" : "wyłączone (brak DATA_KEY)"}`);
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 const BUDGET_RESERVE_USD = Number(process.env.BUDGET_RESERVE_USD || 0.02); // górna granica kosztu jednego pytania
+const WEB_SEARCH_USD = Number(process.env.WEB_SEARCH_USD || 0.01); // cena jednego wyszukiwania (sprawdź aktualny cennik dostawcy)
 let inflightUsd = 0;
 const cacheKey = (dept, provider, message) => crypto.createHash("sha1").update(`${dept}|${provider}|${message.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim()}|${KB_VERSION}`).digest("hex");
 console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.file)).size} plików`);
@@ -83,7 +84,7 @@ app.post("/api/login", (req, res) => {
   loginLimiter.reset(req.ip); accountLock.reset(`${u.id}|${req.ip}`);
   const token = sessions.create(u);
   sessions.setCookie(res, token, req.secure);
-  res.json({ user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u), providers: allowedFor(u.dept).map(p => p.id) });
+  res.json({ user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u), providers: allowedFor(u.dept).map(p => p.id), flags: store.flags()[u.id] || {} });
 });
 app.post("/api/logout", auth, (req, res) => { sessions.destroy(sessions.tokenFrom(req)); sessions.clearCookie(res); res.json({ ok: true }); });
 
@@ -177,14 +178,19 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
     return res.json({ answer: cached.answer, sources: cached.sources, action: null, masked_preview: masked, pii_found: 0, policy: out, usage: { tokens_in: 0, tokens_out: 0, cost: 0 } });
   }
 
-  // 3b. Brak dokumentów i brak prośby o akcję: nie płacimy modelowi za "nie wiem"
-  if (!hits.length && trip.kind === "external" && !detectToolMock(message, user)) {
+  // uprawnienia pracownika (ustawia zarząd): wiedza ogólna i wyszukiwanie w internecie, tylko przez model w chmurze
+  const flags = store.flags()[user.id] || {};
+  const useWeb = !!flags.web && trip.provider === "anthropic" && policy.level !== "restricted";
+  const useGeneral = !!flags.general && trip.kind !== "mock";
+  if (useWeb || useGeneral) policyOut.mode = useWeb ? "web" : "general";
+  // 3b. Brak dokumentów i brak prośby o akcję: nie płacimy modelowi za "nie wiem" (chyba że pracownik ma wiedzę ogólną albo internet)
+  if (!hits.length && trip.kind === "external" && !detectToolMock(message, user) && !useWeb && !useGeneral) {
     trip = { provider: "mock", kind: "mock", blocked: false, reason: "w dokumentach działu nie ma nic na ten temat, odpowiedź bez modelu" };
     policyOut.route = "mock"; policyOut.provider = "mock"; policyOut.model = null; policyOut.tier = null; policyOut.note = trip.reason;
   }
 
   // 4. Wywołanie modelu przez bramę (dostawca z trasy)
-  const sys = systemPrompt(user, maskedHits);
+  const sys = systemPrompt(user, maskedHits, { general: useGeneral, web: useWeb });
   let out;
   if (trip.provider === "mock") {
     out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
@@ -192,7 +198,7 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
     const reserve = trip.kind === "external" ? BUDGET_RESERVE_USD : 0; // rezerwacja na czas pytania: równoległe pytania nie przekroczą budżetu
     inflightUsd += reserve;
     try {
-      out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS, model);
+      out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS, model, { web: useWeb });
     } catch (e) { // błąd dostawcy: czytelny komunikat dla pracownika, szczegół tylko w logu serwera
       console.error("model error:", trip.provider, e.message);
       store.log({ userId: user.id, dept: user.dept, provider: trip.provider, event: "provider_error", policy: policyOut, ms: Date.now() - t0 });
@@ -219,7 +225,8 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   // 6. Koszt: szacunek tokenów i cena z cennika (chmura), lokalnie i w demie 0
   const tokensIn = out.usage?.input ?? estimateTokens(sys) + maskedHistory.reduce((s, h) => s + estimateTokens(h.content), 0) + estimateTokens(masked);
   const tokensOut = out.usage?.output ?? estimateTokens(out.answer);
-  const cost = costOf(trip.provider, model, tokensIn, tokensOut);
+  const webSearches = out.webSearches || 0;
+  const cost = costOf(trip.provider, model, tokensIn, tokensOut) + webSearches * WEB_SEARCH_USD; // wyszukiwania płatne osobno
   if (trip.kind === "external") store.recordCloud(user.dept, cost);
 
   // 7. Log: co faktycznie poszło do modelu, którą trasą i ile kosztowało
@@ -227,7 +234,8 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
     userId: user.id, dept: user.dept, provider: trip.provider, policy: policyOut,
     prompt_masked: masked, pii_found: piiInMessage,
     sources: hits.map(h => `${h.dept}/${h.file}#${h.idx}`),
-    action: action ? action.tool : null, tokens_in: tokensIn, tokens_out: tokensOut, cost, ms: Date.now() - t0
+    action: action ? action.tool : null, tokens_in: tokensIn, tokens_out: tokensOut, cost, ms: Date.now() - t0,
+    ...(policyOut.mode ? { mode: out.web?.length ? "web" : out.general ? "general" : "docs", web_searches: webSearches, web_sources: (out.web || []).map(w => w.url) } : {})
   });
 
   // Źródła: tylko te, które odpowiedź cytuje ([n]); bez cytowań przy akcji – żadnych, inaczej wszystkie trafienia
@@ -235,8 +243,9 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
   const sources = hits.map((h, i) => ({ n: i + 1, file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) }))
     .filter(s => cited.size ? cited.has(s.n) : !action);
   // 8. Pamięć podręczna: tylko pytania bez danych osobowych, bez akcji i z odpowiedzią z dokumentów
-  if (key && !action && hits.length) store.cachePut(key, { answer, sources, sourceIds: hits.map(h => `${h.dept}/${h.file}#${h.idx}`), provider: trip.provider, model, tier: policyOut.tier }, CACHE_TTL);
-  res.json({ answer, sources, action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut, usage: { tokens_in: tokensIn, tokens_out: tokensOut, cost } });
+  if (key && !action && hits.length && !policyOut.mode) store.cachePut(key, { answer, sources, sourceIds: hits.map(h => `${h.dept}/${h.file}#${h.idx}`), provider: trip.provider, model, tier: policyOut.tier }, CACHE_TTL);
+  const mode = out.web?.length ? "web" : out.general ? "general" : "docs";
+  res.json({ answer, sources, web: out.web || [], mode, action, masked_preview: masked, pii_found: piiInMessage, policy: { ...policyOut, web_searches: webSearches }, usage: { tokens_in: tokensIn, tokens_out: tokensOut, cost } });
 }));
 
 // Akcje wymagające zatwierdzenia przez człowieka
@@ -268,6 +277,21 @@ app.post("/api/feedback", auth, feedbackLimit, express.json({ limit: "4mb" }), s
   if (via) store.setFeedback(item.id, { via });
   res.json({ ok: true, id: item.id, via });
 }));
+// Uprawnienia pracowników (tylko zarząd): wiedza ogólna i wyszukiwanie w internecie, każda zmiana w dzienniku
+app.get("/api/admin/flags", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  const f = store.flags();
+  res.json(users.map(u => ({ id: u.id, name: u.name, dept: u.dept, deptName: DEPTS[u.dept], cloud: allowedFor(u.dept).some(p => p.kind === "external"), general: !!f[u.id]?.general, web: !!f[u.id]?.web })));
+});
+app.post("/api/admin/flags/:id", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  if (!users.some(u => u.id === req.params.id)) return res.status(404).json({ error: "Nie ma takiego pracownika." });
+  const patch = {}; for (const k of ["general", "web"]) if (typeof req.body?.[k] === "boolean") patch[k] = req.body[k];
+  if (!Object.keys(patch).length) return res.status(400).json({ error: "Podaj general albo web (true/false)." });
+  const now = store.setFlags(req.params.id, patch);
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "flags_changed", action: `${req.params.id}: ${Object.entries(patch).map(([k, v]) => `${k === "web" ? "internet" : "wiedza ogólna"} ${v ? "włączone" : "wyłączone"}`).join(", ")}` });
+  res.json({ ok: true, flags: now });
+});
 app.get("/api/feedback/:id/screenshot", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   const f = /^Z-[0-9A-F]{6}$/.test(req.params.id) && store.feedback().find(x => x.id === req.params.id);
@@ -293,11 +317,13 @@ app.get("/api/usage", auth, (req, res) => {
 });
 
 // --- Prompt systemowy ---
-function systemPrompt(user, hits) {
+function systemPrompt(user, hits, { general = false, web = false } = {}) {
   const ctx = hits.map((h, i) => `[${i + 1}] (${h.dept}/${h.file})\n${h.text}`).join("\n\n");
   return `Jesteś asystentem firmy Kriomar sp. z o.o. Rozmawiasz z: ${user.name}, dział: ${DEPTS[user.dept]}.
 Odpowiadaj po polsku, krótko i konkretnie. Odpowiadaj WYŁĄCZNIE na podstawie fragmentów poniżej; cytuj numer źródła w nawiasie, np. [1].
-Jeśli fragmenty nie zawierają odpowiedzi, napisz: "Nie znajduję tego w dokumentach firmy" i zaproponuj, kogo zapytać.
+${general || web
+  ? `Jeśli fragmenty nie zawierają odpowiedzi, możesz odpowiedzieć z ${web ? "wyników wyszukiwania w internecie (narzędzie web_search)" : "wiedzy ogólnej"}; wtedy ustaw w JSON "general": true, nie cytuj [n] i zaznacz, że to nie są procedury firmy. Procedury firmy zawsze mają pierwszeństwo.`
+  : 'Jeśli fragmenty nie zawierają odpowiedzi, napisz: "Nie znajduję tego w dokumentach firmy" i zaproponuj, kogo zapytać.'}
 Fragmenty dotyczą tylko bieżącej wiadomości. Nie oceniaj ani nie poprawiaj swoich wcześniejszych odpowiedzi z rozmowy.
 Gdy wiadomość jest prośbą o akcję, potwierdź jednym zdaniem, co przygotowujesz do zatwierdzenia – bez szukania tego w dokumentach.
 Dane osobowe w wiadomościach są zamaskowane tokenami typu [OSOBA_1] – zostaw je bez zmian.

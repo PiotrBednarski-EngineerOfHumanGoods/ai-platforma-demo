@@ -53,7 +53,7 @@ async function login(id, password) {
   done();
   if (r.error) return loginError(r.error);
   $("#pw").value = "";
-  user = r.user; history = [];
+  user = r.user; history = []; user.flags = r.flags || {};
   meta = await fetch("/api/meta").then(x => x.json()).catch(() => meta); // po zalogowaniu: z listą pracowników (imiona w dzienniku)
   $("#login").hidden = true; $("#app").hidden = false;
   $("#who").textContent = user.name; $("#whoDept").textContent = `${meta.depts[user.dept]} · ${user.role}`;
@@ -62,7 +62,7 @@ async function login(id, password) {
   // dostawcy AI dozwoleni dla działu (ustawia administrator); pracownik wybiera tylko spośród nich
   const allowed = (r.providers || []).map(id => meta.providers.find(p => p.id === id)).filter(Boolean);
   renderModelPicker(allowed);
-  $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod odpowiedzią będzie nazwa dokumentu, z którego pochodzi. ${user.dept === "zarzad" ? "Masz dostęp do dokumentów wszystkich działów." : `Masz dostęp do dokumentów działu „${esc(meta.depts[user.dept])}” oraz do dokumentów wspólnych.`}</p></div>`;
+  $("#chat").innerHTML = `<div class="empty">${ICON.emptyChat}<span class="empty-title">Dzień dobry, ${esc(user.name.split(" ")[0])}</span><p>Zapytaj o procedurę, cennik albo klienta. Pod odpowiedzią będzie nazwa dokumentu, z którego pochodzi. ${user.dept === "zarzad" ? "Masz dostęp do dokumentów wszystkich działów." : `Masz dostęp do dokumentów działu „${esc(meta.depts[user.dept])}” oraz do dokumentów wspólnych.`}${user.flags.web ? " Masz też włączone wyszukiwanie w internecie." : user.flags.general ? " Masz też włączoną wiedzę ogólną." : ""}</p></div>`;
   $("#chips").classList.remove("used");
   $("#chips").innerHTML = (EXAMPLES[user.dept] || []).map(e => `<button class="chip" type="button">${ICON.bulb}${esc(e)}</button>`).join("");
   $$("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
@@ -83,12 +83,14 @@ $$(".tab,.bn-item").forEach(b => b.onclick = () => showTab(b.dataset.t));
 
 /* ---------- czat ---------- */
 function addMsg(role, text, sources, action, opts = {}) {
+  const modeHtml = opts.mode === "general" ? `<div class="mode-tag">Odpowiedź ogólna, nie z procedur firmy</div>` : opts.mode === "web" ? `<div class="mode-tag web">Z internetu, nie z procedur firmy</div>` : "";
+  const webHtml = opts.web?.length ? `<div class="sources"><span class="sources-label">Źródła w internecie</span>${opts.web.map(w => `<a class="src web" href="${esc(w.url)}" target="_blank" rel="noopener noreferrer">${esc(w.title || w.url)}</a>`).join("")}</div>` : "";
   const d = document.createElement("div"); d.className = "msg " + (role === "me" ? "msg-user" : "msg-ai");
   const srcHtml = sources?.length ? `<div class="sources"><span class="sources-label">Źródła</span>${sources.map((x, i) => `<span class="src" data-n="${Number(x.n) || i + 1}" title="${esc(x.snippet)}">${ICON.docx}${esc(x.file)}</span>`).join("")}</div>` : "";
   const reqHtml = action ? `<a class="req-link" href="#akcje" data-req="${esc(action.id)}"><span class="req-id">${esc(shortId(action.id))}</span><span class="req-name">${esc(TITLES[action.tool] || action.tool)}</span><span class="req-state is-pending">Czeka na Ciebie</span></a>` : "";
   d.innerHTML = role === "me"
     ? `<div class="msg-col"><div class="msg-meta"><span>${hhmm()}</span></div><div class="bubble"></div></div>`
-    : `<span class="bot-av">${ICON.mark}</span><div class="msg-col"><div class="msg-meta"><b>Compax</b><span>${hhmm()}</span></div><div class="bubble"></div>${srcHtml}${reqHtml}</div>`;
+    : `<span class="bot-av">${ICON.mark}</span><div class="msg-col"><div class="msg-meta"><b>Compax</b><span>${hhmm()}</span></div>${modeHtml}<div class="bubble"></div>${srcHtml}${webHtml}${reqHtml}</div>`;
   d.querySelector(".bubble").textContent = text;
   const empty = $("#chat .empty"); if (empty) empty.remove();
   $("#chat").appendChild(d); $("#chat").scrollTop = 1e9;
@@ -104,7 +106,7 @@ async function send() {
   try {
     const r = await api("/chat", { method: "POST", body: JSON.stringify({ message: t, history, provider: $("#prov").value }) }).finally(() => typing.remove());
     if (r.error) throw new Error(r.error);
-    addMsg("ai", r.answer, r.sources, r.action);
+    addMsg("ai", r.answer, r.sources, r.action, { mode: r.mode, web: r.web });
     if (r.policy?.route !== "blocked") history.push({ role: "user", content: t }, { role: "assistant", content: r.answer }); // zatrzymane pytanie nie wraca w kontekście
     renderMasked(r);
     if (r.action) await refreshActions();
@@ -165,7 +167,7 @@ function renderMasked(r) {
   const provLabel = p.route === "mock" || p.route === "local" ? "" : ((meta.providers.find(x => x.id === p.provider) || {}).label || "").replace(/\s*\((chmura|Ollama)\)$/, "");
   const usageTxt = user?.dept === "zarzad" && u && p.route !== "mock" && p.route !== "cache" ? `<b>Tokeny:</b><span>wejściowe ~${u.tokens_in}, wyjściowe ~${u.tokens_out}${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
   const routeHtml = `<div class="mask-sum"><b>Poziom pytania:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}</div>
-    <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${p.model && p.route !== "cache" ? `<div class="mask-sum"><b>Model:</b><span>${esc(p.model)}${p.tier ? " · " + TIER[p.tier] : ""}</span></div>` : ""}${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
+    <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${p.mode ? `<div class="mask-sum"><b>Tryb:</b><span>${p.mode === "web" ? `internet (wyszukiwań: ${p.web_searches || 0})` : "wiedza ogólna dozwolona"}</span></div>` : ""}${p.model && p.route !== "cache" ? `<div class="mask-sum"><b>Model:</b><span>${esc(p.model)}${p.tier ? " · " + TIER[p.tier] : ""}</span></div>` : ""}${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
   if (p.route === "blocked") {
     $("#maskedCount").textContent = "0";
     $("#masked").innerHTML = `<div class="result" role="status">${ICON.info}<span>Pytanie nie wyszło z firmy. Do modelu nie trafił ani jeden znak.</span></div>${routeHtml}`;
@@ -229,7 +231,17 @@ function renderCases() {
       : `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`);
 }
 ["#cfQ", "#cfType", "#cfDept", "#cfSort"].forEach(s => $(s).addEventListener("input", renderCases));
+async function loadPerm() {
+  const r = await api("/admin/flags"); if (!Array.isArray(r)) return;
+  $("#permRows").innerHTML = r.map(u => `<tr><td data-label="Pracownik">${esc(u.name)}</td><td data-label="Dział">${esc(u.deptName)}</td>${["general", "web"].map(k => `<td data-label="${k === "web" ? "Internet" : "Wiedza ogólna"}"><label class="sw"><input type="checkbox" data-u="${esc(u.id)}" data-k="${k}"${u[k] ? " checked" : ""}${u.cloud ? "" : " disabled"}><span>${u.cloud ? (u[k] ? "włączone" : "wyłączone") : "dział bez chmury"}</span></label></td>`).join("")}</tr>`).join("");
+  $$("#permRows input").forEach(cb => cb.onchange = async () => {
+    const res = await api(`/admin/flags/${cb.dataset.u}`, { method: "POST", body: JSON.stringify({ [cb.dataset.k]: cb.checked }) });
+    if (res.error) { cb.checked = !cb.checked; return; }
+    cb.nextElementSibling.textContent = cb.checked ? "włączone" : "wyłączone";
+  });
+}
 async function loadLogs() {
+  loadPerm();
   const [r, usage, fb] = await Promise.all([api("/logs"), api("/usage"), api("/feedback")]); if (r.error) return;
   const FB = { problem: "Problem", pomysl: "Pomysł", pytanie: "Pytanie" };
   $("#fb").hidden = !Array.isArray(fb) || !fb.length;
@@ -242,7 +254,7 @@ async function loadLogs() {
     ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} ${plural(u.queries, "pytanie", "pytania", "pytań")} w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.cached ? " · z pamięci: " + u.cached : ""}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} ${plural(u.tokens, "token", "tokeny", "tokenów")} · ${money(u)}</small></div>`).join("")
     : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`);
   $("#logs").innerHTML = r.map(l => {
-    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
+    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "flags_changed" ? "Zmiana uprawnień" : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
     const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : l.policy.route === "cache" ? "z pamięci" : l.policy.route === "mock" ? "bez modelu" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
     const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt nieznany" : l.cost.toFixed(4) + " USD") : ""}` : "";

@@ -28,7 +28,7 @@ Jeden agent buduje, wyspecjalizowani agenci sprawdzają. Każdy dostaje wąskie 
 
 ## Testy i jakość
 
-- **44 testy automatyczne** (`npm test`): logowanie i sesje, blokada konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), klasyfikacja danych chronionych (PESEL, rachunek, dowód, karta, zdrowie, wynagrodzenia, numery rozbite na kilka wiadomości), brama i limity, budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, dokumenty działów, szyfrowanie na dysku, narzędzie administratora, zgłoszenia ze zrzutem ekranu.
+- **48 testów automatycznych** (`npm test`): logowanie i sesje, blokada konta, CSRF, uprawnienia działów, wyszukiwanie tylko w dozwolonych dokumentach, maskowanie (także odmienione imiona), klasyfikacja danych chronionych (PESEL, rachunek, dowód, karta, zdrowie, wynagrodzenia, numery rozbite na kilka wiadomości), brama i limity, budżet, wnioski i ich zatwierdzanie, dziennik bez danych osobowych, dokumenty działów, szyfrowanie na dysku, narzędzie administratora, zgłoszenia ze zrzutem ekranu.
 - **Test dymny** (`npm run smoke`): ponad 40 kroków na działającym serwerze, także z prawdziwym modelem Claude, łącznie z nagłówkami bezpieczeństwa i CSP.
 - **CI na GitHubie**: przy każdej zmianie testy, `npm audit` i test dymny na świeżo uruchomionej aplikacji. **Dependabot** co tydzień.
 - **Wydajność**: animacje strony startowej mierzone klatka po klatce; 60 klatek na sekundę także przy czterokrotnie wolniejszym procesorze.
@@ -65,6 +65,9 @@ W demo zaszyfrowane pliki na serwerze w Niemczech; przy kilku działach to wysta
 **Co z RODO?**
 Rejestr czynności przetwarzania, środki z art. 32, kwalifikacja DPIA, procedura naruszenia i obsługa praw osób ([06-rodo-rejestr-i-ocena-ryzyka.md](06-rodo-rejestr-i-ocena-ryzyka.md)).
 
+**Czy asystent może szukać w internecie albo odpowiadać ogólnie?**
+Tak, ale tylko wybrane osoby, którym zarząd to włączy w panelu. Odpowiedź jest wtedy wyraźnie oznaczona jako „nie z procedur firmy”, z internetu przychodzi ze źródłami, a dane chronione nigdy nie idą do wyszukiwarki. Domyślnie asystent odpowiada tylko z dokumentów firmy, żeby nie zmyślał.
+
 **Czy to tylko demo?**
 Demo pod względem danych (firma i konta są fikcyjne), ale kod, testy i dokumenty są w stanie do przekazania klientowi. Przed produkcją: logowanie firmowe (SSO z MFA), model rozpoznający dane osobowe po polsku jako druga warstwa, PostgreSQL, kopie poza serwerem, monitoring ([07-model-zagrozen.md](07-model-zagrozen.md)).
 
@@ -77,3 +80,6 @@ Jedna zależność produkcyjna (Express), mała powierzchnia ataku, szybki audyt
 - Workflow n8n jest przygotowany, ale w demo nieuruchomiony.
 - E-mail ze zgłoszeń działa po dodaniu klucza Resend; bez niego zgłoszenia są zapisywane i widoczne dla zarządu.
 - Logowanie to konta lokalne zamiast SSO.
+- Wyszukiwanie w internecie działa przez narzędzie Claude i jest płatne osobno za wyszukanie; włącza je zarząd tylko wybranym osobom.
+
+Pełna tabela z planem: README, sekcja „Czego brakuje do produkcji”.

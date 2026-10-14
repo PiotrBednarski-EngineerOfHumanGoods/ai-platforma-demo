@@ -340,3 +340,19 @@ test("zgłoszenie ze zrzutem: tylko PNG/JPG/WebP sprawdzane po zawartości, podg
   assert.equal((await call("/api/feedback/Z-000000/screenshot", { cookie: prezes.cookie })).status, 404);
   assert.equal((await call("/api/feedback/..%2F..%2Fetc/screenshot", { cookie: prezes.cookie })).status, 404);
 });
+
+test("uprawnienia pracowników: ustawia tylko zarząd, zmiana w dzienniku, pracownik widzi je po zalogowaniu", async () => {
+  const anna = await login("anna");
+  assert.equal((await call("/api/admin/flags", { cookie: anna.cookie })).status, 403);
+  assert.equal((await call("/api/admin/flags/anna", { method: "POST", cookie: anna.cookie, body: { web: true } })).status, 403);
+  const prezes = await login("prezes");
+  const list = (await call("/api/admin/flags", { cookie: prezes.cookie })).json;
+  assert.equal(list.find(u => u.id === "tomasz").cloud, false, "księgowość bez chmury"); assert.equal(list.length, 5);
+  assert.equal((await call("/api/admin/flags/nikt", { method: "POST", cookie: prezes.cookie, body: { web: true } })).status, 404);
+  assert.equal((await call("/api/admin/flags/anna", { method: "POST", cookie: prezes.cookie, body: { web: "tak" } })).status, 400);
+  const ok = await call("/api/admin/flags/anna", { method: "POST", cookie: prezes.cookie, body: { general: true } });
+  assert.deepEqual(ok.json.flags, { general: true });
+  assert.ok(JSON.stringify((await call("/api/logs", { cookie: prezes.cookie })).json).includes("flags_changed"));
+  assert.deepEqual((await login("anna")).json.flags, { general: true });
+  await call("/api/admin/flags/anna", { method: "POST", cookie: prezes.cookie, body: { general: false } });
+});
