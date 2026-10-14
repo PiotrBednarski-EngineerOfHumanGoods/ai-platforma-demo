@@ -201,7 +201,10 @@ async function loadCases() {
     || `<div class="empty">${ICON.emptyCases}<span class="empty-title">Jeszcze nic tu nie ma</span><p>Zatwierdzone spotkania, notatki i przypomnienia pojawią się tutaj.</p></div>`;
 }
 async function loadLogs() {
-  const [r, usage] = await Promise.all([api("/logs"), api("/usage")]); if (r.error) return;
+  const [r, usage, fb] = await Promise.all([api("/logs"), api("/usage"), api("/feedback")]); if (r.error) return;
+  const FB = { problem: "Problem", pomysl: "Pomysł", pytanie: "Pytanie" };
+  $("#fb").hidden = !Array.isArray(fb) || !fb.length;
+  if (Array.isArray(fb)) $("#fbList").innerHTML = fb.slice(0, 20).map(f => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(f.ts))}</span><div class="grow"><div class="li-title"><span class="badge${f.type === "problem" ? " badge-stop" : ""}">${esc(FB[f.type] || f.type)}</span> ${esc(f.userName || who(f.userId))}, ${esc(f.deptName || "")}</div><div class="li-sub">${esc(f.text)}</div></div></div><span class="li-sub">${esc(f.id)}${f.via === "email" ? " · wysłane e-mailem" : ""}</span></li>`).join("");
   const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
   const prov = id => (meta.providers.find(p => p.id === id) || {}).label || id || "";
   const money = (u) => u.cloud ? (u.costKnown ? usd(u.cost) : "koszt nieznany, brak cennika") : "0 USD";
@@ -210,7 +213,7 @@ async function loadLogs() {
     ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} ${plural(u.queries, "pytanie", "pytania", "pytań")} w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.cached ? " · z pamięci: " + u.cached : ""}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} ${plural(u.tokens, "token", "tokeny", "tokenów")} · ${money(u)}</small></div>`).join("")
     : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`);
   $("#logs").innerHTML = r.map(l => {
-    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
+    const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Nieudane logowanie</span>` : l.event === "feedback" ? "Zgłoszenie" : l.event === "doc_added" ? "Dodano dokument" : l.event === "doc_removed" ? "Usunięto dokument" : l.event === "action_rejected_by_gateway" ? `<span class="badge">Odrzucone przez system</span>` : "Pytanie";
     const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : l.policy.route === "cache" ? "z pamięci" : l.policy.route === "mock" ? "bez modelu" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
     const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt nieznany" : l.cost.toFixed(4) + " USD") : ""}` : "";
@@ -285,3 +288,25 @@ function renderModelPicker(allowed) {
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !list.hidden) { open(false); btn.focus(); } });
   choose($("#prov").value);
 }
+
+/* ---------- „Zgłoś”: problem, pomysł albo pytanie prosto do opiekuna systemu ---------- */
+(() => {
+  const dlg = $("#report"), form = $("#reportForm"), msg = $("#reportMsg"), send = $("#reportSend");
+  const close = () => dlg.close();
+  $("#reportBtn").onclick = () => { msg.textContent = ""; msg.className = "rp-msg"; dlg.showModal(); $("#reportText").focus(); };
+  $("#reportClose").onclick = close; $("#reportCancel").onclick = close;
+  dlg.addEventListener("click", e => { if (e.target === dlg) close(); }); // kliknięcie w tło zamyka
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const text = $("#reportText").value.trim();
+    if (text.length < 10) { msg.textContent = "Opisz sprawę w co najmniej 10 znakach."; msg.className = "rp-msg is-err"; return; }
+    const context = $("#reportCtx").checked ? { tab: $(".tab.on")?.textContent.trim(), screen: `${innerWidth}×${innerHeight}`, browser: navigator.userAgent, theme: document.documentElement.dataset.theme || "system" } : {};
+    send.disabled = true; send.textContent = "Wysyłanie…";
+    const r = await api("/feedback", { method: "POST", body: JSON.stringify({ type: form.rtype.value, text, context }) }).catch(() => ({ error: "Brak połączenia z serwerem. Spróbuj ponownie." }));
+    send.disabled = false; send.textContent = "Wyślij zgłoszenie";
+    if (r.error) { msg.textContent = r.error; msg.className = "rp-msg is-err"; return; }
+    msg.textContent = `Dziękujemy! Zgłoszenie ${r.id} trafiło do opiekuna systemu.`; msg.className = "rp-msg is-ok";
+    $("#reportText").value = "";
+    setTimeout(close, 1800);
+  };
+})();

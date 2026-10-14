@@ -13,6 +13,7 @@ import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store, encryptionOn } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, hashPassword, rateLimit } from "./security.js";
 import crypto from "crypto";
+import { validateFeedback, notifyFeedback, FEEDBACK_TYPES } from "./feedback.js";
 import { PROVIDERS, classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -250,6 +251,23 @@ app.post("/api/actions/:id/reject", auth, (req, res) => {
   if (!store.takePending(req.params.id, req.user)) return res.status(404).json({ error: "Nie ma takiego wniosku albo został już rozpatrzony." });
   store.log({ userId: req.user.id, dept: req.user.dept, provider: PROVIDER, event: "action_rejected" });
   res.json({ ok: true });
+});
+
+// Zgłoszenia „Zgłoś”: od razu do opiekuna systemu (e-mail/webhook), kopia zaszyfrowana dla zarządu
+const feedbackLimit = rateLimit({ max: 5, windowMs: 10 * 60 * 1000 });
+app.post("/api/feedback", auth, feedbackLimit, safe(async (req, res) => {
+  const v = validateFeedback(req.body);
+  if (v.error) return res.status(400).json({ error: v.error });
+  const item = { id: "Z-" + crypto.randomBytes(3).toString("hex").toUpperCase(), ts: new Date().toISOString(), userId: req.user.id, userName: req.user.name, dept: req.user.dept, deptName: DEPTS[req.user.dept], ...v, status: "nowe" };
+  store.addFeedback(item);
+  store.log({ userId: req.user.id, dept: req.user.dept, event: "feedback", action: FEEDBACK_TYPES[v.type] }); // dziennik: bez treści
+  const via = await notifyFeedback(item);
+  if (via) store.setFeedback(item.id, { via });
+  res.json({ ok: true, id: item.id, via });
+}));
+app.get("/api/feedback", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  res.json(store.feedback());
 });
 
 // Pamięć spraw (zamiast CRM) i logi

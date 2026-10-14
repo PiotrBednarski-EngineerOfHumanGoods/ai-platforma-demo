@@ -32,24 +32,33 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
   };
   measure(); addEventListener("resize", measure); document.fonts?.ready.then(measure);
   let done = false;
-  const end = () => { root.classList.remove("with-intro"); el.remove(); dispatchEvent(new Event("compax:intro-done")); };
+  const wave = () => {
+    const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
+    const x = c.left + c.width / 2, y = c.top + c.height / 2, r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    [0, 160].forEach((delay, i) => {
+      const w = document.createElement("div"); w.className = "page-wave" + (i ? " soft" : "");
+      w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * r + 40 + "px"); w.style.animationDelay = delay + "ms";
+      document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
+    });
+  };
+  const end = withWave => { root.classList.remove("with-intro"); el.remove(); if (withWave) wave(); dispatchEvent(new Event("compax:intro-done")); };
   const finish = mode => {
     if (done) return; done = true;
     try { sessionStorage.setItem("compax-intro", "1"); } catch {}
     el.classList.add(mode);
     const hero = document.querySelector("#compass svg");
-    if (mode !== "go" || !hero || !Element.prototype.animate) return setTimeout(end, 380);
+    if (mode !== "go" || !hero || !Element.prototype.animate) return setTimeout(() => end(false), 380);
     // moneta leci w kompas strony: środek do środka, skala tak, żeby jej znak miał rozmiar kompasu
     const wrap = coin.parentElement, w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect();
     const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2);
-    const s = t.width / (w.width * 0.58), D = 1600, opts = { duration: D, easing: "cubic-bezier(.45,.05,.2,1)", fill: "forwards" };
+    const s = t.width / (w.width * 0.58), D = 1900, opts = { duration: D, easing: "cubic-bezier(.45,.05,.2,1)", fill: "forwards" };
     needle.animate([{ transform: getComputedStyle(needle).transform }, { transform: "rotate(0deg)" }], { duration: 1100, easing: "cubic-bezier(.3,0,.2,1)", fill: "forwards" }); // igła ląduje tak jak w kompasie strony
     wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: "translate(0,-3%) scale(1.04)", offset: .18 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], opts);
-    el.querySelector(".coin").animate([{ transform: "rotateY(0deg)", easing: "cubic-bezier(.5,0,.3,1)" }, { transform: "rotateX(10deg) rotateY(180deg)", offset: .36, easing: "cubic-bezier(.3,0,.25,1)" }, { transform: "rotateY(360deg)", offset: .7 }, { transform: "rotateY(360deg)" }], { duration: D, fill: "forwards" });
+    el.querySelector(".coin").animate([{ transform: "rotateY(0deg)", easing: "cubic-bezier(.45,0,.4,1)" }, { transform: "rotateX(12deg) rotateY(380deg)", offset: .38, easing: "cubic-bezier(.25,0,.2,1)" }, { transform: "rotateY(720deg)", offset: .74 }, { transform: "rotateY(720deg)" }], { duration: D, fill: "forwards" }); // dwa pełne obroty
     const fade = { duration: D, easing: "linear", fill: "forwards" };
-    el.querySelectorAll(".edge i").forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .6 }, { opacity: 0, offset: .7 }, { opacity: 0 }], fade)); // krawędź gaśnie, gdy zasłania ją awers
-    el.querySelector(".rim").animate([{ opacity: 1 }, { opacity: 1, offset: .74 }, { opacity: 0 }], fade); // potem znika tarcza, zostaje sam znak
-    setTimeout(end, D + 40);
+    el.querySelectorAll(".edge i").forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .68 }, { opacity: 0, offset: .76 }, { opacity: 0 }], fade)); // krawędź gaśnie, gdy zasłania ją awers
+    el.querySelector(".rim").animate([{ opacity: 1 }, { opacity: 1, offset: .78 }, { opacity: 0 }], fade); // potem znika tarcza, zostaje sam znak
+    setTimeout(() => end(true), D + 20);
   };
   coin.onclick = () => finish("go");
   cta.onclick = () => finish("go");

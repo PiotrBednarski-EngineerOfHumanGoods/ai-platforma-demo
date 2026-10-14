@@ -66,6 +66,7 @@ Odtworzenie wymaga tego samego `DATA_KEY`, z którym kopia powstała. Kopie wart
 
 - **Klucz API:** utwórz nowy w konsoli dostawcy, podmień w `.env`, restart, usuń stary w konsoli.
 - **`DATA_KEY`:** zatrzymaj aplikację (`pm2 stop ai-demo`), wykonaj kopię (`deploy/backup.sh`), uruchom `NEW_DATA_KEY=$(openssl rand -hex 32) npm run admin -- nowy-klucz` (najpierw odczytuje wszystko starym kluczem, po zapisie sprawdza odczyt nowym), wpisz nowy klucz do `.env` jako `DATA_KEY` i uruchom aplikację.
+- **Zgłoszenia („Zgłoś”):** pracownik wysyła problem, pomysł albo pytanie. Żeby szły od razu e-mailem, ustaw w `.env` `RESEND_API_KEY` i `FEEDBACK_TO` (opcjonalnie `FEEDBACK_FROM` z domeną zweryfikowaną w Resend albo `FEEDBACK_WEBHOOK` dla Slacka, Teams lub n8n) i zrestartuj aplikację. Bez tego zgłoszenia i tak są zapisywane i widoczne dla zarządu w zakładce Dziennik.
 - **Wnioski osób (RODO):** `npm run admin -- szukaj | eksport | usun "fraza"`, przy zatrzymanej aplikacji. Szczegóły w [06-rodo-rejestr-i-ocena-ryzyka.md](06-rodo-rejestr-i-ocena-ryzyka.md).
 - **Zły klucz przy starcie:** aplikacja nie nadpisze danych. Nieczytelny plik zostaje odłożony jako `data/<nazwa>.json.nieczytelny-<czas>`; po ustawieniu właściwego klucza przywróć go pod pierwotną nazwą.
 

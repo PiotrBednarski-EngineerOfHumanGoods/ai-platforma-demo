@@ -74,6 +74,9 @@ export const store = {
   takePending(id, user) { const i = pending.findIndex(p => p.id === id && p.userId === user.id); if (i < 0) return null; return pending.splice(i, 1)[0]; },
   // Dokumenty wgrane przez pracowników (baza wiedzy działu), zaszyfrowane jak reszta danych
   docs() { return read("docs"); },
+  feedback() { return read("feedback"); },
+  addFeedback(f) { const l = read("feedback"); l.unshift(f); write("feedback", l.slice(0, 500)); },
+  setFeedback(id, patch) { write("feedback", read("feedback").map(f => f.id === id ? { ...f, ...patch } : f)); },
   addDoc(d) { const l = read("docs").filter(x => !(x.dept === d.dept && x.file === d.file)); l.push(d); write("docs", l); },
   removeDoc(dept, file) { const l = read("docs"); const n = l.filter(x => !(x.dept === dept && x.file === file)); write("docs", n); return n.length !== l.length; },
   addCase(c) { const l = read("cases"); l.unshift({ id: Date.now(), ...c }); write("cases", l); },

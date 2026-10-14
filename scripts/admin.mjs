@@ -12,7 +12,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const DIR = process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
-const FILES = ["cases", "logs", "docs", "cache", "usage"];
+const FILES = ["cases", "logs", "docs", "cache", "usage", "feedback"];
 const MAGIC = "ENC1:";
 const asKey = k => (k && /^[0-9a-f]{64}$/i.test(k) ? Buffer.from(k, "hex") : null);
 
@@ -48,12 +48,13 @@ if (process.env.DATA_KEY && !key) fail("DATA_KEY musi mieć 64 znaki szesnastkow
 if (["szukaj", "eksport", "usun"].includes(cmd)) {
   if (!phrase || phrase.trim().length < 3) fail("Podaj frazę (co najmniej 3 znaki), np. nazwisko albo numer telefonu.");
   const found = {};
-  for (const n of ["cases", "logs", "docs"]) found[n] = (load(n, key) || []).filter(e => has(e, phrase));
+  for (const n of ["cases", "logs", "docs", "feedback"]) found[n] = (load(n, key) || []).filter(e => has(e, phrase));
   if (cmd === "szukaj") {
     console.log(`Fraza „${phrase}”:`);
     console.log(`  sprawy:    ${found.cases.length}`); found.cases.forEach(c => console.log(`    - ${c.when?.slice(0, 10)} ${c.dept}: ${c.klient} | ${c.notatka}`));
     console.log(`  dokumenty: ${found.docs.length}`); found.docs.forEach(d => console.log(`    - ${d.dept}/${d.file} (dodał: ${d.by})`));
     console.log(`  dziennik:  ${found.logs.length} (dziennik zapisuje pytania po maskowaniu, więc zwykle 0)`);
+    console.log(`  zgłoszenia: ${found.feedback.length}`);
     console.log("Pamięć odpowiedzi (cache) zawiera tylko pytania bez danych osobowych i wygasa po 7 dniach. Kopie zapasowe wygasają po 14 dniach.");
   } else if (cmd === "eksport") {
     const out = rest[0] || `eksport-${Date.now()}.json`;
@@ -64,7 +65,7 @@ if (["szukaj", "eksport", "usun"].includes(cmd)) {
     console.log(`${yes ? "Usuwam" : "Do usunięcia (podgląd, dodaj --tak, aby usunąć)"}: ${found.cases.length} spraw, ${found.logs.length} wpisów dziennika.`);
     if (found.docs.length) console.log(`Uwaga: fraza występuje też w ${found.docs.length} dokumentach działu; dokumenty usuwa się w aplikacji, po decyzji właściciela procedury.`);
     if (yes) {
-      for (const n of ["cases", "logs"]) { const all = load(n, key); if (all) save(n, all.filter(e => !has(e, phrase)), key); }
+      for (const n of ["cases", "logs", "feedback"]) { const all = load(n, key); if (all) save(n, all.filter(e => !has(e, phrase)), key); }
       console.log("Gotowe. Uruchom aplikację ponownie (pm2 start ai-demo).");
     }
   }

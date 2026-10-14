@@ -304,3 +304,21 @@ test("wyszukiwanie: długie pytanie analityczne znajduje cennik", async () => {
   const hits = search(KB, "Porównaj, ile klient zapłaci za przegląd klimatyzacji z rabatem 10% i bez rabatu, i podsumuj w dwóch zdaniach.", ["wspolne", "sprzedaz"], 4);
   assert.ok(hits.some(h => h.file === "cennik-i-oferty.md"));
 });
+
+// ---------- „Zgłoś” ----------
+test("zgłoszenie: walidacja, maskowanie danych osobowych, dziennik bez treści, lista tylko dla zarządu", async () => {
+  const anna = await login("anna");
+  assert.equal((await call("/api/feedback", { method: "POST", cookie: anna.cookie, body: { type: "problem", text: "za krótko" } })).status, 400);
+  assert.equal((await call("/api/feedback", { method: "POST", cookie: anna.cookie, body: { type: "inne", text: "Rodzaj spoza listy nie przejdzie" } })).status, 400);
+  const ok = await call("/api/feedback", { method: "POST", cookie: anna.cookie, body: { type: "pomysl", text: "Dodajcie eksport spraw do Excela, np. dla Jana Kowalskiego tel. 600 123 456", context: { tab: "Czat", evil: "x".repeat(5000) } } });
+  assert.equal(ok.status, 200); assert.match(ok.json.id, /^Z-[0-9A-F]{6}$/);
+  assert.equal((await call("/api/feedback", { cookie: anna.cookie })).status, 403);
+  const prezes = await login("prezes");
+  const list = (await call("/api/feedback", { cookie: prezes.cookie })).json;
+  const f = list.find(x => x.id === ok.json.id);
+  assert.ok(f && f.type === "pomysl" && f.userName === "Anna Lis");
+  assert.ok(!/Kowalsk|600 123 456/.test(f.text), "dane osobowe zamaskowane");
+  assert.deepEqual(Object.keys(f.context), ["tab"], "tylko dozwolone pola kontekstu");
+  const logs = JSON.stringify((await call("/api/logs", { cookie: prezes.cookie })).json);
+  assert.ok(logs.includes('"feedback"') && !logs.includes("eksport spraw"), "dziennik: zdarzenie bez treści");
+});

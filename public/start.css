@@ -23,7 +23,7 @@
   --glass:rgba(255,255,255,.86);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;background:var(--bg1)}
+html{scroll-behavior:smooth;background:var(--bg1);scrollbar-gutter:stable} /* miejsce na pasek przewijania zarezerwowane: po intro strona nie przeskakuje */
 body{margin:0;font:15px/1.55 var(--font);color:var(--fg1);background:var(--bg1);-webkit-font-smoothing:antialiased}
 a{color:var(--brand)} a:hover{color:var(--brand-hover)}
 h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.01em;margin:0}
@@ -319,3 +319,11 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .sc-pii{display:inline-block;white-space:nowrap}
 .da-btns .btn{pointer-events:none;cursor:default}
 @media (max-width:900px){.theme-btn{width:44px;height:44px}.topnav .btn{height:44px}}
+
+/* fala po wylądowaniu monety w kompasie: rozchodzi się od niego przez cały ekran */
+.page-wave{position:fixed;left:var(--wx);top:var(--wy);width:0;height:0;translate:-50% -50%;border-radius:50%;pointer-events:none;z-index:90;
+  border:1.5px solid color-mix(in srgb,var(--fg1) 28%,transparent);
+  box-shadow:0 0 48px 6px color-mix(in srgb,var(--fg1) 7%,transparent),inset 0 0 48px 6px color-mix(in srgb,var(--fg1) 7%,transparent);
+  animation:pageWave 1.5s cubic-bezier(.22,.6,.3,1) both}
+.page-wave.soft{border-color:color-mix(in srgb,var(--fg1) 12%,transparent);box-shadow:none}
+@keyframes pageWave{0%{width:0;height:0;opacity:1}75%{opacity:.6}100%{width:var(--wd);height:var(--wd);opacity:0}}
