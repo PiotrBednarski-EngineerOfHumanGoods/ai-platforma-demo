@@ -16,10 +16,9 @@ function parse(text, usage = null) {
   catch { return { answer: text.trim(), action: null, usage }; }
 }
 
-export async function callModel(provider, system, history, userMsg, tools) {
+export async function callModel(provider, system, history, userMsg, tools, model = process.env.MODEL) {
   const sys = system + "\n\n" + SCHEMA_HINT + toolsText(tools);
   const msgs = [...history.slice(-6).map(h => ({ role: h.role, content: h.content })), { role: "user", content: userMsg }];
-  const model = process.env.MODEL;
 
   if (provider === "anthropic") {
     const r = await fetch("https://api.anthropic.com/v1/messages", {

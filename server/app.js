@@ -12,7 +12,8 @@ import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, rateLimit } from "./security.js";
-import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd } from "./policy.js";
+import crypto from "crypto";
+import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, cloudMonthlyLimit, appMonthlyBudgetUsd, tier, modelFor } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -28,6 +29,9 @@ app.use(express.static(path.join(ROOT, "public")));
 
 // --- Baza wiedzy ładowana przy starcie (pliki .md w knowledge/<dział>/) ---
 let KB = loadKnowledge(path.join(ROOT, "knowledge"));
+const KB_VERSION = crypto.createHash("sha1").update(KB.map(c => c.text).join("\n")).digest("hex").slice(0, 12); // zmiana dokumentów = nowa pamięć podręczna
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+const cacheKey = (dept, message) => crypto.createHash("sha1").update(`${dept}|${message.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim()}|${KB_VERSION}`).digest("hex");
 console.log(`Baza wiedzy: ${KB.length} fragmentów z ${new Set(KB.map(c => c.file)).size} plików`);
 
 // --- Sesje i logowanie (demo: hasło z hashem scrypt; w produkcji SSO Microsoft/Google) ---
@@ -95,8 +99,20 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
 
   // 3. Klasyfikacja i trasa: poziom wiadomości + polityka działu + wybór pracownika + limit chmury
   const policy = classify(message, piiInMessage);
+
+  // 3a. Najpierw to, co darmowe: pytanie bez danych osobowych, na które już odpowiedziano z tych samych dokumentów
+  const key = policy.level === "public" ? cacheKey(user.dept, message) : null;
+  const cached = key ? store.cacheGet(key) : null;
+  if (cached) {
+    const policyOut = { level: policy.level, reasons: policy.reasons, route: "cache", provider: cached.provider, model: cached.model, tier: cached.tier, note: "ta sama odpowiedź była już udzielona, bez wywołania modelu" };
+    store.log({ userId: user.id, dept: user.dept, provider: cached.provider, policy: policyOut, prompt_masked: masked, pii_found: 0, sources: cached.sourceIds, action: null, tokens_in: 0, tokens_out: 0, cost: 0, ms: Date.now() - t0 });
+    return res.json({ answer: cached.answer, sources: cached.sources, action: null, masked_preview: masked, pii_found: 0, policy: policyOut, usage: { tokens_in: 0, tokens_out: 0, cost: 0 } });
+  }
+
   const trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept), spentUsd: store.spentThisMonthUsd() });
-  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, note: trip.reason };
+  const tierName = tier(message, hits);
+  const model = modelFor(trip.provider, tierName);
+  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, model, tier: trip.provider === "mock" ? null : tierName, note: trip.reason };
   if (trip.blocked) {
     const ts = new Date().toISOString();
     store.log({ userId: user.id, dept: user.dept, provider: null, event: "blocked", policy: policyOut, pii_found: piiInMessage, ms: Date.now() - t0 });
@@ -115,7 +131,7 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
     out = mockAnswer(message, hits, user); // tryb demo: nic nie idzie do modelu, więc pokazujemy oryginał
   } else {
     try {
-      out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS);
+      out = await callModel(trip.provider, sys, maskedHistory, masked, TOOLS, model);
     } catch (e) { // błąd dostawcy: czytelny komunikat dla pracownika, szczegół tylko w logu serwera
       console.error("model error:", trip.provider, e.message);
       store.log({ userId: user.id, dept: user.dept, provider: trip.provider, event: "provider_error", policy: policyOut, ms: Date.now() - t0 });
@@ -131,7 +147,7 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   // 6. Koszt: szacunek tokenów i cena z cennika (chmura), lokalnie i w demie 0
   const tokensIn = out.usage?.input ?? estimateTokens(sys) + maskedHistory.reduce((s, h) => s + estimateTokens(h.content), 0) + estimateTokens(masked);
   const tokensOut = out.usage?.output ?? estimateTokens(out.answer);
-  const cost = costOf(trip.provider, tokensIn, tokensOut);
+  const cost = costOf(trip.provider, model, tokensIn, tokensOut);
 
   // 7. Log: co faktycznie poszło do modelu, którą trasą i ile kosztowało
   store.log({
@@ -141,7 +157,10 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
     action: action ? action.tool : null, tokens_in: tokensIn, tokens_out: tokensOut, cost, ms: Date.now() - t0
   });
 
-  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut, usage: { tokens_in: tokensIn, tokens_out: tokensOut, cost } });
+  const sources = hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) }));
+  // 8. Pamięć podręczna: tylko pytania bez danych osobowych, bez akcji i z odpowiedzią z dokumentów
+  if (key && !action && hits.length) store.cachePut(key, { answer, sources, sourceIds: hits.map(h => `${h.dept}/${h.file}#${h.idx}`), provider: trip.provider, model, tier: policyOut.tier }, CACHE_TTL);
+  res.json({ answer, sources, action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut, usage: { tokens_in: tokensIn, tokens_out: tokensOut, cost } });
 });
 
 // Akcje wymagające zatwierdzenia przez człowieka

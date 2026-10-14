@@ -16,6 +16,9 @@ export const store = {
   logs() { return read("logs").slice().reverse().slice(0, 100); },
   // Zużycie w bieżącym miesiącu (do limitów chmury i panelu kosztów zarządu)
   spentThisMonthUsd() { const m = new Date().toISOString().slice(0, 7); return read("logs").filter(l => l.ts.startsWith(m) && l.policy?.route === "external").reduce((s, l) => s + (l.cost || 0), 0); },
+  // Pamięć podręczna odpowiedzi (pytania bez danych osobowych i bez akcji); klucz zawiera dział i wersję bazy wiedzy
+  cacheGet(key) { const e = read("cache").find(x => x.key === key && x.exp > Date.now()); return e ? e.value : null; },
+  cachePut(key, value, ttlMs) { const c = read("cache").filter(x => x.exp > Date.now() && x.key !== key); c.push({ key, value, exp: Date.now() + ttlMs }); write("cache", c.slice(-500)); },
   cloudCallsThisMonth(dept) { const m = new Date().toISOString().slice(0, 7); return read("logs").filter(l => l.dept === dept && l.ts.startsWith(m) && l.policy?.route === "external").length; },
   usageThisMonth() {
     const m = new Date().toISOString().slice(0, 7), by = {};
@@ -23,7 +26,7 @@ export const store = {
       if (!l.ts.startsWith(m) || l.event && l.event !== "blocked") continue;
       const u = by[l.dept] ||= { dept: l.dept, queries: 0, cloud: 0, local: 0, blocked: 0, tokens: 0, cost: 0, costKnown: true };
       u.queries++;
-      if (l.event === "blocked") u.blocked++; else if (l.policy?.route === "external") u.cloud++; else u.local++;
+      if (l.event === "blocked") u.blocked++; else if (l.policy?.route === "external") u.cloud++; else if (l.policy?.route === "cache") u.cached = (u.cached || 0) + 1; else u.local++;
       u.tokens += (l.tokens_in || 0) + (l.tokens_out || 0);
       if (l.policy?.route === "external") { if (l.cost == null) u.costKnown = false; else u.cost += l.cost; }
     }

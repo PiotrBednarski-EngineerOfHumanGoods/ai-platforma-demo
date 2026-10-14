@@ -133,13 +133,14 @@ function renderMasked(r) {
     return;
   }
   const p = r.policy || {}, u = r.usage;
-  const ROUTE = { blocked: ["", "nie wyszło nigdzie"], local: ["dot-in", "model w firmie"], external: ["dot-out", "chmura, po zamazaniu danych"], mock: ["dot-in", "tryb pokazowy, bez modelu"] };
+  const ROUTE = { blocked: ["", "nie wyszło nigdzie"], local: ["dot-in", "model w firmie"], external: ["dot-out", "chmura, po zamazaniu danych"], mock: ["dot-in", "tryb pokazowy, bez modelu"], cache: ["dot-in", "z pamięci odpowiedzi, bez modelu"] };
+const TIER = { cheap: "tani model", strong: "mocny model" };
   const LEVEL = { public: "jawne", internal: "wewnętrzne", restricted: "chronione" };
   const [dotCls, routeLabel] = ROUTE[p.route] || ["", p.route || ""];
   const provLabel = p.route === "mock" ? "" : (meta.providers.find(x => x.id === p.provider) || {}).label;
   const usageTxt = u && p.route !== "mock" ? `<b>Tokeny:</b><span>~${u.tokens_in} wejście, ~${u.tokens_out} wyjście${p.route === "external" ? ", koszt " + (u.cost == null ? "nieznany (brak cennika)" : u.cost.toFixed(4) + " USD") : ""}</span>` : "";
   const routeHtml = `<div class="mask-sum"><b>Poziom pytania:</b><span class="mask-type">${esc(LEVEL[p.level] || p.level || "")}</span>${(p.reasons || []).map(x => `<span class="mask-type">${esc(x)}</span>`).join("")}</div>
-    <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
+    <div class="mask-sum"><b>Dokąd:</b><span><i class="dot ${dotCls}"></i>${esc(routeLabel)}${provLabel ? " (" + esc(provLabel) + ")" : ""}</span>${p.note ? `<span>· ${esc(p.note)}</span>` : ""}</div>${p.model && p.route !== "cache" ? `<div class="mask-sum"><b>Model:</b><span>${esc(p.model)}${p.tier ? " · " + TIER[p.tier] : ""}</span></div>` : ""}${usageTxt ? `<div class="mask-sum">${usageTxt}</div>` : ""}`;
   if (p.route === "blocked") {
     $("#maskedCount").textContent = "0";
     $("#masked").innerHTML = `<div class="result" role="status">${ICON.info}<span>Pytanie nie wyszło z firmy. Do modelu nie trafił ani jeden znak.</span></div>${routeHtml}`;
@@ -171,14 +172,14 @@ async function loadLogs() {
   const money = (u) => u.cloud ? (u.costKnown ? u.cost.toFixed(2) + " USD" : "koszt nieznany, brak cennika") : "0 USD";
   const budgetHtml = usage.budgetUsd ? `<div><b>Budżet na chmurę</b><small>${usage.spentUsd.toFixed(2)} z ${usage.budgetUsd} USD w tym miesiącu</small><small>po wyczerpaniu pytania wracają do trybu pokazowego</small></div>` : "";
   $("#usage").innerHTML = budgetHtml + ((usage.depts || []).length
-    ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} pytań w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} tokenów · ${money(u)}</small></div>`).join("")
+    ? usage.depts.map(u => `<div><b>${esc(meta.depts[u.dept] || u.dept)}</b><small>${u.queries} pytań w tym miesiącu</small><small>chmura: ${u.cloud} z ${usage.cloudMonthlyLimit} · w firmie: ${u.local}${u.cached ? " · z pamięci: " + u.cached : ""}${u.blocked ? " · nie wysłano: " + u.blocked : ""}</small><small>~${u.tokens} tokenów · ${money(u)}</small></div>`).join("")
     : `<div><b>Ten miesiąc</b><small>Jeszcze nikt nie pytał.</small></div>`);
   $("#logs").innerHTML = r.map(l => {
     const ev = l.event === "action_approved" ? `<span class="badge badge-ok">Zatwierdzono</span>` : l.event === "action_rejected" ? `<span class="badge">Odrzucono</span>` : l.event === "blocked" ? `<span class="badge badge-stop">Nie wysłano</span>` : l.event === "provider_error" ? `<span class="badge">Błąd modelu</span>` : l.event === "login_failed" ? `<span class="badge">Błędne logowanie</span>` : "Pytanie";
-    const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
+    const routeTxt = l.policy ? `<br><i class="dot ${l.policy.route === "external" ? "dot-out" : l.policy.route === "blocked" ? "" : "dot-in"}"></i>${esc(l.policy.route === "external" ? "chmura" : l.policy.route === "blocked" ? "nie wyszło" : l.policy.route === "cache" ? "z pamięci" : "w firmie")}${l.policy.reasons?.length ? " (" + esc(l.policy.reasons.join(", ")) + ")" : ""}` : "";
     const det = l.event === "blocked" ? `${esc(l.policy?.note || "")}${routeTxt}` : l.event ? esc(l.action || "") + (l.result ? " · " + esc(l.result) : "") : tokens(l.prompt_masked || "") + (l.pii_found ? `<br>zamaskowano: ${tokTypes(l.prompt_masked).join(", ")}` : "") + (l.action ? `<br>wniosek: ${esc(l.action)}` : "") + routeTxt;
     const tok = l.tokens_in != null ? `${l.tokens_in}→${l.tokens_out}${l.policy?.route === "external" ? "<br>" + (l.cost == null ? "koszt ?" : l.cost.toFixed(4) + " USD") : ""}` : "";
-    return `<tr><td class="mono">${esc(l.ts.slice(11, 19))}</td><td>${esc(who(l.userId))}</td><td>${ev}</td><td class="mono">${esc(l.event && l.event !== "blocked" ? "" : prov(l.provider))}</td><td class="mono">${tok}</td><td class="mono">${det}</td><td class="mono">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
+    return `<tr><td class="mono">${esc(l.ts.slice(11, 19))}</td><td>${esc(who(l.userId))}</td><td>${ev}</td><td class="mono">${esc(l.event && l.event !== "blocked" ? "" : (l.policy?.model || prov(l.provider)))}${l.policy?.tier ? "<br>" + esc(TIER[l.policy.tier] || "") : ""}</td><td class="mono">${tok}</td><td class="mono">${det}</td><td class="mono">${(l.sources || []).map(esc).join("<br>")}</td></tr>`;
   }).join("") || `<tr><td colspan="7"><div class="empty">${ICON.emptyLogs}<span class="empty-title">Brak wpisów</span><p>Pytania i decyzje pracowników pojawią się tutaj.</p></div></td></tr>`;
 }
 init();

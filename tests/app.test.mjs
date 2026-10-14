@@ -218,3 +218,32 @@ test("budżet w dolarach: po wyczerpaniu chmura wraca do trybu pokazowego, a nie
     assert.equal(decide({ level: "public", dept: "ksiegowosc", requested: null, cloudUsed: 0, spentUsd: 0 }).provider, "mock", "księgowość nigdy nie idzie do chmury");
   } finally { delete process.env.ANTHROPIC_API_KEY; delete process.env.APP_MONTHLY_BUDGET_USD; process.env.AI_PROVIDER = "mock"; }
 });
+
+test("dobór modelu: proste pytanie -> tani model, analiza lub brak dokumentów -> mocny", async () => {
+  const { tier, modelFor } = await import("../server/policy.js");
+  const hit = [{ dept: "sprzedaz" }];
+  assert.equal(tier("Jaki rabat mogę dać sam?", hit), "cheap");
+  assert.equal(tier("Porównaj warunki umowy serwisowej z cennikiem i podsumuj różnice", hit), "strong");
+  assert.equal(tier("Jaki rabat?", []), "strong", "bez trafień w dokumentach pytanie idzie do mocnego modelu");
+  process.env.ANTHROPIC_MODEL_CHEAP = "model-tani"; process.env.ANTHROPIC_MODEL_STRONG = "model-mocny";
+  try { assert.equal(modelFor("anthropic", "cheap"), "model-tani"); assert.equal(modelFor("anthropic", "strong"), "model-mocny"); assert.equal(modelFor("mock", "cheap"), null); }
+  finally { delete process.env.ANTHROPIC_MODEL_CHEAP; delete process.env.ANTHROPIC_MODEL_STRONG; }
+});
+
+test("pamięć odpowiedzi: to samo pytanie bez danych osobowych wraca z pamięci; pytania z danymi i z akcją nie są zapamiętywane", async () => {
+  const anna = await login("anna", PASS.anna);
+  const q = { message: "Ile kosztuje przegląd klimatyzacji?" };
+  const first = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: q });
+  assert.notEqual(first.json.policy.route, "cache");
+  const second = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: { message: "ile kosztuje przegląd klimatyzacji" } });
+  assert.equal(second.json.policy.route, "cache");
+  assert.equal(second.json.answer, first.json.answer);
+  assert.equal(second.json.usage.cost, 0);
+  const marek = await login("marek", PASS.marek);
+  const other = await call("/api/chat", { method: "POST", cookie: marek.cookie, body: q });
+  assert.notEqual(other.json.policy.route, "cache", "inny dział ma inne dokumenty, więc własną pamięć");
+  const pii = { message: "Umów spotkanie z Pan Jan Kowalski tel. 600 123 456 we wtorek 10:00" };
+  await call("/api/chat", { method: "POST", cookie: anna.cookie, body: pii });
+  const piiAgain = await call("/api/chat", { method: "POST", cookie: anna.cookie, body: pii });
+  assert.notEqual(piiAgain.json.policy.route, "cache");
+});

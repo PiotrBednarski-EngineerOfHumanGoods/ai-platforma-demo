@@ -88,13 +88,29 @@ export function decide({ level, dept, requested, cloudUsed, spentUsd = 0 }) {
   return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamazane przed wysyłką" : "dane zostały w firmie" };
 }
 
-// Koszty: szacunek tokenów (ok. 4 znaki na token) i cena z PRICING_JSON w .env (USD za 1 mln tokenów),
-// np. {"anthropic":{"in":3,"out":15},"openai":{"in":0.15,"out":0.6}}. Brak cennika = koszt nieznany (null).
+// Dobór modelu do trudności pytania: proste (krótkie, jest trafienie w dokumentach, bez prośby o analizę) -> tani model,
+// trudne (długie, "porównaj", "podsumuj", "raport", brak trafień) -> mocny. Pracownik wybiera dostawcę, poziom dobiera brama.
+const HARD = /\b(porówna|podsumuj|streszcz|przeanalizuj|analiz|zestaw|raport|dlaczego|zaproponuj|napisz|przygotuj ofert|wyjaśnij|oceń|policz)/i;
+export function tier(message, hits) {
+  if (HARD.test(message) || message.length > 300 || !hits.length) return "strong";
+  return "cheap";
+}
+// Nazwa modelu dla dostawcy i poziomu. Konfiguracja: ANTHROPIC_MODEL_CHEAP / ANTHROPIC_MODEL_STRONG (analogicznie OPENAI_),
+// OLLAMA_MODEL dla modelu w firmie; MODEL ustawia jeden model na sztywno dla wszystkich poziomów.
+const DEFAULT_MODELS = { anthropic: { cheap: "claude-haiku-5-5", strong: "claude-opus-5-5" }, openai: { cheap: "gpt-4o-mini", strong: "gpt-4o" } };
+export function modelFor(provider, tierName) {
+  if (!provider || provider === "mock") return null;
+  if (provider === "ollama") return process.env.OLLAMA_MODEL || process.env.MODEL || "llama3.1";
+  return process.env[`${provider.toUpperCase()}_MODEL_${tierName.toUpperCase()}`] || process.env.MODEL || DEFAULT_MODELS[provider]?.[tierName] || null;
+}
+
+// Koszty: tokeny z odpowiedzi dostawcy (albo szacunek ~4 znaki/token) i cena z PRICING_JSON w .env (USD za 1 mln tokenów),
+// klucz = nazwa modelu albo dostawcy, np. {"claude-haiku-5-5":{"in":0.1,"out":0.5},"anthropic":{"in":4,"out":20}}. Brak = koszt nieznany (null).
 export const estimateTokens = text => Math.ceil(String(text || "").length / 4);
-export function costOf(provider, tokensIn, tokensOut) {
+export function costOf(provider, model, tokensIn, tokensOut) {
   if (!provider || PROVIDERS[provider]?.kind !== "external") return 0;
   let pricing = {}; try { pricing = JSON.parse(process.env.PRICING_JSON || "{}"); } catch { pricing = {}; }
-  const p = pricing[provider]; if (!p) return null;
+  const p = (model && pricing[model]) || pricing[provider]; if (!p) return null;
   return +((tokensIn * (p.in || 0) + tokensOut * (p.out || 0)) / 1e6).toFixed(5);
 }
 

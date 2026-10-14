@@ -77,7 +77,7 @@ skills/              – przykładowy skill dla Claude Code: checklista bezpiecz
 
 ## Brama AI: dostawcy, polityka działów, klasyfikacja, koszty
 
-Układ hybrydowy: model lokalny na serwerze firmy jako domyślny, chmura tylko tam, gdzie dział ma na to zgodę, i tylko po zamaskowaniu. Wszystko w `server/policy.js`.
+Kolejność: najpierw to, co darmowe (pamięć odpowiedzi, model w firmie), potem tani model, mocny tylko do trudnych pytań, chmura tylko tam, gdzie dział ma zgodę, i tylko po zamaskowaniu. Wszystko w `server/policy.js`.
 
 | Element | Jak działa | Konfiguracja |
 |---|---|---|
@@ -86,7 +86,9 @@ Układ hybrydowy: model lokalny na serwerze firmy jako domyślny, chmura tylko t
 | Klasyfikacja | jawne / wewnętrzne (dane osobowe, zamaskowane) / chronione (PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające) | reguły w `policy.js` (produkcja: Presidio/NER) |
 | Trasa | chronione: wyłącznie model lokalny, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
 | Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model lokalny albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |
-| Koszty | szacunek tokenów i koszt z cennika w logu każdego zapytania; zarząd widzi sumy per dział w bieżącym miesiącu | `PRICING_JSON` |
+| Dobór modelu | proste pytanie (krótkie, jest trafienie w dokumentach) idzie do taniego modelu, analiza lub brak trafień do mocnego; pracownik wybiera dostawcę, poziom dobiera brama | `ANTHROPIC_MODEL_CHEAP`, `ANTHROPIC_MODEL_STRONG` |
+| Pamięć odpowiedzi | pytanie bez danych osobowych i bez akcji, na które już odpowiedziano z tych samych dokumentów, wraca z pamięci za 0; klucz zawiera dział i wersję dokumentów, ważność 7 dni | automatycznie |
+| Koszty | tokeny z odpowiedzi dostawcy i koszt z cennika w logu każdego zapytania; zarząd widzi sumy per dział i budżet w bieżącym miesiącu | `PRICING_JSON`, `APP_MONTHLY_BUDGET_USD` |
 | Alert | zatrzymana wiadomość = wpis `blocked` bez treści i powiadomienie administratora | `ALERT_WEBHOOK_URL` |
 
 Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
