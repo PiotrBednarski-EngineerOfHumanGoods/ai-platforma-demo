@@ -3,77 +3,167 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nordica AI – asystent firmowy</title>
+<title>Nordica – asystent firmowy</title>
 <style>
-  :root{--navy:#1F3A5F;--blue:#3B6EA8;--bg:#F3F5F8;--card:#fff;--line:#DDE3EA;--text:#1b1f24;--muted:#667;--green:#2E7D5B;--orange:#B5651D;--red:#b03a2e}
-  *{box-sizing:border-box} body{margin:0;font:15px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
-  header{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  header h1{font-size:17px;margin:0} header .sp{flex:1} header .tag{background:rgba(255,255,255,.15);padding:4px 10px;border-radius:999px;font-size:12px}
-  button{border:0;border-radius:8px;padding:9px 14px;font:inherit;cursor:pointer;background:var(--blue);color:#fff} button.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)} button.ok{background:var(--green)} button.no{background:#fff;color:var(--red);border:1px solid var(--red)} button:disabled{opacity:.5;cursor:default}
-  .login{max-width:560px;margin:60px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
-  .login h2{margin:0 0 6px;color:var(--navy)} .login p{color:var(--muted);margin:0 0 18px}
-  .users{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-  .u{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:#fff} .u:hover{border-color:var(--blue)} .u.on{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)} .u b{display:block} .u small{color:var(--muted)}
-  .loginForm{display:flex;gap:8px;margin-top:14px} .loginForm input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font:inherit} .err{color:var(--red);min-height:1.2em}
-  main{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:16px;max-width:1300px;margin:0 auto}
-  @media(max-width:900px){main{grid-template-columns:1fr}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap} .tabs button{background:#fff;color:var(--navy);border:1px solid var(--line)} .tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-  .chat{height:62vh;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px}
-  .msg{max-width:85%;padding:10px 14px;border-radius:12px;white-space:pre-wrap} .me{align-self:flex-end;background:var(--navy);color:#fff} .ai{align-self:flex-start;background:#EEF2F7}
-  .src{font-size:12px;color:var(--muted);margin-top:6px} .src span{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px;margin:2px 4px 0 0}
-  .row{display:flex;gap:8px;margin-top:10px} .row input{flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
-  h3{margin:0 0 10px;font-size:14px;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
-  .act{border:1px solid #F0D4BF;background:#FBF3EC;border-radius:10px;padding:10px;margin-bottom:10px;font-size:14px} .act b{color:var(--orange)} .act pre{margin:6px 0;font-size:12px;white-space:pre-wrap;background:#fff;padding:6px;border-radius:6px}
-  .hint{font-size:12px;color:var(--muted)} .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px} .chips button{font-size:12px;padding:6px 10px}
-  table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top} th{color:var(--navy)}
-  .mask{font-family:ui-monospace,monospace;font-size:12px;background:#FFF8E6;border:1px solid #F1E2B3;border-radius:8px;padding:8px;margin-top:8px}
-  .mask b{color:var(--orange)}
+  :root{
+    --ice:#E9F1F3; --frost:#FFFFFF; --deep:#0F3B4C; --teal:#1E7A8C; --teal-soft:#D7EAEE;
+    --ink:#15232A; --mist:#5B6E78; --line:#CDDBE0; --line-strong:#9FB6BE;
+    --amber:#B86E08; --amber-soft:#FBF1E2; --ok:#1F7A4D; --danger:#A33B2A;
+    --tok-bg:#1B2A31; --tok-fg:#BFE6EC;
+    --r:6px;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--ice)}
+  body{margin:0;font:15px/1.5 system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--ice);-webkit-font-smoothing:antialiased}
+  button,input{font:inherit}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  /* nagłówek */
+  header{background:var(--deep);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:18px}
+  .brand{display:flex;align-items:baseline;gap:10px;margin:0;font-weight:600;font-size:17px;letter-spacing:-.01em}
+  .brand span{font-weight:400;color:#B9D3DA;font-size:14px}
+  .status{display:flex;align-items:center;gap:7px;font-size:13px;color:#B9D3DA}
+  .status::before{content:"";width:7px;height:7px;border-radius:50%;background:#7FD1C7}
+  header .sp{flex:1}
+  #who{font-size:14px;color:#E6F0F2}
+  #logout{background:transparent;color:#E6F0F2;border:1px solid rgba(255,255,255,.35);border-radius:var(--r);padding:6px 12px;cursor:pointer}
+  #logout:hover{background:rgba(255,255,255,.1)}
+
+  /* logowanie */
+  .login{max-width:1040px;margin:0 auto;padding:56px 24px 48px;display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:start}
+  .intro h2{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:0 0 16px;font-weight:600;max-width:16ch}
+  .intro p{margin:0 0 14px;color:var(--mist);max-width:46ch}
+  .sample{margin-top:28px;border-top:1px solid var(--line-strong);padding-top:16px;max-width:52ch}
+  .sample small{display:block;color:var(--mist);font-size:13px;margin-bottom:8px}
+  .sample p{margin:0;color:var(--ink);line-height:1.9}
+  .panel{background:var(--frost);border:1px solid var(--line);border-radius:var(--r);padding:22px 22px 20px}
+  .panel h3{margin:0 0 4px;font-size:16px;font-weight:600}
+  .panel>p{margin:0 0 14px;color:var(--mist);font-size:14px}
+  .users{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .u{display:flex;flex-direction:column;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line);background:#fff;position:relative}
+  .u:last-child{border-bottom:0}
+  .u:hover{background:#F4F8F9}
+  .u.on{background:var(--teal-soft)}
+  .u.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal)}
+  .u b{font-weight:600}
+  .u small{color:var(--mist);font-size:13px}
+  .loginForm{display:flex;gap:8px;margin-top:14px}
+  .loginForm input{flex:1;border:1px solid var(--line-strong);border-radius:var(--r);padding:10px 12px;background:#fff}
+  .loginForm button{background:var(--teal);color:#fff;border:0;border-radius:var(--r);padding:10px 16px;cursor:pointer}
+  .loginForm button:disabled{background:var(--line);color:var(--mist);cursor:default}
+  .err{color:var(--danger);font-size:13px;min-height:1.3em;margin:8px 0 0}
+
+  /* aplikacja */
+  main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;padding:20px 24px 32px;max-width:1280px;margin:0 auto}
+  .card{background:var(--frost);border:1px solid var(--line);border-radius:var(--r);padding:0 20px 16px;min-width:0}
+  .tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin:0 -20px 14px;padding:0 20px}
+  .tabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:14px 0 11px;color:var(--mist);cursor:pointer}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button.on{color:var(--ink);border-bottom-color:var(--deep);font-weight:600}
+  .chat{height:58vh;min-height:320px;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:4px 2px 8px}
+  .msg{white-space:pre-wrap;max-width:min(72ch,100%);overflow-wrap:anywhere}
+  .me{align-self:flex-end;background:var(--deep);color:#fff;padding:9px 13px;border-radius:12px 12px 2px 12px;max-width:min(60ch,85%)}
+  .ai{align-self:flex-start;padding:2px 0 2px 14px;border-left:2px solid var(--line-strong)}
+  .src{font-size:13px;color:var(--mist);margin-top:8px;white-space:normal}
+  .src span{display:inline-block;color:var(--teal);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong);margin:0 10px 0 0;cursor:help}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
+  .chips button{background:#fff;color:var(--deep);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer}
+  .chips button:hover{border-color:var(--teal);color:var(--teal)}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .row input{flex:1;padding:11px 13px;border:1px solid var(--line-strong);border-radius:var(--r);background:#fff}
+  .row button{background:var(--deep);color:#fff;border:0;border-radius:var(--r);padding:0 18px;cursor:pointer}
+  .row button:disabled{opacity:.5;cursor:default}
+  .hint{font-size:13px;color:var(--mist)}
+  ul#kb{margin:0;padding-left:18px;line-height:1.9}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  th,td{text-align:left;padding:8px 8px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mist);font-weight:500}
+  td:first-child,th:first-child{white-space:nowrap}
+
+  /* panel boczny */
+  aside.card{padding:0 20px 18px}
+  aside h3{margin:0;padding:14px 0 10px;font-size:14px;font-weight:600;border-bottom:1px solid var(--line)}
+  aside h3+ *{margin-top:12px}
+  aside h3.second{margin-top:22px}
+  .act{border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:var(--r);padding:12px 14px;margin-bottom:10px;font-size:14px;background:#fff}
+  .act b{display:block;color:var(--amber);font-weight:600;margin-bottom:6px}
+  .act pre{margin:0 0 10px;font-family:inherit;font-size:13px;line-height:1.55;white-space:pre-wrap;color:var(--ink)}
+  .act button{border-radius:var(--r);padding:7px 12px;cursor:pointer;font-size:14px}
+  .act .ok{background:var(--amber);color:#fff;border:1px solid var(--amber)}
+  .act .no{background:#fff;color:var(--ink);border:1px solid var(--line-strong);margin-left:6px}
+  .mask{font-size:14px;line-height:1.9}
+  .mask b{display:block;font-weight:500;color:var(--mist);font-size:13px;line-height:1.4;margin:0 0 6px}
+  .mask .count{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);color:var(--ink);font-size:13px;line-height:1.4}
+  .tok{display:inline-block;background:var(--tok-bg);color:var(--tok-fg);border-radius:3px;padding:1px 7px;margin:0 1px;font-size:12.5px;letter-spacing:.02em;line-height:1.5;vertical-align:baseline;white-space:nowrap}
+
+  @media(max-width:960px){
+    .login{grid-template-columns:1fr;gap:32px;padding:32px 16px}
+    .intro h2{font-size:28px}
+    main{grid-template-columns:1fr;padding:16px}
+    .chat{height:52vh}
+    header{padding:0 16px;gap:12px}
+    .brand span,.status{display:none}
+    #who{font-size:13px;color:#B9D3DA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+  }
+  .chips button{text-align:left}
 </style>
 </head>
 <body>
 <header>
-  <h1>Nordica AI · asystent firmowy</h1>
-  <span class="tag" id="prov"></span>
+  <h1 class="brand">Nordica <span>asystent firmowy</span></h1>
+  <span class="status" id="prov"></span>
   <span class="sp"></span>
   <span id="who"></span>
-  <button class="ghost" id="logout" style="display:none">Wyloguj</button>
+  <button id="logout" style="display:none">Wyloguj</button>
 </header>
 
 <div id="login" class="login">
-  <h2>Zaloguj się</h2>
-  <p>W produkcji: logowanie kontem firmowym (Microsoft/Google). W demie: wybierz pracownika i podaj hasło konta demo.</p>
-  <div class="users" id="users"></div>
-  <form id="loginForm" class="loginForm" autocomplete="off">
-    <input type="password" id="pw" placeholder="Hasło" autocomplete="current-password" required>
-    <button type="submit" id="loginBtn" disabled>Zaloguj</button>
+  <div class="intro">
+    <h2>Odpowiedzi z dokumentów firmy, tylko z Twojego działu.</h2>
+    <p>Asystent czyta procedury, cenniki i wzory pism Nordica Serwis i odpowiada z podaniem źródła. Sprzedaż nie widzi księgowości, księgowość nie widzi sprzedaży. Zarząd widzi wszystko.</p>
+    <p>Akcje na zewnątrz, takie jak spotkanie czy przypomnienie o płatności, asystent tylko przygotowuje. Wykonuje je dopiero po Twoim zatwierdzeniu.</p>
+    <div class="sample">
+      <small>Tak wygląda Twoja wiadomość, zanim trafi do modelu językowego</small>
+      <p>Umów spotkanie z <span class="tok">osoba 1</span> tel. <span class="tok">telefon 1</span> we wtorek 10:00</p>
+    </div>
+  </div>
+  <form id="loginForm" class="panel" autocomplete="off">
+    <h3>Zaloguj się</h3>
+    <p>Wybierz swoje konto i wpisz hasło. W produkcji to miejsce zajmuje logowanie kontem firmowym Microsoft lub Google.</p>
+    <div class="users" id="users"></div>
+    <div class="loginForm">
+      <input type="password" id="pw" placeholder="Hasło" autocomplete="current-password" required aria-label="Hasło">
+      <button type="submit" id="loginBtn" disabled>Zaloguj się</button>
+    </div>
+    <p class="err" id="loginErr" aria-live="polite"></p>
   </form>
-  <p class="hint err" id="loginErr"></p>
 </div>
 
 <main id="app" style="display:none">
   <section class="card">
-    <div class="tabs">
+    <div class="tabs" role="tablist">
       <button class="on" data-t="chat">Czat</button>
-      <button data-t="cases">Sprawy (pamięć zamiast CRM)</button>
-      <button data-t="kb">Moja baza wiedzy</button>
-      <button data-t="logs" id="logsTab" style="display:none">Logi (zarząd)</button>
+      <button data-t="cases">Sprawy</button>
+      <button data-t="kb">Moje dokumenty</button>
+      <button data-t="logs" id="logsTab" style="display:none">Logi</button>
     </div>
     <div id="t-chat">
-      <div class="chat" id="chat"></div>
+      <div class="chat" id="chat" aria-live="polite"></div>
       <div class="chips" id="chips"></div>
-      <div class="row"><input id="inp" placeholder="Zadaj pytanie lub poproś o akcję…"><button id="send">Wyślij</button></div>
+      <div class="row"><input id="inp" placeholder="Zadaj pytanie albo poproś o akcję" aria-label="Wiadomość"><button id="send">Wyślij</button></div>
     </div>
     <div id="t-cases" style="display:none"><table><thead><tr><th>Kiedy</th><th>Dział</th><th>Klient</th><th>Notatka</th><th>Następny krok</th><th>Termin</th></tr></thead><tbody id="cases"></tbody></table></div>
-    <div id="t-kb" style="display:none"><p class="hint">Dokumenty, które widzi Twoja rola. Inne działy mają własne – asystent nie odpowie z nich, nawet jeśli zapytasz.</p><ul id="kb"></ul></div>
-    <div id="t-logs" style="display:none"><table><thead><tr><th>Czas</th><th>Kto</th><th>Dostawca</th><th>Co poszło do modelu (zamaskowane)</th><th>PII</th><th>Źródła</th><th>Akcja</th><th>ms</th></tr></thead><tbody id="logs"></tbody></table></div>
+    <div id="t-kb" style="display:none"><p class="hint">Dokumenty widoczne dla Twojej roli. Z dokumentów innych działów asystent nie odpowie, nawet jeśli zapytasz.</p><ul id="kb"></ul></div>
+    <div id="t-logs" style="display:none"><table><thead><tr><th>Czas</th><th>Kto</th><th>Dostawca</th><th>Co poszło do modelu</th><th>PII</th><th>Źródła</th><th>Akcja</th><th>ms</th></tr></thead><tbody id="logs"></tbody></table></div>
   </section>
 
   <aside class="card">
-    <h3>Akcje do zatwierdzenia</h3>
-    <div id="actions"><p class="hint">Brak. Agent przygotowuje akcje, ale wykonuje je dopiero po Twoim „zatwierdź”.</p></div>
-    <h3 style="margin-top:18px">Co dostał model</h3>
-    <div id="masked" class="hint">Po każdym pytaniu zobaczysz tu wersję wysłaną do modelu – z zamaskowanymi danymi osobowymi.</div>
+    <h3>Do zatwierdzenia</h3>
+    <div id="actions"><p class="hint">Nic do zatwierdzenia. Gdy asystent przygotuje akcję, pojawi się tutaj i poczeka na Twoją decyzję.</p></div>
+    <h3 class="second">Co dostał model</h3>
+    <div id="masked" class="hint">Po każdym pytaniu zobaczysz tu wersję wysłaną do modelu, z zamaskowanymi danymi osobowymi.</div>
   </aside>
 </main>
 
@@ -92,11 +182,14 @@ const EXAMPLES = {
 
 async function init() {
   meta = await fetch("/api/meta").then(r => r.json());
-  $("#prov").textContent = "dostawca AI: " + meta.provider + (meta.model ? " · " + meta.model : "") + (meta.provider === "mock" ? " (demo bez klucza)" : "");
-  $("#users").innerHTML = meta.users.map(u => `<div class="u" data-id="${u.id}"><b>${u.name}</b><small>${meta.depts[u.dept]} · ${u.role}</small></div>`).join("");
-  document.querySelectorAll(".u").forEach(el => el.onclick = () => {
-    document.querySelectorAll(".u").forEach(x => x.classList.toggle("on", x === el));
-    selectedUser = el.dataset.id; $("#loginBtn").disabled = false; $("#loginErr").textContent = ""; $("#pw").focus();
+  $("#prov").textContent = meta.provider === "mock" ? "tryb demo bez modelu" : "model: " + (meta.model || meta.provider);
+  $("#users").innerHTML = meta.users.map(u => `<div class="u" data-id="${u.id}" role="button" tabindex="0"><b>${u.name}</b><small>${meta.depts[u.dept]}, ${u.role}</small></div>`).join("");
+  document.querySelectorAll(".u").forEach(el => {
+    const pick = () => {
+      document.querySelectorAll(".u").forEach(x => x.classList.toggle("on", x === el));
+      selectedUser = el.dataset.id; $("#loginBtn").disabled = false; $("#loginErr").textContent = ""; $("#pw").focus();
+    };
+    el.onclick = pick; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
   });
   $("#loginForm").onsubmit = e => { e.preventDefault(); if (selectedUser) login(selectedUser, $("#pw").value); };
 }
@@ -107,9 +200,9 @@ async function login(id, password) {
   $("#pw").value = "";
   token = r.token; user = r.user; history = [];
   $("#login").style.display = "none"; $("#app").style.display = ""; $("#logout").style.display = "";
-  $("#who").textContent = `${user.name} · ${meta.depts[user.dept]}`;
+  $("#who").textContent = `${user.name}, ${meta.depts[user.dept]}`;
   $("#logsTab").style.display = user.dept === "zarzad" ? "" : "none";
-  $("#chat").innerHTML = ""; addMsg("ai", `Cześć ${user.name.split(" ")[0]}! Widzę dokumenty działu „${meta.depts[user.dept]}” i dokumenty wspólne. O co chcesz zapytać?`);
+  $("#chat").innerHTML = ""; addMsg("ai", `Cześć ${user.name.split(" ")[0]}. Widzę dokumenty działu „${meta.depts[user.dept]}” i dokumenty wspólne. O co chcesz zapytać?`);
   $("#chips").innerHTML = (EXAMPLES[user.dept] || []).map(e => `<button class="ghost">${e}</button>`).join("");
   document.querySelectorAll("#chips button").forEach(b => b.onclick = () => { $("#inp").value = b.textContent; send(); });
   refreshActions(); loadKb(); loadCases();
@@ -121,6 +214,8 @@ function addMsg(role, text, sources) {
   if (sources?.length) { const s = document.createElement("div"); s.className = "src"; s.innerHTML = "Źródła: " + sources.map(x => `<span title="${x.snippet.replace(/"/g, "'")}">${x.file}</span>`).join(""); d.appendChild(s); }
   $("#chat").appendChild(d); $("#chat").scrollTop = 1e9;
 }
+// tokeny maskowania, np. [OSOBA_1], pokazujemy jako plakietki zaczernienia
+const tokens = s => esc(s).replace(/\[([A-Z]+)_(\d+)\]/g, (_, k, n) => `<span class="tok">${k.toLowerCase()} ${n}</span>`);
 async function send() {
   const t = $("#inp").value.trim(); if (!t) return;
   $("#inp").value = ""; addMsg("me", t); $("#send").disabled = true;
@@ -129,29 +224,31 @@ async function send() {
     if (r.error) throw new Error(r.error);
     addMsg("ai", r.answer, r.sources);
     history.push({ role: "user", content: t }, { role: "assistant", content: r.answer });
-    $("#masked").innerHTML = `<div class="mask"><b>Wysłane do modelu:</b><br>${esc(r.masked_preview)}<br><b>Zamaskowano danych osobowych:</b> ${r.pii_found}</div>`;
+    $("#masked").className = "";
+    $("#masked").innerHTML = `<div class="mask"><b>Wysłane do modelu</b>${tokens(r.masked_preview)}<div class="count">Zamaskowane dane osobowe: ${r.pii_found}</div></div>`;
     if (r.action) refreshActions();
-  } catch (e) { addMsg("ai", "Błąd: " + e.message); }
+  } catch (e) { addMsg("ai", "Nie udało się wysłać: " + e.message); }
   $("#send").disabled = false;
 }
 $("#send").onclick = send; $("#inp").onkeydown = e => { if (e.key === "Enter") send(); };
 
 async function refreshActions() {
   const list = await api("/actions");
-  if (!list.length) { $("#actions").innerHTML = `<p class="hint">Brak. Agent przygotowuje akcje, ale wykonuje je dopiero po Twoim „zatwierdź”.</p>`; return; }
-  $("#actions").innerHTML = list.map(a => `<div class="act"><b>${a.tool}</b><pre>${esc(JSON.stringify(a.args, null, 1))}</pre><button class="ok" data-a="${a.id}">Zatwierdź</button> <button class="no" data-r="${a.id}">Odrzuć</button></div>`).join("");
-  document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { const r = await api(`/actions/${b.dataset.a}/approve`, { method: "POST" }); addMsg("ai", "✔ " + r.result); refreshActions(); loadCases(); });
+  if (!list.length) { $("#actions").innerHTML = `<p class="hint">Nic do zatwierdzenia. Gdy asystent przygotuje akcję, pojawi się tutaj i poczeka na Twoją decyzję.</p>`; return; }
+  const TITLES = { umow_spotkanie: "Umów spotkanie", zapisz_sprawe: "Zapisz sprawę", przypomnienie_platnosc: "Wyślij przypomnienie o płatności" };
+  $("#actions").innerHTML = list.map(a => `<div class="act"><b>${TITLES[a.tool] || a.tool}</b><pre>${esc(Object.entries(a.args).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join("\n"))}</pre><button class="ok" data-a="${a.id}">Zatwierdź</button><button class="no" data-r="${a.id}">Odrzuć</button></div>`).join("");
+  document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { const r = await api(`/actions/${b.dataset.a}/approve`, { method: "POST" }); addMsg("ai", "Zatwierdzono. " + r.result); refreshActions(); loadCases(); });
   document.querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { await api(`/actions/${b.dataset.r}/reject`, { method: "POST" }); addMsg("ai", "Akcja odrzucona."); refreshActions(); });
 }
 async function loadKb() { const r = await api("/knowledge"); $("#kb").innerHTML = r.files.map(f => `<li>${f}</li>`).join(""); }
-async function loadCases() { const r = await api("/cases"); $("#cases").innerHTML = r.map(c => `<tr><td>${c.when.slice(0, 16).replace("T", " ")}</td><td>${meta.depts[c.dept] || c.dept}</td><td>${esc(c.klient)}</td><td>${esc(c.notatka)}</td><td>${esc(c.nastepny_krok || "")}</td><td>${esc(c.termin || "")}</td></tr>`).join("") || `<tr><td colspan=6 class="hint">Brak spraw. Poproś asystenta: „Zapisz: …”</td></tr>`; }
-async function loadLogs() { const r = await api("/logs"); if (r.error) return; $("#logs").innerHTML = r.map(l => `<tr><td>${l.ts.slice(11, 19)}</td><td>${l.userId}</td><td>${l.provider}</td><td>${esc(l.prompt_masked || l.event || "")}</td><td>${l.pii_found ?? ""}</td><td>${(l.sources || []).join("<br>")}</td><td>${l.action || ""}</td><td>${l.ms || ""}</td></tr>`).join(""); }
+async function loadCases() { const r = await api("/cases"); $("#cases").innerHTML = r.map(c => `<tr><td>${c.when.slice(0, 16).replace("T", " ")}</td><td>${meta.depts[c.dept] || c.dept}</td><td>${esc(c.klient)}</td><td>${esc(c.notatka)}</td><td>${esc(c.nastepny_krok || "")}</td><td>${esc(c.termin || "")}</td></tr>`).join("") || `<tr><td colspan=6 class="hint">Jeszcze nie ma spraw. Poproś asystenta: „Zapisz: …”, a po zatwierdzeniu wpis pojawi się tutaj.</td></tr>`; }
+async function loadLogs() { const r = await api("/logs"); if (r.error) return; $("#logs").innerHTML = r.map(l => `<tr><td>${l.ts.slice(11, 19)}</td><td>${l.userId}</td><td>${l.provider}</td><td>${tokens(l.prompt_masked || l.event || "")}</td><td>${l.pii_found ?? ""}</td><td>${(l.sources || []).join("<br>")}</td><td>${l.action || ""}</td><td>${l.ms || ""}</td></tr>`).join("") || `<tr><td colspan=8 class="hint">Brak wpisów.</td></tr>`; }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on")); b.classList.add("on");
   ["chat", "cases", "kb", "logs"].forEach(t => $("#t-" + t).style.display = t === b.dataset.t ? "" : "none");
   if (b.dataset.t === "logs") loadLogs(); if (b.dataset.t === "cases") loadCases();
 });
-const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 init();
 </script>
 </body>
