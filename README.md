@@ -43,9 +43,7 @@ Nie trzeba kupować ani wdrażać CRM, żeby asystent pamiętał klientów. **Ka
 - **Bezpiecznie:** sprawy są szyfrowane na dysku, a dane osoby można wyszukać, wyeksportować i usunąć jednym poleceniem (RODO).
 - **Na później:** gdy firma wdroży CRM albo kalendarz, wniosek po zatwierdzeniu trafi tam przez API, MCP albo n8n zamiast do lokalnej listy. Reszta aplikacji się nie zmienia.
 
-## Pytania pracodawcy
-
-### Jakich agentów używam?
+## Jakich agentów używam?
 
 Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentów, którzy pracują równolegle. Każdy dostaje wąskie zadanie i zwraca uwagi z dowodami. Ja je weryfikuję, a każda poprawka błędu dostaje test.
 
@@ -58,11 +56,11 @@ Claude Code jako głównego agenta, a do przeglądów wyspecjalizowanych agentó
 
 Skille i narzędzia: **Superpowers** (planowanie pracy, systematyczne szukanie przyczyn błędów, równoległe agenty, sprawdzanie przed oddaniem), **frontend-design** (kierunek wizualny, typografia i projekt interfejsu), skill `claude-api` (integracja z Claude), własny skill `ai-security-checklist` w katalogu `skills/`, Claude Design (projekt ekranów), Playwright (zrzuty, testy w przeglądarce, pomiar płynności animacji). Szczegóły: [docs/08](docs/08-jak-powstal-i-pytania.md).
 
-### Czy role są dynamiczne?
+## Czy role są dynamiczne?
 
 Tak. Zarząd w panelu „Dziennik” przenosi pracownika do innego działu i włącza albo wyłącza chmurę dla działu. Zmiana działa od następnego pytania, bez wdrożenia i bez ponownego logowania, i trafia do dziennika. Zarząd nie może zmienić własnego działu, więc nie odbierze sobie dostępu przez pomyłkę. Dane chronione nie wychodzą z firmy niezależnie od ustawień. W produkcji dział i rola przychodzą z katalogu firmy (Microsoft Entra albo Google Workspace) przez logowanie firmowe, a panel zostaje do wyjątków.
 
-### Gdzie trzymam klucze AI?
+## Gdzie trzymam klucze AI?
 
 | Opcja | Jak działa | Kiedy |
 |---|---|---|
@@ -71,7 +69,7 @@ Tak. Zarząd w panelu „Dziennik” przenosi pracownika do innego działu i wł
 
 Klucz nigdy nie trafia do przeglądarki ani do repozytorium.
 
-### Jak można wywołać AI inaczej niż przez API?
+## Jak można wywołać AI inaczej niż przez API?
 
 Cztery drogi, ta sama brama: uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmienia się tylko to, gdzie liczy model, a w aplikacji to jedna linia konfiguracji.
 
