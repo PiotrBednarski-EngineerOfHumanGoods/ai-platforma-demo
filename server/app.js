@@ -211,7 +211,10 @@ app.post("/api/chat", auth, chatLimit, safe(async (req, res) => {
     action: action ? action.tool : null, tokens_in: tokensIn, tokens_out: tokensOut, cost, ms: Date.now() - t0
   });
 
-  const sources = hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) }));
+  // Źródła: tylko te, które odpowiedź cytuje ([n]); bez cytowań przy akcji – żadnych, inaczej wszystkie trafienia
+  const cited = new Set([...String(answer).matchAll(/\[(\d+)\]/g)].map(m => Number(m[1])));
+  const sources = hits.map((h, i) => ({ n: i + 1, file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) }))
+    .filter(s => cited.size ? cited.has(s.n) : !action);
   // 8. Pamięć podręczna: tylko pytania bez danych osobowych, bez akcji i z odpowiedzią z dokumentów
   if (key && !action && hits.length) store.cachePut(key, { answer, sources, sourceIds: hits.map(h => `${h.dept}/${h.file}#${h.idx}`), provider: trip.provider, model, tier: policyOut.tier }, CACHE_TTL);
   res.json({ answer, sources, action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut, usage: { tokens_in: tokensIn, tokens_out: tokensOut, cost } });

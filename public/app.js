@@ -68,7 +68,7 @@ $$(".tab,.bn-item").forEach(b => b.onclick = () => showTab(b.dataset.t));
 /* ---------- czat ---------- */
 function addMsg(role, text, sources, action) {
   const d = document.createElement("div"); d.className = "msg " + (role === "me" ? "msg-user" : "msg-ai");
-  const srcHtml = sources?.length ? `<div class="sources"><span class="sources-label">Źródła</span>${sources.map(x => `<span class="src" title="${esc(x.snippet)}">${ICON.docx}${esc(x.file)}</span>`).join("")}</div>` : "";
+  const srcHtml = sources?.length ? `<div class="sources"><span class="sources-label">Źródła</span>${sources.map((x, i) => `<span class="src" data-n="${Number(x.n) || i + 1}" title="${esc(x.snippet)}">${ICON.docx}${esc(x.file)}</span>`).join("")}</div>` : "";
   const reqHtml = action ? `<a class="req-link" href="#akcje" data-req="${esc(action.id)}"><span class="req-id">${esc(shortId(action.id))}</span><span class="req-name">${esc(TITLES[action.tool] || action.tool)}</span><span class="req-state is-pending">Czeka na Ciebie</span></a>` : "";
   d.innerHTML = role === "me"
     ? `<div class="msg-col"><div class="msg-meta"><span>${hhmm()}</span></div><div class="bubble"></div></div>`
