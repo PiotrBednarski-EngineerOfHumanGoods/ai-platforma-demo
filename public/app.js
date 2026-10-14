@@ -198,3 +198,24 @@ init();
   label();
   btns.forEach(b => b.onclick = () => { const next = current() === "dark" ? "light" : "dark"; root.dataset.theme = next; try { localStorage.setItem(KEY, next); } catch {} label(); });
 })();
+
+/* ---------- kompas na ekranie logowania: po wejściu igła osiada, potem wskazuje kursor ---------- */
+(() => {
+  const c = document.getElementById("loginCompass");
+  if (!c || matchMedia("(prefers-reduced-motion: reduce)").matches || !matchMedia("(hover: hover)").matches) return;
+  let idle = 0, raf = 0, x = 0, y = 0, ready = false;
+  setTimeout(() => { ready = true; }, 2400); // najpierw animacja wejścia, potem śledzenie kursora
+  addEventListener("pointermove", e => {
+    x = e.clientX; y = e.clientY;
+    if (!ready || document.getElementById("login").hidden || raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const r = c.getBoundingClientRect();
+      const deg = Math.atan2(y - (r.top + r.height / 2), x - (r.left + r.width / 2)) * 180 / Math.PI;
+      c.classList.remove("idle");
+      c.style.setProperty("--ang", (deg + 45).toFixed(1) + "deg"); // igła w znaku wskazuje 45°, liczymy względem tego kierunku
+      clearTimeout(idle);
+      idle = setTimeout(() => { c.classList.add("idle"); c.style.setProperty("--ang", "0deg"); }, 2000);
+    });
+  }, { passive: true });
+})();
