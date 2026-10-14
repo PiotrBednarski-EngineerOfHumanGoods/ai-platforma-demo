@@ -1,0 +1,13 @@
+{
+  "name": "ai-platforma-demo",
+  "version": "1.0.0",
+  "description": "Demo: wspólna platforma AI dla firmy wielodziałowej (czat z bazą wiedzy, agenci działowi, akcje z zatwierdzeniem, maskowanie PII)",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --watch --env-file-if-exists=.env server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
