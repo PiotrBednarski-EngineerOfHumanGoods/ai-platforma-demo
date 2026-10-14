@@ -65,6 +65,7 @@ if (["szukaj", "eksport", "usun"].includes(cmd)) {
     console.log(`${yes ? "Usuwam" : "Do usunięcia (podgląd, dodaj --tak, aby usunąć)"}: ${found.cases.length} spraw, ${found.logs.length} wpisów dziennika.`);
     if (found.docs.length) console.log(`Uwaga: fraza występuje też w ${found.docs.length} dokumentach działu; dokumenty usuwa się w aplikacji, po decyzji właściciela procedury.`);
     if (yes) {
+      for (const f of found.feedback) if (f.screenshot) { try { fs.unlinkSync(path.join(DIR, "blobs", f.screenshot.file)); } catch {} } // zrzuty ekranu usuwanych zgłoszeń
       for (const n of ["cases", "logs", "feedback"]) { const all = load(n, key); if (all) save(n, all.filter(e => !has(e, phrase)), key); }
       console.log("Gotowe. Uruchom aplikację ponownie (pm2 start ai-demo).");
     }
@@ -76,5 +77,12 @@ if (["szukaj", "eksport", "usun"].includes(cmd)) {
   for (const n of FILES) { const v = load(n, key); if (v !== null) plain[n] = v; } // najpierw odczyt wszystkiego starym kluczem: błąd przerywa przed zmianami
   for (const [n, v] of Object.entries(plain)) save(n, v, next);
   for (const [n, v] of Object.entries(plain)) if (JSON.stringify(load(n, next)) !== JSON.stringify(v)) fail(`Weryfikacja ${n}.json nie powiodła się. Przywróć kopię zapasową.`);
+  // zrzuty ekranu ze zgłoszeń (data/blobs): ten sam schemat, odczyt starym kluczem, zapis nowym, weryfikacja
+  const bdir = path.join(DIR, "blobs");
+  if (fs.existsSync(bdir)) for (const name of fs.readdirSync(bdir).filter(n => !n.endsWith(".tmp"))) {
+    const p = path.join(bdir, name), plainB = decrypt(fs.readFileSync(p, "utf8"), key);
+    fs.writeFileSync(p + ".tmp", encrypt(plainB, next), { mode: 0o600 }); fs.renameSync(p + ".tmp", p);
+    if (decrypt(fs.readFileSync(p, "utf8"), next) !== plainB) fail(`Weryfikacja zrzutu ${name} nie powiodła się.`);
+  }
   console.log(`Przeszyfrowano ${Object.keys(plain).length} plików. Teraz wpisz nowy klucz do .env jako DATA_KEY i uruchom aplikację.`);
 } else fail(`Nieznane polecenie: ${cmd}. Pomoc: npm run admin`);

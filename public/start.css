@@ -328,7 +328,7 @@ html.with-intro #compass{opacity:0} /* kompas strony czeka, aż moneta w niego w
 .water{position:fixed;left:var(--wx);top:var(--wy);width:var(--wd);height:var(--wd);margin:calc(var(--wd) / -2) 0 0 calc(var(--wd) / -2);border-radius:50%;pointer-events:none;z-index:90;
   transform:scale(.02);opacity:0;will-change:transform,opacity;contain:strict;
   background:radial-gradient(closest-side,transparent 58%,rgba(24,24,27,.025) 66%,rgba(24,24,27,.07) 76%,rgba(255,255,255,.85) 86%,rgba(255,255,255,.6) 90%,rgba(24,24,27,.11) 95%,transparent 99.5%);
-  animation:water 5.6s cubic-bezier(.33,.2,.45,1) forwards} /* równomierne narastanie od krawędzi kompasu */
+  animation:water 3.4s cubic-bezier(.33,.2,.45,1) forwards} /* jeden krąg, równomiernie od krawędzi kompasu */
 .water.w2{animation-delay:.75s;--peak:.7}
 .water.w3{animation-delay:1.5s;--peak:.48}
 .water.w4{animation-delay:2.25s;--peak:.3}

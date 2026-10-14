@@ -204,7 +204,7 @@ async function loadLogs() {
   const [r, usage, fb] = await Promise.all([api("/logs"), api("/usage"), api("/feedback")]); if (r.error) return;
   const FB = { problem: "Problem", pomysl: "Pomysł", pytanie: "Pytanie" };
   $("#fb").hidden = !Array.isArray(fb) || !fb.length;
-  if (Array.isArray(fb)) $("#fbList").innerHTML = fb.slice(0, 20).map(f => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(f.ts))}</span><div class="grow"><div class="li-title"><span class="badge${f.type === "problem" ? " badge-stop" : ""}">${esc(FB[f.type] || f.type)}</span> ${esc(f.userName || who(f.userId))}, ${esc(f.deptName || "")}</div><div class="li-sub">${esc(f.text)}</div></div></div><span class="li-sub">${esc(f.id)}${f.via === "email" ? " · wysłane e-mailem" : ""}</span></li>`).join("");
+  if (Array.isArray(fb)) $("#fbList").innerHTML = fb.slice(0, 20).map(f => `<li class="li"><div class="li-main"><span class="li-id">${esc(plDate(f.ts))}</span><div class="grow"><div class="li-title"><span class="badge${f.type === "problem" ? " badge-stop" : ""}">${esc(FB[f.type] || f.type)}</span> ${esc(f.userName || who(f.userId))}, ${esc(f.deptName || "")}</div><div class="li-sub">${esc(f.text)}</div></div></div><span class="li-sub">${esc(f.id)}${f.via === "email" ? " · wysłane e-mailem" : ""}${f.screenshot ? ` · <a href="/api/feedback/${esc(f.id)}/screenshot" target="_blank" rel="noopener">zrzut ekranu</a>` : ""}</span></li>`).join("");
   const who = id => (meta.users.find(u => u.id === id) || { name: id }).name;
   const prov = id => (meta.providers.find(p => p.id === id) || {}).label || id || "";
   const money = (u) => u.cloud ? (u.costKnown ? usd(u.cost) : "koszt nieznany, brak cennika") : "0 USD";
@@ -248,7 +248,10 @@ function renderModelPicker(allowed) {
   const items = allowed.filter(p => p.id !== "mock").map(p => ({ id: p.id, ...(MODEL_INFO[p.id] || { name: p.label, sub: "", where: "out" }) }));
   // na szaro: modele, które brama obsłuży po dodaniu klucza albo serwera (bez zmian w kodzie)
   const soon = [
-    ...(localReady ? [] : [{ id: "ollama-soon", name: "Bielik", sub: "polski model na serwerze firmy, do danych chronionych", where: "in" }]),
+    ...(localReady ? [] : [
+      { id: "ollama-soon", name: "Bielik", sub: "polski model na serwerze firmy, do danych chronionych", where: "in" },
+      { id: "ollama-any-soon", name: "Ollama", sub: "dowolny model lokalny (Llama, Qwen, Mistral) na serwerze firmy", where: "in" }
+    ]),
     ...(cloudOk ? [
       { id: "openai-soon", name: "GPT", sub: "OpenAI, chmura", where: "out" },
       { id: "gemini-soon", name: "Gemini", sub: "Google, chmura", where: "out" },
@@ -292,8 +295,50 @@ function renderModelPicker(allowed) {
 /* ---------- „Zgłoś”: problem, pomysł albo pytanie prosto do opiekuna systemu ---------- */
 (() => {
   const dlg = $("#report"), form = $("#reportForm"), msg = $("#reportMsg"), send = $("#reportSend");
+  let shot = null; // zrzut jako data URL (po przerysowaniu: bez metadanych, max 1600 px)
+  const setShot = url => { shot = url; $("#reportPreview").hidden = !url; $("#reportImg").src = url || ""; };
+  // przerysowanie przez canvas: usuwa metadane (np. lokalizację ze zdjęcia), zmniejsza i ujednolica format
+  const normalize = src => new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      let out = c.toDataURL("image/png"); if (out.length > 3.2e6) out = c.toDataURL("image/jpeg", .85);
+      ok(out);
+    };
+    img.onerror = () => bad(new Error("Nie udało się odczytać obrazu."));
+    img.src = src;
+  });
+  const fromFile = async file => {
+    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) { msg.textContent = "Dodaj obraz PNG, JPG albo WebP."; msg.className = "rp-msg is-err"; return; }
+    if (file.size > 15e6) { msg.textContent = "Obraz jest za duży (najwyżej 15 MB przed zmniejszeniem)."; msg.className = "rp-msg is-err"; return; }
+    // odczyt jako data URL (CSP dopuszcza obrazy data:, nie blob:)
+    const url = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => bad(new Error("Nie udało się odczytać pliku.")); r.readAsDataURL(file); }).catch(e => { msg.textContent = e.message; msg.className = "rp-msg is-err"; return null; });
+    if (!url) return;
+    try { setShot(await normalize(url)); msg.textContent = ""; } catch (e) { msg.textContent = e.message; msg.className = "rp-msg is-err"; }
+  };
+  $("#reportFile").onchange = e => { fromFile(e.target.files[0]); e.target.value = ""; };
+  $("#reportRemove").onclick = () => setShot(null);
+  dlg.addEventListener("paste", e => { const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); fromFile(it.getAsFile()); } });
+  // zrzut bieżącej karty: przeglądarka pyta o zgodę; okno zgłoszenia chowa się na czas zrzutu
+  if (navigator.mediaDevices?.getDisplayMedia && matchMedia("(pointer:fine)").matches) {
+    $("#reportShot").hidden = false;
+    $("#reportShot").onclick = async () => {
+      dlg.close();
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "browser" }, audio: false, preferCurrentTab: true });
+        const v = document.createElement("video"); v.muted = true; v.srcObject = stream; await v.play();
+        await new Promise(r => setTimeout(r, 250)); // klatka bez okna zgłoszenia
+        const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext("2d").drawImage(v, 0, 0);
+        stream.getTracks().forEach(t => t.stop());
+        setShot(await normalize(c.toDataURL("image/png")));
+      } catch { /* anulowano albo brak zgody: bez zrzutu */ }
+      dlg.showModal();
+    };
+  }
   const close = () => dlg.close();
-  $("#reportBtn").onclick = () => { msg.textContent = ""; msg.className = "rp-msg"; dlg.showModal(); $("#reportText").focus(); };
+  $("#reportBtn").onclick = () => { msg.textContent = ""; msg.className = "rp-msg"; setShot(null); dlg.showModal(); $("#reportText").focus(); };
   $("#reportClose").onclick = close; $("#reportCancel").onclick = close;
   dlg.addEventListener("click", e => { if (e.target === dlg) close(); }); // kliknięcie w tło zamyka
   form.onsubmit = async e => {
@@ -302,11 +347,11 @@ function renderModelPicker(allowed) {
     if (text.length < 10) { msg.textContent = "Opisz sprawę w co najmniej 10 znakach."; msg.className = "rp-msg is-err"; return; }
     const context = $("#reportCtx").checked ? { tab: $(".tab.on")?.textContent.trim(), screen: `${innerWidth}×${innerHeight}`, browser: navigator.userAgent, theme: document.documentElement.dataset.theme || "system" } : {};
     send.disabled = true; send.textContent = "Wysyłanie…";
-    const r = await api("/feedback", { method: "POST", body: JSON.stringify({ type: form.rtype.value, text, context }) }).catch(() => ({ error: "Brak połączenia z serwerem. Spróbuj ponownie." }));
+    const r = await api("/feedback", { method: "POST", body: JSON.stringify({ type: form.rtype.value, text, context, screenshot: shot }) }).catch(() => ({ error: "Brak połączenia z serwerem. Spróbuj ponownie." }));
     send.disabled = false; send.textContent = "Wyślij zgłoszenie";
     if (r.error) { msg.textContent = r.error; msg.className = "rp-msg is-err"; return; }
     msg.textContent = r.via ? `Dziękujemy! Zgłoszenie ${r.id} trafiło do opiekuna systemu.` : `Dziękujemy! Zgłoszenie ${r.id} zostało zapisane, opiekun systemu je zobaczy.`; msg.className = "rp-msg is-ok";
-    $("#reportText").value = "";
+    $("#reportText").value = ""; setShot(null);
     setTimeout(close, 1800);
   };
 })();

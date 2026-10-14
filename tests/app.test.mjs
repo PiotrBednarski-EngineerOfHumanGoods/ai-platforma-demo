@@ -8,6 +8,7 @@ import path from "path";
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "compax-test-"));
 process.env.AI_PROVIDER = "mock";
+process.env.FEEDBACK_RATE_LIMIT = "50";
 delete process.env.ANTHROPIC_API_KEY; delete process.env.OPENAI_API_KEY; delete process.env.OLLAMA_URL;
 
 const { app } = await import("../server/app.js");
@@ -321,4 +322,21 @@ test("zgłoszenie: walidacja, maskowanie danych osobowych, dziennik bez treści,
   assert.deepEqual(Object.keys(f.context), ["tab"], "tylko dozwolone pola kontekstu");
   const logs = JSON.stringify((await call("/api/logs", { cookie: prezes.cookie })).json);
   assert.ok(logs.includes('"feedback"') && !logs.includes("eksport spraw"), "dziennik: zdarzenie bez treści");
+});
+
+test("zgłoszenie ze zrzutem: tylko PNG/JPG/WebP sprawdzane po zawartości, podgląd tylko dla zarządu", async () => {
+  const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const anna = await login("anna");
+  const svg = "data:image/png;base64," + Buffer.from("<svg onload=alert(1)>").toString("base64"); // podszywa się pod PNG
+  assert.equal((await call("/api/feedback", { method: "POST", cookie: anna.cookie, body: { type: "problem", text: "Zrzut, który nie jest obrazem", screenshot: svg } })).status, 400);
+  assert.equal((await call("/api/feedback", { method: "POST", cookie: anna.cookie, body: { type: "problem", text: "Zrzut w złym formacie", screenshot: "data:image/svg+xml;base64,PHN2Zz4=" } })).status, 400);
+  const ok = await call("/api/feedback", { method: "POST", cookie: anna.cookie, body: { type: "problem", text: "Przycisk nie reaguje, zrzut w załączniku", screenshot: PNG } });
+  assert.equal(ok.status, 200);
+  assert.equal((await call(`/api/feedback/${ok.json.id}/screenshot`, { cookie: anna.cookie })).status, 403);
+  const prezes = await login("prezes");
+  const img = await fetch(`${base}/api/feedback/${ok.json.id}/screenshot`, { headers: { cookie: prezes.cookie } });
+  assert.equal(img.status, 200); assert.equal(img.headers.get("content-type"), "image/png");
+  assert.equal(Buffer.from(await img.arrayBuffer()).subarray(1, 4).toString(), "PNG");
+  assert.equal((await call("/api/feedback/Z-000000/screenshot", { cookie: prezes.cookie })).status, 404);
+  assert.equal((await call("/api/feedback/..%2F..%2Fetc/screenshot", { cookie: prezes.cookie })).status, 404);
 });

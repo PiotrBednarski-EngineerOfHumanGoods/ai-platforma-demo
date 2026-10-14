@@ -43,6 +43,14 @@ const read = n => {
 // zapis atomowy: najpierw plik tymczasowy, potem rename, żeby awaria w trakcie nie zostawiła połowy pliku
 const write = (n, v) => { const tmp = f(n) + ".tmp"; fs.writeFileSync(tmp, encrypt(JSON.stringify(v)), { mode: 0o600 }); fs.renameSync(tmp, f(n)); };
 export const encryptionOn = () => !!key();
+// Pliki binarne (zrzuty ekranu ze zgłoszeń): osobno w data/blobs, zaszyfrowane tym samym kluczem.
+const BLOBS = path.join(DIR, "blobs");
+const blobPath = name => { if (!/^[A-Z0-9-]+\.(png|jpg|webp)$/i.test(name)) throw new Error("zła nazwa pliku"); return path.join(BLOBS, name); };
+export const blobs = {
+  save(name, buf) { fs.mkdirSync(BLOBS, { recursive: true }); const p = blobPath(name); fs.writeFileSync(p + ".tmp", encrypt(buf.toString("base64")), { mode: 0o600 }); fs.renameSync(p + ".tmp", p); },
+  read(name) { const p = blobPath(name); return fs.existsSync(p) ? Buffer.from(decrypt(fs.readFileSync(p, "utf8")), "base64") : null; },
+  remove(name) { try { fs.unlinkSync(blobPath(name)); } catch {} }
+};
 const month = () => new Date().toISOString().slice(0, 7);
 
 let pending = [];
@@ -75,7 +83,7 @@ export const store = {
   // Dokumenty wgrane przez pracowników (baza wiedzy działu), zaszyfrowane jak reszta danych
   docs() { return read("docs"); },
   feedback() { return read("feedback"); },
-  addFeedback(f) { const l = read("feedback"); l.unshift(f); write("feedback", l.slice(0, 500)); },
+  addFeedback(f) { const l = read("feedback"); l.unshift(f); l.slice(500).forEach(x => x.screenshot && blobs.remove(x.screenshot.file)); write("feedback", l.slice(0, 500)); }, // starsze niż 500: razem ze zrzutem
   setFeedback(id, patch) { write("feedback", read("feedback").map(f => f.id === id ? { ...f, ...patch } : f)); },
   addDoc(d) { const l = read("docs").filter(x => !(x.dept === d.dept && x.file === d.file)); l.push(d); write("docs", l); },
   removeDoc(dept, file) { const l = read("docs"); const n = l.filter(x => !(x.dept === dept && x.file === file)); write("docs", n); return n.length !== l.length; },

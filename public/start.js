@@ -38,14 +38,14 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
     const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.1;
     // tafla: soczewka + grzbiet fali, potem drugi, słabszy krąg
-    ["w1", "w2", "w3", "w4"].forEach(k => {
+    ["w1"].forEach(k => {
       const w = document.createElement("div"); w.className = "water " + k;
       w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px");
       w.style.setProperty("--s0", ((c.width / 2) / (R * .58)).toFixed(4)); // wewnętrzna krawędź kręgu startuje na krawędzi kompasu
       document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
     });
     // elementy strony uginają się, gdy grzbiet fali przez nie przechodzi (tylko transformacje: płynnie)
-    const T = 5600, ease = r => 1 - Math.pow(1 - r, 1.5); // ten sam profil co animacja pierwszego kręgu
+    const T = 3400, ease = r => 1 - Math.pow(1 - r, 1.5); // ten sam profil co animacja kręgu
     const at = d => { let lo = 0, hi = 1; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (ease(m) * R * .9 < d) lo = m; else hi = m; } return lo * T; };
     document.querySelectorAll(".top .brand, .topnav > *, .hero h1, .hero .lead, .hero .cta, .hero .note, .demo, .hero ~ section h2").forEach(el => {
       const r = el.getBoundingClientRect(); if (r.top > innerHeight) return;

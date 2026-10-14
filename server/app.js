@@ -10,7 +10,7 @@ import { loadKnowledge, search, chunksOf } from "./knowledge.js";
 import { mask, unmask, newState } from "./pii.js";
 import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
-import { store, encryptionOn } from "./store.js";
+import { store, encryptionOn, blobs } from "./store.js";
 import { securityHeaders, requireCsrfHeader, createSessions, createLoginLimiter, verifyPassword, hashPassword, rateLimit } from "./security.js";
 import crypto from "crypto";
 import { validateFeedback, notifyFeedback, FEEDBACK_TYPES } from "./feedback.js";
@@ -25,7 +25,8 @@ app.set("trust proxy", 1); // za Caddy/Nginx: prawdziwe IP klienta dla limitu lo
 app.disable("x-powered-by");
 app.use(securityHeaders);
 app.use(requireCsrfHeader);
-app.use(express.json({ limit: "512kb" }));
+const json512 = express.json({ limit: "512kb" });
+app.use((req, res, next) => (req.method === "POST" && req.path === "/api/feedback") ? next() : json512(req, res, next)); // zgłoszenia mają własny limit (zrzut ekranu)
 // Czyste adresy: /app i /prywatnosc; stare z .html przekierowują na stałe
 app.get(/^\/(app|prywatnosc)\.html$/, (req, res) => {
   const q = req.originalUrl.indexOf("?");
@@ -254,17 +255,26 @@ app.post("/api/actions/:id/reject", auth, (req, res) => {
 });
 
 // Zgłoszenia „Zgłoś”: od razu do opiekuna systemu (e-mail/webhook), kopia zaszyfrowana dla zarządu
-const feedbackLimit = rateLimit({ max: 5, windowMs: 10 * 60 * 1000 });
-app.post("/api/feedback", auth, feedbackLimit, safe(async (req, res) => {
+const feedbackLimit = rateLimit({ max: Number(process.env.FEEDBACK_RATE_LIMIT || 5), windowMs: 10 * 60 * 1000 }); // zgłoszeń na 10 minut z jednego adresu
+app.post("/api/feedback", auth, feedbackLimit, express.json({ limit: "4mb" }), safe(async (req, res) => {
   const v = validateFeedback(req.body);
   if (v.error) return res.status(400).json({ error: v.error });
-  const item = { id: "Z-" + crypto.randomBytes(3).toString("hex").toUpperCase(), ts: new Date().toISOString(), userId: req.user.id, userName: req.user.name, dept: req.user.dept, deptName: DEPTS[req.user.dept], ...v, status: "nowe" };
+  const { screenshot, ...rest } = v;
+  const item = { id: "Z-" + crypto.randomBytes(3).toString("hex").toUpperCase(), ts: new Date().toISOString(), userId: req.user.id, userName: req.user.name, dept: req.user.dept, deptName: DEPTS[req.user.dept], ...rest, status: "nowe" };
+  if (screenshot) { item.screenshot = { file: `${item.id}.${screenshot.ext}`, mime: screenshot.mime, size: screenshot.buf.length }; blobs.save(item.screenshot.file, screenshot.buf); }
   store.addFeedback(item);
   store.log({ userId: req.user.id, dept: req.user.dept, event: "feedback", action: FEEDBACK_TYPES[v.type] }); // dziennik: bez treści
-  const via = await notifyFeedback(item);
+  const via = await notifyFeedback(item, { attachment: screenshot ? { filename: `zrzut-${item.id}.${screenshot.ext}`, buf: screenshot.buf } : null });
   if (via) store.setFeedback(item.id, { via });
   res.json({ ok: true, id: item.id, via });
 }));
+app.get("/api/feedback/:id/screenshot", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
+  const f = /^Z-[0-9A-F]{6}$/.test(req.params.id) && store.feedback().find(x => x.id === req.params.id);
+  const buf = f && f.screenshot && blobs.read(f.screenshot.file);
+  if (!buf) return res.status(404).json({ error: "Nie znaleziono zrzutu ekranu." });
+  res.set({ "Content-Type": f.screenshot.mime, "Content-Disposition": `inline; filename="zrzut-${f.id}.${f.screenshot.file.split(".").pop()}"` }).send(buf);
+});
 app.get("/api/feedback", auth, (req, res) => {
   if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Ta sekcja jest dostępna tylko dla zarządu." });
   res.json(store.feedback());
