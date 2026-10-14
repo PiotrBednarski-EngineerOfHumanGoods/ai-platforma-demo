@@ -31,6 +31,8 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     el.style.setProperty("--by", b.top + b.height / 2 - 12 + "px"); // przycisk wjeżdża 12px od dołu
   };
   measure(); addEventListener("resize", measure); document.fonts?.ready.then(measure);
+  const go = () => requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("ready")));
+  Promise.race([document.fonts?.ready || Promise.resolve(), new Promise(r => setTimeout(r, 900))]).then(go);
   let done = false;
   const wave = () => {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;

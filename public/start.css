@@ -223,6 +223,8 @@ h1{font-size:56px;line-height:1.06;letter-spacing:-.03em;max-width:16ch}
    Raz na sesję (theme-init.js ustawia html.with-intro), pomijane przy „ogranicz ruch”. Bez obrazków: CSS 3D + gradienty. */
 .intro{display:none}
 html.with-intro body{overflow:hidden}
+/* animacje intro ruszają dopiero po wczytaniu czcionek (start.js dodaje .ready): bez szarpnięcia przy pierwszym wejściu */
+html.with-intro .intro:not(.ready) *,html.with-intro .intro:not(.ready)::before{animation-play-state:paused!important}
 html.with-intro .intro{display:block;position:fixed;inset:0;z-index:100;overflow:hidden;color:var(--fg1);
   --size:min(52vmin,calc(80svh - 240px),70vw);--t:calc(var(--size) * .075);--cx:50vw;--cy:55vh;--bx:50vw;--by:85vh}
 
