@@ -504,3 +504,37 @@ Każdą poprawkę wdrażać osobno, po zatwierdzeniu, z testem potwierdzającym 
 | Ogólny poziom zadania rekrutacyjnego | **7/10** | Znacznie powyżej typowej odpowiedzi: działa na żywo, ma testy, CI, dokumentację, kontrolę kosztów i uczciwą listę braków. Odejmuję za płytkie „zamiast CRM / procesy” i za ryzyko utraty wiarygodności przez przesadzone twierdzenia. Po poprawkach P0 i kilku P1: 8. |
 
 **Odpowiedź na najważniejsze pytanie:** Compax jest dobrze przemyślanym **demonstratorem z działającym rdzeniem bramy AI**, który po określonych poprawkach (P0 + kluczowe P1, około 3–5 dni) nadaje się na **pilotaż** u klienta, a po dalszych (SQLite, SSO, NER, kopie, monitoring, pentest, przegląd RODO) — do wdrożenia komercyjnego. Dziś **prezentacja obiecuje więcej, niż realizuje aplikacja**, ale różnica dotyczy głównie sformułowań i kilku konkretnych luk, a nie fikcyjnych funkcji.
+
+---
+
+## Stan po poprawkach (wersja 1.3.0, 2026-10-15)
+
+Poprawki wdrożone na compax.tech, każda z testem (razem 64 testy; test uruchomionej aplikacji na produkcji: 44/44).
+
+| Pozycja | Status | Gdzie |
+|---|---|---|
+| P0-1 dokumenty i historia bez klasyfikacji | **poprawione**: fragmenty z danymi chronionymi (zdrowie przy osobie, PESEL, pensje) i z działów bez chmury nie wychodzą; klasyfikowana cała historia | `server/app.js` (krok 3c), `tests/gateway.test.mjs` |
+| P0-2 zgłoszenia do Resend | **poprawione**: bez zrzutu ekranu, bez treści z danymi chronionymi | `server/feedback.js`, `tests/feedback.test.mjs` |
+| P0-3 publiczne hasło zarządu | **poprawione**: osobne hasło z `.env` (`PASSWORD_HASH_PREZES`), usunięte z ekranu logowania i slajdu | `server/users.js`, `public/app.html` |
+| P0-4 bezwzględne twierdzenia w prezentacji | **poprawione** (wersja 33 prezentacji) | slajdy 7, 8, 9, 12, 13, 14, 15, 21 |
+| P1-1, B1, B6 obejścia filtra | **poprawione** (normalizacja NFKC, znaki niewidoczne, O→0, numer rozbity tekstem); zapis słowny pozostaje ryzykiem resztkowym | `server/policy.js`, `tests/pii.test.mjs` |
+| P1-2 fałszywe alarmy | **poprawione** (PESEL z sumą kontrolną albo słowem „PESEL”, „diagnoza usterki”) | `server/policy.js` |
+| P1-3 luki maskowania | **częściowo**: nazwiska po końcówce, telefony stacjonarne i 2-2-2, adresy, NIP 3-2-2-3; nazwiska bez typowej końcówki („Nowak”) i małą literą nadal wymagają NER | `server/pii.js` |
+| P1-4 chmura zarządu a dokumenty księgowości | **poprawione** | `server/app.js` |
+| P1-5 budżet | **poprawione** (rezerwacja najdroższego przypadku) | `server/app.js`, test równoległy |
+| P1-6 rotacja klucza | **poprawione** (wszystkie pliki) | `scripts/admin.mjs`, `tests/admin.test.mjs` |
+| P1-7 dziennik | **poprawione**: 5000 wpisów, domyślnie bez treści pytań (`LOG_PROMPTS=1` w demo) | `server/store.js`, `server/app.js` |
+| P1-8 nazwisko pracownika w prompcie | **poprawione** | `systemPrompt` |
+| P1-9 sprawy i terminy | **poprawione**: sprawy w wiedzy działu, data w poleceniu dla modelu | `server/app.js` |
+| P1-10 limity per IP | **poprawione** (pytania per pracownik, wyższy próg IP) | `server/security.js` |
+| P1-11 timeouty | **poprawione** (45 s, jedno ponowienie) | `server/providers.js` |
+| P1-12 domyślny model | **poprawione** (Sonnet) | `server/policy.js` |
+| P1-13 fail-fast szyfrowania | **poprawione** (zły klucz albo brak w produkcji = brak startu; skrypt wdrożenia generuje klucz) | `server/store.js`, `deploy/start-app.sh` |
+| P1-14 dokumentacja RODO | **poprawione** (zakres, pseudonimizacja, odbiorcy, art. 9 vs 87, DPIA, LIA, ryzyko resztkowe) | `docs/06` |
+| P1-15 prawa osób | **poprawione** (całe słowo, pełny eksport, czyszczenie pamięci odpowiedzi) | `scripts/admin.mjs` |
+| P1-16 alert administratora | **zmienione sformułowanie** („może dostać powiadomienie”); webhook do skonfigurowania u klienta | slajd 7 |
+| P1-17, P1-18, P1-19, P1-20 | **poprawione** (język, PESEL rozbity tekstem, telefon w temacie, podwójne „Zatwierdź”) | slajdy, `server/tools.js` pośrednio przez `server/app.js`, `public/app.js` |
+| B4, B5, B7, B8, B9, B10, B11 | **poprawione** | `public/app.js`, `public/app.css`, `server/app.js` |
+| F8 sesje i wnioski w pamięci, F14 kopie poza serwerem, F16 konta w kodzie, F18 SQLite, U1 podgląd dokumentów, A7 sprawdzanie treści cytowań, A14 wyszukiwanie dla polszczyzny, ewaluacja na prawdziwym modelu, n8n | **otwarte** (plan w sekcji 12) | – |
+
+Weryfikacja: `npm test` (64/64), test w przeglądarce (Chrome, lokalnie): ukryte konto zarządu, przywrócenie sesji po odświeżeniu, osoba w mianowniku i temat bez telefonu, brak „undefined” po podwójnym kliknięciu, dziennik bez treści pytań, informacja o braku chmury; produkcja: `npm run smoke` 44/44, stare hasło zarządu odrzucane (401).
