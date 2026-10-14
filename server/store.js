@@ -14,7 +14,7 @@ let pending = [];
 export const store = {
   log(entry) { const l = read("logs"); l.push({ ts: new Date().toISOString(), ...entry }); write("logs", l.slice(-500)); },
   logs() { return read("logs").slice().reverse().slice(0, 100); },
-  addPending(a) { const p = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, status: "pending", ...a }; pending.push(p); return p; },
+  addPending(a) { const p = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, status: "pending", at: new Date().toISOString(), ...a }; pending.push(p); return p; },
   pendingFor(user) { return pending.filter(p => p.userId === user.id); },
   takePending(id, user) { const i = pending.findIndex(p => p.id === id && p.userId === user.id); if (i < 0) return null; return pending.splice(i, 1)[0]; },
   addCase(c) { const l = read("cases"); l.unshift({ id: Date.now(), ...c }); write("cases", l); },

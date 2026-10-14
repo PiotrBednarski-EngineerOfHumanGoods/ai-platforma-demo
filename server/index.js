@@ -46,7 +46,8 @@ app.get("/api/meta", (req, res) => res.json({
 app.post("/api/login", (req, res) => {
   if (loginLimiter.blocked(req.ip)) return res.status(429).json({ error: "Za dużo nieudanych prób. Spróbuj za 15 minut." });
   const { userId, password } = req.body;
-  const u = users.find(x => x.id === userId);
+  const who = String(userId ?? "").trim().toLowerCase();
+  const u = users.find(x => x.id === who || x.login === who);
   if (!u || !verifyPassword(password, u.passwordHash)) { loginLimiter.failed(req.ip); return res.status(401).json({ error: "Nieprawidłowy użytkownik lub hasło" }); }
   loginLimiter.reset(req.ip);
   const token = sessions.create(u);
@@ -147,15 +148,20 @@ ${ctx || "(brak pasujących dokumentów)"}`;
 function mockAnswer(message, hits, user) {
   const action = detectToolMock(message, user);
   let answer;
-  if (action) { // prośba o akcję: krótkie potwierdzenie zamiast fragmentów dokumentów
-    answer = `Rozumiem. Przygotowałem akcję „${TOOLS.find(t => t.name === action.tool).title}” – sprawdź dane i zatwierdź w panelu po prawej. Wykonam ją dopiero po Twojej zgodzie.`;
-    return { answer, action };
+  if (action) { // prośba o akcję: konkret z danymi, bez formułek
+    const a = action.args;
+    const summary = {
+      umow_spotkanie: `Spotkanie z ${a.z_kim}, ${a.kiedy}.`,
+      zapisz_sprawe: `Notatka o kliencie ${a.klient}.`,
+      przypomnienie_platnosc: `Przypomnienie o płatności dla ${a.kontrahent}, ${a.faktura}, ${a.kwota}.`
+    }[action.tool];
+    return { answer: `${summary} Sprawdź dane i zatwierdź, wtedy to wykonam.`, action };
   }
   if (hits.length) {
     const lines = hits.slice(0, 3).map((h, i) => `[${i + 1}] ${h.text.replace(/^#+\s*/, "").split("\n").filter(Boolean).slice(0, 2).join(": ")}`);
-    answer = `Z dokumentów firmy:\n\n${lines.join("\n\n")}\n\n(Tryb demo bez modelu językowego: odpowiedź to najtrafniejsze fragmenty bazy wiedzy. Z podłączonym modelem dostaniesz pełną odpowiedź w jednym akapicie.)`;
+    answer = `${lines.join("\n\n")}\n\nTryb demo bez modelu: to najtrafniejsze fragmenty dokumentów, nie zredagowana odpowiedź.`;
   } else {
-    answer = "Nie znajduję tego w dokumentach firmy, do których masz dostęp. Zapytaj przełożonego działu lub poproś o dodanie dokumentu do bazy wiedzy.";
+    answer = "Nie ma tego w dokumentach, do których masz dostęp. Zapytaj przełożonego albo poproś o dodanie dokumentu do bazy wiedzy.";
   }
   return { answer, action };
 }
