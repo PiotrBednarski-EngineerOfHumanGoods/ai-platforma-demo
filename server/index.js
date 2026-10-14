@@ -12,13 +12,11 @@ import { callModel } from "./providers.js";
 import { TOOLS, executeTool, detectToolMock } from "./tools.js";
 import { store } from "./store.js";
 import { securityHeaders, createSessions, createLoginLimiter, verifyPassword, rateLimit } from "./security.js";
-import { classify, route, alert } from "./policy.js";
+import { classify, decide, alert, availableProviders, allowedFor, estimateTokens, costOf, CLOUD_MONTHLY_LIMIT } from "./policy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const PROVIDER = process.env.AI_PROVIDER || "mock";
-// Model lokalny dla danych chronionych: dostępny, gdy skonfigurowano Ollamę (dane nie opuszczają serwera)
-const LOCAL_PROVIDER = PROVIDER === "ollama" || process.env.OLLAMA_URL ? "ollama" : null;
 
 const app = express();
 app.set("trust proxy", 1); // za Caddy/Nginx: prawdziwe IP klienta dla limitu logowań
@@ -43,6 +41,7 @@ function allowedDepts(user) {
 // --- API ---
 app.get("/api/meta", (req, res) => res.json({
   provider: PROVIDER, model: process.env.MODEL || null, depts: DEPTS,
+  providers: availableProviders(), cloudMonthlyLimit: CLOUD_MONTHLY_LIMIT,
   users: users.map(u => ({ id: u.id, name: u.name, dept: u.dept, role: u.role }))
 }));
 
@@ -54,7 +53,7 @@ app.post("/api/login", (req, res) => {
   if (!u || !verifyPassword(password, u.passwordHash)) { loginLimiter.failed(req.ip); return res.status(401).json({ error: "Nieprawidłowy użytkownik lub hasło" }); }
   loginLimiter.reset(req.ip);
   const token = sessions.create(u);
-  res.json({ token, user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u) });
+  res.json({ token, user: { id: u.id, name: u.name, dept: u.dept, role: u.role }, depts: allowedDepts(u), providers: allowedFor(u.dept).map(p => p.id) });
 });
 app.post("/api/logout", auth, (req, res) => { sessions.destroy(req.headers.authorization?.replace("Bearer ", "")); res.json({ ok: true }); });
 
@@ -66,7 +65,7 @@ app.get("/api/knowledge", auth, (req, res) => {
 
 app.post("/api/chat", auth, chatLimit, async (req, res) => {
   const t0 = Date.now();
-  const { message, history = [] } = req.body;
+  const { message, history = [], provider: requested } = req.body;
   // Walidacja wejścia: treść to dane, ale rozmiar i typ muszą być pod kontrolą
   if (typeof message !== "string" || !message.trim() || message.length > 2000) return res.status(400).json({ error: "Wiadomość: 1–2000 znaków" });
   if (!Array.isArray(history) || history.length > 20 || history.some(h => !h || typeof h.content !== "string" || h.content.length > 4000 || !["user", "assistant"].includes(h.role))) return res.status(400).json({ error: "Nieprawidłowa historia rozmowy" });
@@ -86,16 +85,17 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   // Licznik dla użytkownika: tokeny w jego wiadomości. Fragmenty dokumentów też są maskowane tym samym stanem.
   const piiInMessage = (masked.match(/\[[A-Z]+_\d+\]/g) || []).length;
 
-  // 3. Klasyfikacja i trasa: dane chronione tylko do modelu lokalnego, bez niego nie wychodzą nigdzie
+  // 3. Klasyfikacja i trasa: poziom wiadomości + polityka działu + wybór pracownika + limit chmury
   const policy = classify(message, piiInMessage);
-  const trip = route(policy.level, PROVIDER, LOCAL_PROVIDER);
-  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider };
+  const trip = decide({ level: policy.level, dept: user.dept, requested: typeof requested === "string" ? requested : null, cloudUsed: store.cloudCallsThisMonth(user.dept) });
+  const policyOut = { level: policy.level, reasons: policy.reasons, route: trip.kind, provider: trip.provider, note: trip.reason };
   if (trip.blocked) {
     const ts = new Date().toISOString();
     store.log({ userId: user.id, dept: user.dept, provider: null, event: "blocked", policy: policyOut, pii_found: piiInMessage, ms: Date.now() - t0 });
-    alert({ userId: user.id, dept: user.dept, reasons: policy.reasons, ts }); // bez treści wiadomości
+    alert({ userId: user.id, dept: user.dept, reasons: policy.reasons.length ? policy.reasons : [trip.reason], ts }); // bez treści wiadomości
+    const hint = policy.level === "restricted" ? "Usuń te dane z wiadomości albo poproś administratora o model lokalny dla działu." : "Skontaktuj się z administratorem.";
     return res.json({
-      answer: `Ta wiadomość zawiera dane chronione (${policy.reasons.join(", ")}). Takie dane nie mogą opuścić firmy, a model lokalny nie jest skonfigurowany, więc nic nie zostało wysłane. Usuń te dane z wiadomości albo poproś administratora o włączenie modelu lokalnego.`,
+      answer: `Wiadomość została zatrzymana w bramie: ${trip.reason}. Nic nie zostało wysłane. ${hint}`,
       sources: [], action: null, masked_preview: null, pii_found: piiInMessage, policy: policyOut
     });
   }
@@ -114,15 +114,20 @@ app.post("/api/chat", auth, chatLimit, async (req, res) => {
   let action = out.action ? JSON.parse(unmask(JSON.stringify(out.action), map)) : null;
   if (action) action = store.addPending({ ...action, userId: user.id, dept: user.dept });
 
-  // 6. Log: co faktycznie poszło do modelu i którą trasą
+  // 6. Koszt: szacunek tokenów i cena z cennika (chmura), lokalnie i w demie 0
+  const tokensIn = estimateTokens(sys) + maskedHistory.reduce((s, h) => s + estimateTokens(h.content), 0) + estimateTokens(masked);
+  const tokensOut = estimateTokens(out.answer);
+  const cost = costOf(trip.provider, tokensIn, tokensOut);
+
+  // 7. Log: co faktycznie poszło do modelu, którą trasą i ile kosztowało
   store.log({
     userId: user.id, dept: user.dept, provider: trip.provider, policy: policyOut,
     prompt_masked: masked, pii_found: piiInMessage,
     sources: hits.map(h => `${h.dept}/${h.file}#${h.idx}`),
-    action: action ? action.tool : null, ms: Date.now() - t0
+    action: action ? action.tool : null, tokens_in: tokensIn, tokens_out: tokensOut, cost, ms: Date.now() - t0
   });
 
-  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut });
+  res.json({ answer, sources: hits.map(h => ({ file: `${h.dept}/${h.file}`, snippet: h.text.slice(0, 220) })), action, masked_preview: masked, pii_found: piiInMessage, policy: policyOut, usage: { tokens_in: tokensIn, tokens_out: tokensOut, cost } });
 });
 
 // Akcje wymagające zatwierdzenia przez człowieka
@@ -145,6 +150,11 @@ app.get("/api/cases", auth, (req, res) => res.json(store.cases(allowedDepts(req.
 app.get("/api/logs", auth, (req, res) => {
   if (!["zarzad", "admin"].includes(req.user.dept) && req.user.role !== "admin") return res.status(403).json({ error: "Tylko zarząd/admin" });
   res.json(store.logs());
+});
+// Zużycie i koszty w bieżącym miesiącu per dział (panel zarządu)
+app.get("/api/usage", auth, (req, res) => {
+  if (req.user.dept !== "zarzad") return res.status(403).json({ error: "Tylko zarząd" });
+  res.json({ month: new Date().toISOString().slice(0, 7), cloudMonthlyLimit: CLOUD_MONTHLY_LIMIT, depts: store.usageThisMonth() });
 });
 
 // --- Prompt systemowy ---

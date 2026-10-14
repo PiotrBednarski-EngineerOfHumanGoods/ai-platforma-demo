@@ -1,8 +1,46 @@
-// Klasyfikacja wrażliwości i trasowanie w bramie AI.
-// Zasada: dane jawne i wewnętrzne (po zamaskowaniu) mogą iść do modelu zewnętrznego,
-// dane chronione wyłącznie do modelu lokalnego, a gdy go nie ma, nie wychodzą nigdzie.
-// W produkcji: klasyfikator NER/ML (np. Microsoft Presidio) zamiast reguł, polityka per dział w konfiguracji.
+// Polityka bramy AI: dostępni dostawcy, polityka per dział, klasyfikacja wrażliwości, trasa, limity i koszty.
+// Zasady:
+//   - dane jawne i wewnętrzne (po zamaskowaniu) mogą iść do dostawcy, którego dział ma dozwolonego,
+//   - dane chronione idą wyłącznie do modelu lokalnego; bez niego wiadomość zostaje w bramie,
+//   - pracownik wybiera tylko spośród dostawców dozwolonych dla swojego działu (ustawia administrator),
+//   - chmura ma miesięczny limit zapytań na dział; po jego wyczerpaniu zapytania idą lokalnie albo są zatrzymywane.
+// W produkcji: klasyfikator NER/ML (np. Microsoft Presidio) zamiast reguł, polityka w konfiguracji/panelu administratora.
 
+export const PROVIDERS = {
+  mock:      { label: "tryb demo (serwer firmy)",  kind: "mock" },
+  ollama:    { label: "model lokalny (serwer firmy)", kind: "local" },
+  anthropic: { label: "Claude (chmura)",           kind: "external" },
+  openai:    { label: "GPT (chmura)",              kind: "external" }
+};
+
+// Dostawcy skonfigurowani na tym serwerze (domyślny AI_PROVIDER plus wszystko, do czego są klucze/adresy).
+export function availableProviders() {
+  const set = new Set([process.env.AI_PROVIDER || "mock"]);
+  if (process.env.OLLAMA_URL) set.add("ollama");
+  if (process.env.ANTHROPIC_API_KEY) set.add("anthropic");
+  if (process.env.OPENAI_API_KEY) set.add("openai");
+  return [...set].filter(p => PROVIDERS[p]).map(id => ({ id, ...PROVIDERS[id] }));
+}
+
+// Polityka per dział: które rodzaje dostawców wolno. Administrator nadpisuje przez DEPT_POLICY_JSON w .env,
+// np. {"ksiegowosc":["mock","ollama"],"*":["mock","ollama","anthropic"]}
+const DEFAULT_DEPT_POLICY = {
+  ksiegowosc: ["mock", "ollama"],           // faktury, kwoty, NIP-y: tylko serwer firmy
+  zarzad:     ["mock", "ollama"],           // dane strategiczne: tylko serwer firmy
+  "*":        ["mock", "ollama", "anthropic", "openai"]
+};
+function deptPolicy() {
+  try { return { ...DEFAULT_DEPT_POLICY, ...JSON.parse(process.env.DEPT_POLICY_JSON || "{}") }; }
+  catch { console.error("DEPT_POLICY_JSON: nieprawidłowy JSON, używam domyślnej polityki"); return DEFAULT_DEPT_POLICY; }
+}
+export function allowedFor(dept) {
+  const policy = deptPolicy();
+  const allowed = policy[dept] || policy["*"];
+  return availableProviders().filter(p => allowed.includes(p.id));
+}
+export const CLOUD_MONTHLY_LIMIT = Number(process.env.CLOUD_MONTHLY_LIMIT || 500);
+
+// Klasyfikacja wiadomości: "public" | "internal" | "restricted"
 const RESTRICTED = [
   [/\b\d{11}\b/, "PESEL"],
   [/\b\d{2}(?:[\s-]?\d{4}){6}\b/, "numer konta"],
@@ -10,25 +48,44 @@ const RESTRICTED = [
   [/\b(wynagrodzeni|pensj|lista płac|wypłat[ay]\b|zarabia)/iu, "wynagrodzenia"],
   [/\b(karta kredytow|\bCVV\b|hasło\s*[:=]|token\s*[:=])/iu, "dane uwierzytelniające"]
 ];
-
-// level: "public" | "internal" | "restricted"; reasons: co zdecydowało
 export function classify(message, piiCount) {
-  const reasons = RESTRICTED.filter(([re]) => re.test(message)).map(([, label]) => label);
-  if (reasons.length) return { level: "restricted", reasons: [...new Set(reasons)] };
+  const reasons = [...new Set(RESTRICTED.filter(([re]) => re.test(message)).map(([, label]) => label))];
+  if (reasons.length) return { level: "restricted", reasons };
   if (piiCount > 0) return { level: "internal", reasons: ["dane osobowe (zamaskowane)"] };
   return { level: "public", reasons: [] };
 }
 
-// Trasa: do którego dostawcy może pójść wiadomość o danym poziomie.
-//   provider      – dostawca skonfigurowany (mock | anthropic | openai | ollama)
-//   localProvider – dostawca lokalny, jeśli jest (ollama), albo null
-export function route(level, provider, localProvider) {
+// Trasa: dokąd może pójść wiadomość.
+//   level     – poziom z classify()
+//   dept      – dział użytkownika
+//   requested – dostawca wybrany przez pracownika w nagłówku (może być pusty)
+//   cloudUsed – ile zapytań do chmury dział wysłał w tym miesiącu
+export function decide({ level, dept, requested, cloudUsed }) {
+  const allowed = allowedFor(dept);
+  const local = allowed.find(p => p.kind === "local");
+  const byId = id => allowed.find(p => p.id === id);
+  const def = local || allowed.find(p => p.kind === "mock") || allowed[0];
   if (level === "restricted") {
-    if (localProvider) return { provider: localProvider, kind: "local", blocked: false };
-    return { provider: null, kind: "blocked", blocked: true };
+    if (local) return { provider: local.id, kind: "local", blocked: false, reason: "dane chronione, tylko serwer firmy" };
+    return { provider: null, kind: "blocked", blocked: true, reason: "dane chronione, a dział nie ma modelu lokalnego" };
   }
-  if (provider === "mock") return { provider, kind: "mock", blocked: false };
-  return { provider, kind: provider === "ollama" ? "local" : "external", blocked: false };
+  let chosen = byId(requested) || def;
+  if (!chosen) return { provider: null, kind: "blocked", blocked: true, reason: "dział nie ma żadnego dozwolonego dostawcy" };
+  if (chosen.kind === "external" && cloudUsed >= CLOUD_MONTHLY_LIMIT) {
+    if (local) return { provider: local.id, kind: "local", blocked: false, reason: `limit chmury na ten miesiąc wyczerpany (${CLOUD_MONTHLY_LIMIT}), użyto modelu lokalnego` };
+    return { provider: null, kind: "blocked", blocked: true, reason: `limit chmury na ten miesiąc wyczerpany (${CLOUD_MONTHLY_LIMIT})` };
+  }
+  return { provider: chosen.id, kind: chosen.kind, blocked: false, reason: chosen.kind === "external" ? "dane osobowe zamaskowane przed wysyłką" : "dane nie opuszczają serwera firmy" };
+}
+
+// Koszty: szacunek tokenów (ok. 4 znaki na token) i cena z PRICING_JSON w .env (USD za 1 mln tokenów),
+// np. {"anthropic":{"in":3,"out":15},"openai":{"in":0.15,"out":0.6}}. Brak cennika = koszt nieznany (null).
+export const estimateTokens = text => Math.ceil(String(text || "").length / 4);
+export function costOf(provider, tokensIn, tokensOut) {
+  if (!provider || PROVIDERS[provider]?.kind !== "external") return 0;
+  let pricing = {}; try { pricing = JSON.parse(process.env.PRICING_JSON || "{}"); } catch { pricing = {}; }
+  const p = pricing[provider]; if (!p) return null;
+  return +((tokensIn * (p.in || 0) + tokensOut * (p.out || 0)) / 1e6).toFixed(5);
 }
 
 // Alert dla administratora przy zablokowanej wiadomości: bez treści, tylko kto, dział, powód.
@@ -37,6 +94,6 @@ export async function alert(event) {
   const url = process.env.ALERT_WEBHOOK_URL;
   if (!url) return;
   try {
-    await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: `Compax: zablokowano wysyłkę danych chronionych (${event.reasons.join(", ")}) – użytkownik ${event.userId}, dział ${event.dept}, ${event.ts}` }) });
+    await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: `Compax: zatrzymano wiadomość (${event.reasons.join(", ")}) – użytkownik ${event.userId}, dział ${event.dept}, ${event.ts}` }) });
   } catch (e) { console.error("alert webhook:", e.message); }
 }

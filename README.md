@@ -72,17 +72,21 @@ public/index.html    – interfejs (bez frameworka, żeby demo działało offlin
 skills/              – przykładowy skill dla Claude Code: checklista bezpieczeństwa wdrożenia AI
 ```
 
-## Klasyfikacja danych i trasowanie w bramie
+## Brama AI: dostawcy, polityka działów, klasyfikacja, koszty
 
-Każda wiadomość dostaje poziom i trasę, zanim cokolwiek pójdzie do modelu (`server/policy.js`):
+Układ hybrydowy: model lokalny na serwerze firmy jako domyślny, chmura tylko tam, gdzie dział ma na to zgodę, i tylko po zamaskowaniu. Wszystko w `server/policy.js`.
 
-| Poziom | Co to znaczy | Dokąd może pójść |
+| Element | Jak działa | Konfiguracja |
 |---|---|---|
-| jawne | brak danych osobowych | dowolny skonfigurowany model |
-| wewnętrzne | dane osobowe, zamaskowane tokenami | dowolny model, ale tylko po zamaskowaniu |
-| chronione | PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające | wyłącznie model lokalny (`OLLAMA_URL`); bez niego wiadomość jest zatrzymana w bramie |
+| Dostawcy | mock (demo), ollama (lokalny), anthropic, openai; dostępne są te, do których są klucze lub adresy | `AI_PROVIDER`, `OLLAMA_URL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` |
+| Polityka działu | administrator ustala, jakich dostawców dział może używać; pracownik wybiera w nagłówku tylko spośród nich. Domyślnie księgowość i zarząd: tylko serwer firmy | `DEPT_POLICY_JSON` |
+| Klasyfikacja | jawne / wewnętrzne (dane osobowe, zamaskowane) / chronione (PESEL, numer konta, zdrowie, wynagrodzenia, dane uwierzytelniające) | reguły w `policy.js` (produkcja: Presidio/NER) |
+| Trasa | chronione: wyłącznie model lokalny, bez niego wiadomość zostaje w bramie; pozostałe: wybrany dozwolony dostawca | automatycznie |
+| Limit chmury | miesięczny limit zapytań do chmury na dział; po wyczerpaniu model lokalny albo zatrzymanie | `CLOUD_MONTHLY_LIMIT` |
+| Koszty | szacunek tokenów i koszt z cennika w logu każdego zapytania; zarząd widzi sumy per dział w bieżącym miesiącu | `PRICING_JSON` |
+| Alert | zatrzymana wiadomość = wpis `blocked` bez treści i powiadomienie administratora | `ALERT_WEBHOOK_URL` |
 
-Zatrzymana wiadomość nie opuszcza serwera, użytkownik dostaje wyjaśnienie, w logu pojawia się wpis `blocked` bez treści, a jeśli ustawiono `ALERT_WEBHOOK_URL`, administrator dostaje powiadomienie (Teams, Slack, n8n). Decyzja o trasie jest widoczna w panelu „Co dostał model” i w logach zarządu.
+Panel „Co dostał model” pokazuje poziom, dokąd poszło zapytanie (zielona kropka: serwer firmy, bursztynowa: chmura) i szacowany koszt.
 
 ## Co jest uproszczone (i jak wygląda w produkcji)
 
