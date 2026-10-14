@@ -13,9 +13,9 @@ export const PROVIDERS = {
   openai:    { label: "GPT (chmura)",              kind: "external" }
 };
 
-// Dostawcy skonfigurowani na tym serwerze (domyślny AI_PROVIDER plus wszystko, do czego są klucze/adresy).
+// Dostawcy skonfigurowani na tym serwerze (wszystko, do czego są klucze/adresy; AI_PROVIDER wskazuje tylko domyślny wybór).
 export function availableProviders() {
-  const set = new Set(["mock", process.env.AI_PROVIDER || "mock"]); // tryb pokazowy zawsze dostępny: zapas po wyczerpaniu budżetu
+  const set = new Set(["mock"]); // tryb pokazowy zawsze dostępny: zapas po wyczerpaniu budżetu; reszta tylko gdy jest klucz lub adres
   if (process.env.OLLAMA_URL) set.add("ollama");
   if (process.env.ANTHROPIC_API_KEY) set.add("anthropic");
   if (process.env.OPENAI_API_KEY) set.add("openai");
