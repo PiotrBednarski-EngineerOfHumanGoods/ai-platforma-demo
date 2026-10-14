@@ -25,7 +25,12 @@ app.disable("x-powered-by");
 app.use(securityHeaders);
 app.use(requireCsrfHeader);
 app.use(express.json({ limit: "512kb" }));
-app.use(express.static(path.join(ROOT, "public")));
+// Czyste adresy: /app i /prywatnosc; stare z .html przekierowują na stałe
+app.get(/^\/(app|prywatnosc)\.html$/, (req, res) => {
+  const q = req.originalUrl.indexOf("?");
+  res.redirect(301, "/" + req.params[0] + (q >= 0 ? req.originalUrl.slice(q) : ""));
+});
+app.use(express.static(path.join(ROOT, "public"), { extensions: ["html"] }));
 
 // --- Baza wiedzy ładowana przy starcie (pliki .md w knowledge/<dział>/) ---
 // Baza wiedzy = dokumenty z folderu knowledge/ (administrator) + dokumenty wgrane w aplikacji (zaszyfrowane w data/)

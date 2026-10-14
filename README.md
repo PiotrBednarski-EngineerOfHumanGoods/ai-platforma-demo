@@ -1,6 +1,6 @@
 # Compax – asystent AI dla firmy z kilkoma działami
 
-**Demo na żywo:** https://compax.tech (ekran startowy) · logowanie: https://compax.tech/app.html, konta demo pod formularzem.
+**Demo na żywo:** https://compax.tech (ekran startowy) · logowanie: https://compax.tech/app, konta demo pod formularzem.
 
 Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale działy różnią się danymi i uprawnieniami – jak to zrobić?* Jedna wspólna platforma, a na niej osobna konfiguracja dla każdego działu: własne dokumenty, narzędzia i polityka modeli. Wszyscy logują się do tego samego asystenta, ale dostęp do danych zależy od działu.
 
@@ -33,7 +33,7 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na 
 
 ```bash
 npm install
-npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app.html
+npm start    # http://localhost:3000 – ekran startowy, logowanie pod /app
 npm test     # 31 testów automatycznych (node --test), bez dodatkowych zależności
 ```
 
