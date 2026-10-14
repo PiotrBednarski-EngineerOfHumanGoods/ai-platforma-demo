@@ -15,7 +15,8 @@ Odpowiedź na pytanie: *firma ma kilka działów i chce dostępu do AI, ale dzia
 - **dziennik** – co trafiło do modelu, ile danych zamaskowano, jakie źródła, jaka akcja (zakładka dla zarządu),
 - **brama danych** – klasyfikacja jawne / wewnętrzne / chronione; dane chronione tylko do modelu w firmie, reszta do chmury po maskowaniu,
 - **koszty pod kontrolą** – tani model do prostych pytań, mocny do analiz, pamięć odpowiedzi, budżet miesięczny i limity na dział,
-- **dokumenty od pracowników** – dodawane w aplikacji do bazy działu; dane na dysku szyfrowane, codzienne kopie.
+- **dokumenty od pracowników** – dodawane w aplikacji do bazy działu; dane na dysku szyfrowane, codzienne kopie,
+- **„Zgłoś”** – problem, pomysł albo pytanie od pracownika trafia od razu e-mailem do opiekuna systemu (dane osobowe zamaskowane).
 
 Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na żywo działa prawdziwy model Claude z budżetem 3 USD miesięcznie; księgowość i zarząd celowo nie korzystają z chmury.
 
@@ -28,6 +29,19 @@ Firma w demo jest fikcyjna (Kriomar sp. z o.o.), dane przykładowe. W wersji na 
 | Dane | szyfrowanie AES-256-GCM na dysku, maskowanie przed modelem, dziennik bez danych osobowych, codzienne kopie, bezpieczna zmiana klucza | [02](docs/02-bezpieczenstwo-i-rodo.md) |
 | Jakość | testy jednostkowe i integracyjne, test dymny wszystkich funkcji na działającym serwerze, CI na każdą zmianę, `npm audit`, Dependabot | `npm test`, `npm run smoke`, [CI](.github/workflows/ci.yml) |
 | Utrzymanie | instrukcja administratora, skrypty wdrożenia i kopii, plan wdrożenia z miarami, koszty z prawdziwych pomiarów | [03](docs/03-instrukcja-administratora.md), [04](docs/04-koszty.md), [05](docs/05-plan-wdrozenia.md), [deploy](deploy/README.md) |
+
+## Nie tylko API: cztery drogi, ta sama brama
+
+Uprawnienia działów, maskowanie i dziennik działają w każdym wariancie. Zmienia się tylko to, gdzie liczy model, a w aplikacji to jedna linia konfiguracji.
+
+| Wariant | Koszt | Dane | Kiedy wybrać |
+|---|---|---|---|
+| **Model w firmie** (Ollama, np. Bielik) | serwer z kartą graficzną, bez opłat za pytanie | nie opuszczają firmy | dane chronione, księgowość, zarząd |
+| **Subskrypcja firmowa** (Claude Team, Microsoft 365 Copilot) | stała opłata za osobę | u dostawcy, na umowie firmowej | szybki start bez własnej aplikacji, mniej kontroli nad działami |
+| **Chmura firmy** (Amazon Bedrock, Google Vertex AI w regionie UE) | w ramach umowy chmurowej | region UE, logowanie przez federację tożsamości, bez kluczy | firma już korzysta z AWS albo Google Cloud |
+| **API przez bramę** (to demo) | ok. 1 USD na 1000 pytań, twardy limit budżetu | tylko tekst po maskowaniu | własne zasady działów i pełny dziennik |
+
+**Rekomendacja: hybryda.** Dane chronione liczy model w firmie, resztę tani model w chmurze. Brama już to obsługuje.
 
 ## Dokumentacja dla klienta
 
@@ -63,7 +77,7 @@ Zaloguj się jako jeden z pracowników i użyj podpowiedzi pod czatem.
 | `m.wojcik` | Marek Wójcik | obsługa klienta | czas reakcji na awarię, reklamacje |
 | `e.nowak` | Ewa Nowak | biuro | rezerwacja sali, delegacje |
 | `t.kaczmarek` | Tomasz Kaczmarek | księgowość | windykacja; nic nie wychodzi do chmury, PESEL zatrzymany |
-| `j.zielinski` | Jan Zieliński | zarząd | zakładka Logi: trasa, model i koszt każdego pytania, budżet miesiąca |
+| `j.zielinski` | Jan Zieliński | zarząd | zakładka Dziennik: trasa, model i koszt każdego pytania, budżet miesiąca, zgłoszenia pracowników |
 
 Hasła kont demo są wypisane na ekranie logowania (rozwijana lista „Konta demo”), bo firma i dane są fikcyjne. W kodzie są tylko hashe (scrypt z solą, `server/security.js`), więc wyciek repozytorium nie ujawnia haseł. Własne hasło: `node -e "import('./server/security.js').then(m => console.log(m.hashPassword('TwojeHaslo')))"` i wklej wynik do `server/users.js`. W produkcji logowanie przejmuje SSO (Microsoft Entra / Google Workspace).
 

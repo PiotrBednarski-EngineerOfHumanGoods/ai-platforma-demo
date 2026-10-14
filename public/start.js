@@ -32,14 +32,44 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
   };
   measure(); addEventListener("resize", measure); document.fonts?.ready.then(measure);
   let done = false;
+  // mapa przesunięć: pierścień, w którym piksele odsuwają się promieniście (R = x, G = y; 128 = bez zmian)
+  const rippleMap = () => {
+    const n = 256, cv = document.createElement("canvas"); cv.width = cv.height = n;
+    const g = cv.getContext("2d"), img = g.createImageData(n, n);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const dx = (x - n / 2) / (n / 2), dy = (y - n / 2) / (n / 2), d = Math.hypot(dx, dy) || 1e-6;
+      const k = Math.exp(-(((d - .86) / .085) ** 2)) * Math.sin((d - .86) * 38); // grzbiet i dolina fali
+      const i = (y * n + x) * 4;
+      img.data[i] = 128 + 127 * (dx / d) * k; img.data[i + 1] = 128 + 127 * (dy / d) * k; img.data[i + 2] = 128; img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0); return cv.toDataURL();
+  };
   const wave = () => {
     const c = document.querySelector("#compass svg")?.getBoundingClientRect(); if (!c) return;
-    const x = c.left + c.width / 2, y = c.top + c.height / 2, r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    [0, 160].forEach((delay, i) => {
+    const x = c.left + c.width / 2, y = c.top + c.height / 2, R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) * 1.12;
+    // delikatny pierścień światła (widoczny ślad fali)
+    [0, 140].forEach((delay, i) => {
       const w = document.createElement("div"); w.className = "page-wave" + (i ? " soft" : "");
-      w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * r + 40 + "px"); w.style.animationDelay = delay + "ms";
+      w.style.setProperty("--wx", x + "px"); w.style.setProperty("--wy", y + "px"); w.style.setProperty("--wd", 2 * R + "px"); w.style.animationDelay = delay + "ms";
       document.body.appendChild(w); w.addEventListener("animationend", () => w.remove());
     });
+    // zniekształcenie obrazu: filtr SVG na stronie, obraz mapy rośnie od kompasu
+    const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.setAttribute("aria-hidden", "true"); svg.classList.add("ripple-defs");
+    svg.innerHTML = `<filter id="compaxRipple" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="${innerWidth}" height="${innerHeight}" color-interpolation-filters="sRGB"><feImage result="map" preserveAspectRatio="none"/><feDisplacementMap in="SourceGraphic" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter>`;
+    document.body.appendChild(svg);
+    const fe = svg.querySelector("feImage"), dm = svg.querySelector("feDisplacementMap");
+    fe.setAttribute("href", rippleMap());
+    const page = document.querySelector(".page-content") || document.body;
+    page.style.filter = "url(#compaxRipple)";
+    const T = 1300, t0 = performance.now();
+    const frame = t => {
+      const p = Math.min(1, (t - t0) / T), e = 1 - Math.pow(1 - p, 2.2), r = 30 + e * R;
+      fe.setAttribute("x", x - r); fe.setAttribute("y", y - r); fe.setAttribute("width", 2 * r); fe.setAttribute("height", 2 * r);
+      dm.setAttribute("scale", (34 * Math.sin(Math.PI * Math.min(1, p * 1.15)) * (1 - p * .55)).toFixed(2));
+      if (p < 1) requestAnimationFrame(frame); else { page.style.filter = ""; svg.remove(); }
+    };
+    requestAnimationFrame(frame);
   };
   const end = withWave => { root.classList.remove("with-intro"); el.remove(); if (withWave) wave(); dispatchEvent(new Event("compax:intro-done")); };
   const finish = mode => {
@@ -52,12 +82,17 @@ function smoothNeedle(el, { idleMs = 2000 } = {}) {
     const wrap = coin.parentElement, w = wrap.getBoundingClientRect(), t = hero.getBoundingClientRect();
     const dx = t.left + t.width / 2 - (w.left + w.width / 2), dy = t.top + t.height / 2 - (w.top + w.height / 2);
     const s = t.width / (w.width * 0.58), D = 1900, opts = { duration: D, easing: "cubic-bezier(.45,.05,.2,1)", fill: "forwards" };
-    needle.animate([{ transform: getComputedStyle(needle).transform }, { transform: "rotate(0deg)" }], { duration: 1100, easing: "cubic-bezier(.3,0,.2,1)", fill: "forwards" }); // igła ląduje tak jak w kompasie strony
+    const heroWrap = document.getElementById("compass"), heroAng = parseFloat(getComputedStyle(heroWrap).getPropertyValue("--ang")) || 0;
+    needle.animate([{ transform: getComputedStyle(needle).transform }, { transform: `rotate(${heroAng}deg)` }], { duration: 1100, easing: "cubic-bezier(.3,0,.2,1)", fill: "forwards" }); // igła ląduje tak, jak wskazuje kompas strony
     wrap.animate([{ transform: "translate(0,0) scale(1)" }, { transform: "translate(0,-3%) scale(1.04)", offset: .18 }, { transform: `translate(${dx}px,${dy}px) scale(${s})` }], opts);
     el.querySelector(".coin").animate([{ transform: "rotateY(0deg)", easing: "cubic-bezier(.45,0,.4,1)" }, { transform: "rotateX(12deg) rotateY(380deg)", offset: .38, easing: "cubic-bezier(.25,0,.2,1)" }, { transform: "rotateY(720deg)", offset: .74 }, { transform: "rotateY(720deg)" }], { duration: D, fill: "forwards" }); // dwa pełne obroty
     const fade = { duration: D, easing: "linear", fill: "forwards" };
     el.querySelectorAll(".edge i").forEach(n => n.animate([{ opacity: 1 }, { opacity: 1, offset: .68 }, { opacity: 0, offset: .76 }, { opacity: 0 }], fade)); // krawędź gaśnie, gdy zasłania ją awers
     el.querySelector(".rim").animate([{ opacity: 1 }, { opacity: 1, offset: .78 }, { opacity: 0 }], fade); // potem znika tarcza, zostaje sam znak
+    // koniec lotu: moneta przechodzi w prawdziwy kompas strony (wektor, ostry), zamiast pokazywać pomniejszony obraz
+    wrap.animate([{ opacity: 1 }, { opacity: 1, offset: .84 }, { opacity: 0 }], { duration: D, fill: "forwards" });
+    const heroIn = heroWrap.animate([{ opacity: 0 }, { opacity: 0, offset: .82 }, { opacity: 1 }], { duration: D, fill: "forwards" });
+    heroIn.finished.then(() => setTimeout(() => heroIn.cancel(), 50)).catch(() => {});
     setTimeout(() => end(true), D + 20);
   };
   coin.onclick = () => finish("go");

@@ -305,7 +305,7 @@ function renderModelPicker(allowed) {
     const r = await api("/feedback", { method: "POST", body: JSON.stringify({ type: form.rtype.value, text, context }) }).catch(() => ({ error: "Brak połączenia z serwerem. Spróbuj ponownie." }));
     send.disabled = false; send.textContent = "Wyślij zgłoszenie";
     if (r.error) { msg.textContent = r.error; msg.className = "rp-msg is-err"; return; }
-    msg.textContent = `Dziękujemy! Zgłoszenie ${r.id} trafiło do opiekuna systemu.`; msg.className = "rp-msg is-ok";
+    msg.textContent = r.via ? `Dziękujemy! Zgłoszenie ${r.id} trafiło do opiekuna systemu.` : `Dziękujemy! Zgłoszenie ${r.id} zostało zapisane, opiekun systemu je zobaczy.`; msg.className = "rp-msg is-ok";
     $("#reportText").value = "";
     setTimeout(close, 1800);
   };
